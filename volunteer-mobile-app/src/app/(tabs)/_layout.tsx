@@ -1,5 +1,5 @@
-import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 import { COLORS } from "../../utils/colors";
 
 export default function TabsLayout() {
@@ -22,6 +22,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{ title: "Profile", tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} /> }}
+      />
+      <Tabs.Screen
+        name="progress"
+       options={{ href: null }}
       />
     </Tabs>
   );
