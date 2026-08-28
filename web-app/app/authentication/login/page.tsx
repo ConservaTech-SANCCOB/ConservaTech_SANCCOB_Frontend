@@ -1,23 +1,41 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth} from "../../lib/auth-context";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login } = useAuth();
+
  const [showPassword, setShowPassword] = useState(false);
  const [email, setEmail] = useState("");
  const [password, setPassword] = useState("");
  const [keepSignedIn, setKeepSignedIn] = useState(false);
+ const [error, setError] = useState("");
+ const [isSubmitting, setIsSubmitting] = useState(false);
 
- const handleSubmit = (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
+  setError("");
+  setIsSubmitting(true);
 
-  // Admin authentication integreation will wire up here to the real login API endpoint
-  console.log({ email, password, keepSignedIn });
+  try {
+    await login(email, password);
+    router.push("/dashboard");
+  } catch (error) {
+    setError("Invalid email or password. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+
 };
+  // Admin authentication integreation will wire up here to the real login API endpoint
+
 return (
     <div className="min-h-screen flex bg-slate-50">
         {/* Left side — image panel (swap the src for your own SANCCOB photo) */}
-    <div className="hiddenr lg:block lg:w-1/2 relative">
+    <div className="hidden lg:block lg:w-1/2 relative">
     <img
     src="/login-hero.png"
     alt="SANCCOB Volunteers caring for Seabirds"
