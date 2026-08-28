@@ -25,7 +25,7 @@ return (
     />
     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
     <div className="absolute bottom-10 left-10 right-10 text-white">
-      <p className="text-2xl font-semibold">Protecting seabirds, together.</p>
+      {/* <p className="text-2xl font-semibold">Protecting seabirds, together.</p> */}
       <p className="mt-2 text-white/80">
       SANCCOB Admin Portal - co-ordinating volunteers, rosters, and rescues.
       </p>
