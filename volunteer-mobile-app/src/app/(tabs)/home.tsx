@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "../../utils/colors";
-import { mockBookings } from "../../data/mockBookings";
+import { useRouter } from "expo-router";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BookingCard from "../../components/BookingCard";
+import { mockBookings } from "../../data/mockBookings";
+import { COLORS } from "../../utils/colors";
 
 export default function HomeScreen() {
+  const router = useRouter();
   const upcoming = mockBookings.filter((b) => b.status !== "Cancelled").slice(0, 2);
   const completed = 14;
   const total = 28;
@@ -27,7 +29,7 @@ export default function HomeScreen() {
         <BookingCard key={booking.id} booking={booking} showActions={false} />
       ))}
 
-      <View style={styles.skillsBanner}>
+      <TouchableOpacity style={styles.skillsBanner} onPress={() => router.push("/(tabs)/progress/skills")}>
         <View style={styles.skillsIcon}>
           <Ionicons name="paw-outline" size={22} color={COLORS.navy} />
         </View>
@@ -38,7 +40,7 @@ export default function HomeScreen() {
         <View style={styles.percentCircle}>
           <Text style={styles.percentText}>{percent}%</Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>Notifications</Text>
       <View style={styles.notification}>

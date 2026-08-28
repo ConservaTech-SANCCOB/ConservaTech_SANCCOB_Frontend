@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "../../../utils/colors";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import BookingCard from "../../../components/BookingCard";
 import { mockBookings } from "../../../data/mockBookings";
 import { Booking } from "../../../types/booking";
-import BookingCard from "../../../components/BookingCard";
+import { COLORS } from "../../../utils/colors";
 
 export default function UpcomingBookingsScreen() {
   const router = useRouter();
@@ -23,8 +23,7 @@ export default function UpcomingBookingsScreen() {
         <Text style={styles.title}>Upcoming Bookings</Text>
         <TouchableOpacity
           style={styles.availabilityButton}
-          onPress={() => router.push("/(tabs)/bookings/submit-availability")}
-        >
+onPress={() => router.push("/(tabs)/bookings/submit-availability" as any)}        >
           <Ionicons name="calendar-outline" size={16} color={COLORS.white} />
           <Text style={styles.availabilityButtonText}>Availability</Text>
         </TouchableOpacity>
