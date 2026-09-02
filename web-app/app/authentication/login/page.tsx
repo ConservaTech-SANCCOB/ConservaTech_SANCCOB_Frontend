@@ -1,23 +1,41 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth} from "../../lib/auth-context";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login } = useAuth();
+
  const [showPassword, setShowPassword] = useState(false);
  const [email, setEmail] = useState("");
  const [password, setPassword] = useState("");
  const [keepSignedIn, setKeepSignedIn] = useState(false);
+ const [error, setError] = useState("");
+ const [isSubmitting, setIsSubmitting] = useState(false);
 
- const handleSubmit = (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
+  setError("");
+  setIsSubmitting(true);
 
-  // Admin authentication integreation will wire up here to the real login API endpoint
-  console.log({ email, password, keepSignedIn });
+  try {
+    await login(email, password);
+    router.push("/dashboard");
+  } catch (error) {
+    setError("Invalid email or password. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+
 };
+  // Admin authentication integreation will wire up here to the real login API endpoint
+
 return (
     <div className="min-h-screen flex bg-slate-50">
         {/* Left side — image panel (swap the src for your own SANCCOB photo) */}
-    <div className="hiddenr lg:block lg:w-1/2 relative">
+    <div className="hidden lg:block lg:w-1/2 relative">
     <img
     src="/login-hero.png"
     alt="SANCCOB Volunteers caring for Seabirds"
@@ -25,7 +43,7 @@ return (
     />
     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
     <div className="absolute bottom-10 left-10 right-10 text-white">
-      <p className="text-2xl font-semibold">Protecting seabirds, together.</p>
+      {/* <p className="text-2xl font-semibold">Protecting seabirds, together.</p> */}
       <p className="mt-2 text-white/80">
       SANCCOB Admin Portal - co-ordinating volunteers, rosters, and rescues.
       </p>
@@ -61,7 +79,7 @@ return (
                value={email}
                 onChange={(e) => setEmail(e.target.value)}
                  placeholder="you@sanccob.co.za"
-                className="w-full border rounded-xl bg-slate-50 border-slate-200 py-3 pl-10 pr-4 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-800 focus:border-transparent"
+                className="w-full border rounded-xl bg-slate-50 border-slate-200 py-3 pl-10 pr-4 text-sm text-slate-900placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-800 focus:border-transparent"
               />
            </div>
         </div>
@@ -125,10 +143,10 @@ return (
               </button>
             </form>
 
-            <p className="mt-6 text-center text-xs text-slate-400">
+            <p className="mt-6 text-center text-xs text-black">
               Hint: use{" "}
               <span className="text-blue-800 font-medium">
-                cathy@sanccob.co.za / password
+                cathy@sanccob.co.za / password123
               </span>
             </p>
           </div>
