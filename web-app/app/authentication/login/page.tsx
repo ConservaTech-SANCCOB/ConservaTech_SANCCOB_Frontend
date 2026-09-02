@@ -79,7 +79,7 @@ return (
                value={email}
                 onChange={(e) => setEmail(e.target.value)}
                  placeholder="you@sanccob.co.za"
-                className="w-full border rounded-xl bg-slate-50 border-slate-200 py-3 pl-10 pr-4 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-800 focus:border-transparent"
+                className="w-full border rounded-xl bg-slate-50 border-slate-200 py-3 pl-10 pr-4 text-sm text-slate-900placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-800 focus:border-transparent"
               />
            </div>
         </div>
@@ -143,10 +143,10 @@ return (
               </button>
             </form>
 
-            <p className="mt-6 text-center text-xs text-slate-400">
+            <p className="mt-6 text-center text-xs text-black">
               Hint: use{" "}
               <span className="text-blue-800 font-medium">
-                cathy@sanccob.co.za / password
+                cathy@sanccob.co.za / password123
               </span>
             </p>
           </div>
