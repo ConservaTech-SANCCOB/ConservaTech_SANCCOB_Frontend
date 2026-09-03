@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   BarChart,
   Bar,
@@ -61,9 +62,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="bg-slate-100/80 p-6 min-h-screen rounded-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Welcome back, Cathy 👋</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Welcome back, Cathy </h1>
         <p className="text-slate-500 mt-1">
           Here&apos;s what&apos;s happening at SANCCOB today.
         </p>
@@ -178,7 +179,11 @@ export default function DashboardPage() {
 
       {/* Row 2: Operational cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:items-stretch">
-        <Card title="Today's Overview" subtitle="Sunday, 16 August 2026">
+        <Card 
+          title="Today's Overview" 
+          subtitle="Sunday, 16 August 2026"
+          headerRight={<LinkHeader href="/roster" text="Full Roster" />}
+        >
           <div className="space-y-3">
             {stats.todaysShifts.map((shift) => (
               <div
@@ -197,12 +202,16 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-          <button className="mt-4 text-sm font-medium text-blue-700 hover:text-blue-800 hover:underline self-start">
+          {/* <button className="mt-4 text-sm font-medium text-blue-700 hover:text-blue-800 hover:underline self-start">
             View full roster →
-          </button>
+          </button> */}
         </Card>
 
-        <Card title="Staff & Volunteer Training" subtitle="Active training sessions">
+        <Card 
+          title="Staff & Volunteer Training" 
+          subtitle="Active training sessions"
+          headerRight={<LinkHeader href="/training" text="Training Hub" />}
+        >
           <div className="space-y-3">
             {stats.trainingSessions.map((session) => (
               <div
@@ -250,7 +259,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow p-5 h-full flex flex-col">
+    <div className="bg-white rounded-2xl border-t border-l border-slate-200/80 border-b-4 border-r-2 border-slate-300 shadow-lg shadow-black/10 hover:shadow-xl hover:shadow-black/15 transition-all transform hover:-translate-y-0.5 p-5 h-full flex flex-col">
       <div className="flex items-start justify-between mb-4">
         <div>
           <h2 className="font-semibold text-slate-900 text-sm">{title}</h2>
@@ -260,6 +269,29 @@ function Card({
       </div>
       {children}
     </div>
+  );
+}
+
+function LinkHeader({ href, text }: { href: string; text: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors group"
+    >
+      <span>{text}</span>
+      <svg
+        className="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M5 12h14" />
+        <path d="m12 5 7 7-7 7" />
+      </svg>
+    </Link>
   );
 }
 
