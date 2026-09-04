@@ -1,33 +1,71 @@
 "use client";
 
-export default function Topbar() {
-  const today = new Date().toLocaleDateString("en-ZA", {
+import { useState, useEffect } from "react";
+
+function getFormattedDate(): string {
+  return new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
+}
+
+export function Topbar() {
+  const [today, setToday] = useState<string>("");
+
+  useEffect(() => {
+    // Initial client-side set
+    setToday(getFormattedDate());
+
+    let intervalId: NodeJS.Timeout;
+
+    // Calculate time remaining until midnight tonight
+    const now = new Date();
+    const midnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+      0, 0, 0, 0
+    );
+    const msUntilMidnight = midnight.getTime() - now.getTime();
+
+    // Schedule exact midnight update
+    const timeoutId = setTimeout(() => {
+      setToday(getFormattedDate());
+
+      // After the first midnight trigger, run every 24 hours
+      intervalId = setInterval(() => {
+        setToday(getFormattedDate());
+      }, 24 * 60 * 60 * 1000);
+    }, msUntilMidnight);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
 
   return (
-    <header className="h-16 border-b border-slate-200 bg-white flex items-center gap-4 px-6 sticky top-0 z-10">
-      <div className="relative flex-1 max-w-md">
-        <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
+    <header className="h-16 border-b flex items-center justify-between px-6">
+      <div className="relative flex items-center w-64">
+        <span className="absolute left-3 text-slate-400">
           <SearchIcon />
         </span>
         <input
           type="text"
-          placeholder="Search volunteers, shifts, areas..."
-          className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 pl-9 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-transparent"
+          placeholder="Search..."
+          className="w-full pl-9 pr-4 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
         />
       </div>
 
       <p className="text-sm text-slate-500 hidden md:block">{today}</p>
 
-      <button className="relative p-2 rounded-lg hover:bg-slate-100" aria-label="Notifications">
-        <BellIcon />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+      <div className="flex items-center gap-4">
+        <button className="relative p-2 rounded-lg hover:bg-slate-100" aria-label="Notifications">
+          <BellIcon />
       </button>
-
+    
       <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
         <div className="w-8 h-8 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-semibold">
           CA
@@ -37,10 +75,10 @@ export default function Topbar() {
           <p className="text-xs text-slate-500 leading-tight">Admin</p>
         </div>
       </div>
+     </div>
     </header>
-  );
-}
-
+    );
+  }
 function SearchIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
