@@ -2,100 +2,108 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth} from "../../lib/auth-context";
+import { useAuth } from "../../lib/auth-context";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
 
- const [showPassword, setShowPassword] = useState(false);
- const [email, setEmail] = useState("");
- const [password, setPassword] = useState("");
- const [keepSignedIn, setKeepSignedIn] = useState(false);
- const [error, setError] = useState("");
- const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
-  setIsSubmitting(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsSubmitting(true);
 
-  try {
-    await login(email, password);
-    router.push("/dashboard");
-  } catch (error) {
-    setError("Invalid email or password. Please try again.");
-  } finally {
-    setIsSubmitting(false);
-  }
+    try {
+      console.log("[Login] Attempting sign in for:", email);
+      await login(email, password);
+      console.log("[Login] Success, redirecting...");
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error("[Login Error]:", err);
+      setError(err?.message || "Invalid email or password. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-};
-  // Admin authentication integreation will wire up here to the real login API endpoint
-
-return (
+  return (
     <div className="min-h-screen flex bg-slate-50">
-        {/* Left side — image panel (swap the src for your own SANCCOB photo) */}
-    <div className="hidden lg:block lg:w-1/2 relative">
-    <img
-    src="/login-hero.png"
-    alt="SANCCOB Volunteers caring for Seabirds"
-    className="absolute inset-0 w-full h-full object-cover"
-    />
-    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-    <div className="absolute bottom-10 left-10 right-10 text-white">
-      {/* <p className="text-2xl font-semibold">Protecting seabirds, together.</p> */}
-      <p className="mt-2 text-white/80">
-      SANCCOB Admin Portal - co-ordinating volunteers, rosters, and rescues.
-      </p>
-     </div>
-    </div>
-
-    {/* Right side — login form */}
-    <div className="flex w-full lg:w-1/2 items-center justify-center px-6 py-12">
-    <div className="w-full max-w-md">
-    <div className="rounded-2xl bg-white p-10 shadow-sm border border-slate-100">
-    <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
-    <p className="mt-1 text-sm text-slate-500">
-      Sign in to the SANCCOB Admin portal
-     </p>
-
-     <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-        {/* Email */}
-        <div>
-          <label
-           htmlFor="email" 
-             className="block text-sm font-semibold text-slate-800 mb-1.5">
-
-            Email address
-          </label>
-          <div className="relative">
-            <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-             <MailIcon />
-             </span>
-             <input
-               id="email"
-               type="email"
-               required
-               value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                 placeholder="you@sanccob.co.za"
-                className="w-full border rounded-xl bg-slate-50 border-slate-200 py-3 pl-10 pr-4 text-sm text-slate-900placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-800 focus:border-transparent"
-              />
-           </div>
+      {/* Left side — image panel */}
+      <div className="hidden lg:block lg:w-1/2 relative">
+        <img
+          src="/login-hero.png"
+          alt="SANCCOB Volunteers caring for Seabirds"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        <div className="absolute bottom-10 left-10 right-10 text-white">
+          <p className="mt-2 text-white/80">
+            SANCCOB Admin Portal - co-ordinating volunteers, rosters, and rescues.
+          </p>
         </div>
-        {/* Password */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-         <label 
-           htmlFor="password"
-           className="block text-sm font-semibold text-slate-800">
-          
-            Password
-          </label>
-            <a
-           href="/authentication/forgot-password"
-                    className="text-sm font-medium text-blue-800 hover:underline">
+      </div>
 
+      {/* Right side — login form */}
+      <div className="flex w-full lg:w-1/2 items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md">
+          <div className="rounded-2xl bg-white p-10 shadow-sm border border-slate-100">
+            <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Sign in to the SANCCOB Admin portal
+            </p>
+
+            {/* Error Message Display */}
+            {error && (
+              <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-600">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+              {/* Email */}
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-semibold text-slate-800 mb-1.5"
+                >
+                  Email address
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
+                    <MailIcon />
+                  </span>
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@sanccob.co.za"
+                    className="w-full border rounded-xl bg-slate-50 border-slate-200 py-3 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-800 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-semibold text-slate-800"
+                  >
+                    Password
+                  </label>
+                  <a
+                    href="/authentication/forgot-password"
+                    className="text-sm font-medium text-blue-800 hover:underline"
+                  >
                     Forgot password?
                   </a>
                 </div>
@@ -137,9 +145,10 @@ return (
               {/* Submit */}
               <button
                 type="submit"
-                className="w-full rounded-xl bg-blue-900 py-3 text-sm font-semibold text-white hover:bg-blue-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-800 focus:ring-offset-2"
+                disabled={isSubmitting}
+                className="w-full rounded-xl bg-blue-900 py-3 text-sm font-semibold text-white hover:bg-blue-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-800 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Sign In
+                {isSubmitting ? "Signing in..." : "Sign In"}
               </button>
             </form>
 
@@ -188,7 +197,6 @@ function EyeIcon({ open }: { open: boolean }) {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 10 7 10 7a13.16 13.16 0 0 1-3 3.88M6.6 6.6C3.5 8.6 2 12 2 12s4 7 10 7a9.6 9.6 0 0 0 4.4-1" />
       <path d="M2 2l20 20" />
-      </svg>
-      );
-
-    }
+    </svg>
+  );
+}
