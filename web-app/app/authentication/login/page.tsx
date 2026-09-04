@@ -19,19 +19,29 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setIsSubmitting(true);
-
+    
     try {
-      console.log("[Login] Attempting sign in for:", email);
-      await login(email, password);
-      console.log("[Login] Success, redirecting...");
-      router.push("/dashboard");
-    } catch (err: any) {
-      console.error("[Login Error]:", err);
-      setError(err?.message || "Invalid email or password. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    // Trim whitespace before passing to login
+    await login(email.trim(), password.trim());
+    router.push("/dashboard");
+  } catch (err: any) {
+    setError(err?.message || "Invalid email or password. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+  //   try {
+  //     console.log("[Login] Attempting sign in for:", email);
+  //     await login(email, password);
+  //     console.log("[Login] Success, redirecting...");
+  //     router.push("/dashboard");
+  //   } catch (err: any) {
+  //     console.error("[Login Error]:", err);
+  //     setError(err?.message || "Invalid email or password. Please try again.");
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen flex bg-slate-50">
