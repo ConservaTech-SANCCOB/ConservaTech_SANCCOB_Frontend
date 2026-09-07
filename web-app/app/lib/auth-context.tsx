@@ -1,74 +1,76 @@
 "use client";
 
-import {createContext, useContext, useEffect, useState, ReactNode,} from "react";
-import {loginRequest} from "./api/auth";
-
-interface User {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-}
+import { createContext, useContext, useState, useEffect } from "react";
+import { loginRequest, LoginResponse } from "./api/auth";
 
 interface AuthContextType {
-    user: User | null;
-    token: string | null;
-    isLoading: boolean;
-    login: (email: string, password: string) => Promise<void>;
-    logout: () => void;
+  token: string | null;
+  role: string | null;
+  isLoading: boolean;
+  login: (email: string, password: string, keepSignedIn?: boolean) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({children}: {children: ReactNode}) {
-    const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [token, setToken] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    useEffect(() => {
-        const savedToken = localStorage.getItem("auth_token");
-        const savedUser = localStorage.getItem("auth_user");
-        if (savedToken && savedUser) {
-            setToken(savedToken);
-            setUser(JSON.parse(savedUser));
-        }
-        setIsLoading(false);
-    }, []);
+  // Restore session on refresh (checks both localStorage and sessionStorage)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedToken = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
+      const savedRole = localStorage.getItem("user_role") || sessionStorage.getItem("user_role");
 
-    async function login(email: string, password: string) {
-        const response = await loginRequest(email, password);
-        setToken(response.token);
-        setUser(response.user);
-        localStorage.setItem("auth_token", response.token);
-        localStorage.setItem("auth_user", JSON.stringify(response.user));
+      if (savedToken && savedToken !== "undefined") setToken(savedToken);
+      if (savedRole && savedRole !== "undefined") setRole(savedRole);
     }
+    setIsLoading(false);
+  }, []);
 
-    function logout() {
-        setToken(null);
-        setUser(null);
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("auth_user");
+  const login = async (email: string, password: string, keepSignedIn: boolean = false) => {
+    const data: LoginResponse = await loginRequest(email, password);
+    
+    setToken(data.token);
+    setRole(data.role);
+
+    if (typeof window !== "undefined") {
+      // Choose storage strategy based on checkbox
+      const storage = keepSignedIn ? localStorage : sessionStorage;
+      
+      // Clear both first to prevent duplicate/stale tokens
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_role");
+      sessionStorage.removeItem("auth_token");
+      sessionStorage.removeItem("user_role");
+
+      storage.setItem("auth_token", data.token);
+      storage.setItem("user_role", data.role);
     }
+  };
 
-    const value = {
-        user,
-        token,
-        isLoading,
-        login,
-        logout
-    };
+  const logout = () => {
+    setToken(null);
+    setRole(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_role");
+      sessionStorage.removeItem("auth_token");
+      sessionStorage.removeItem("user_role");
+    }
+  };
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+  return (
+    <AuthContext.Provider value={{ token, role, isLoading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error("useAuth must be used within an AuthProvider");
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  return context;
 }
