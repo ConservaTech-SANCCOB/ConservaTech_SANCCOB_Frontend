@@ -26,24 +26,34 @@ export default function Sidebar() {
       } shrink-0 bg-[#0B2447] text-white flex flex-col transition-all duration-200 h-screen sticky top-0`}
     >
       {/* Logo + collapse toggle */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-white/10">
-        <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
-          CT
-        </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">ConservaTech</p>
-            <p className="text-xs text-white/60 truncate">SANCCOB Portal</p>
-          </div>
-        )}
-        <button
-          onClick={() => setCollapsed((c) => !c)}
-          className="ml-auto p-1.5 rounded-md hover:bg-white/10 shrink-0"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <ChevronIcon collapsed={collapsed} />
-        </button>
+     <div className="flex items-center h-16 border-b border-white/10 px-4">
+  {collapsed ? (
+    <button
+      onClick={() => setCollapsed(false)}
+      className="p-1.5 rounded-md hover:bg-white/10 mx-auto"
+      aria-label="Expand sidebar"
+    >
+      <MenuIcon />
+    </button>
+  ) : (
+    <>
+      <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
+        CT
       </div>
+      <div className="min-w-0 ml-3">
+        <p className="text-sm font-semibold truncate">ConservaTech</p>
+        <p className="text-xs text-white/60 truncate">SANCCOB Portal</p>
+      </div>
+      <button
+        onClick={() => setCollapsed(true)}
+        className="ml-auto p-1.5 rounded-md hover:bg-white/10 shrink-0"
+        aria-label="Collapse sidebar"
+      >
+        <MenuIcon />
+        </button>
+      </>
+      )}
+    </div>
 
       {/* Nav items */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
@@ -84,18 +94,18 @@ export default function Sidebar() {
   );
 }
 
-function ChevronIcon({ collapsed }: { collapsed: boolean }) {
+function MenuIcon() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="18"
+      height="18"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      className={`transition-transform ${collapsed ? "rotate-180" : ""}`}
-    >
-      <path d="M15 18l-6-6 6-6" />
+      strokeWidth="2">
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
     </svg>
   );
 }
