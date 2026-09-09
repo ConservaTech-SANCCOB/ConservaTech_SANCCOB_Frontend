@@ -1,128 +1,132 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { clearToken } from "../../utils/api";
 import { COLORS } from "../../utils/colors";
-
-const mockDocuments = [
-  { id: "d1", name: "ID_Document_Sarah.pdf" },
-  { id: "d2", name: "Volunteer_Agreement_SANCCOB.pdf" },
-];
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState("sarah.volunteer@gmail.com");
-  const [phone, setPhone] = useState("+27 82 456 7890");
+  const [fullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: () => router.replace("/") },
+      {
+        text: "Log Out",
+        style: "destructive",
+        onPress: async () => {
+          await clearToken();
+          router.replace("/");
+        },
+      },
     ]);
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <View style={styles.headerSection}>
-          <View style={styles.avatarWrapper}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={40} color={COLORS.white} />
-            </View>
-            <View style={styles.editBadge}>
-              <Ionicons name="pencil" size={12} color={COLORS.white} />
-            </View>
-          </View>
-          <Text style={styles.name}>Sarah Jenkins</Text>
-          <Text style={styles.roleLabel}>ACTIVE VOLUNTEER</Text>
-        </View>
-
-        <View style={styles.content}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Personal Details</Text>
-
-            <Text style={styles.fieldLabel}>FULL NAME (READ ONLY)</Text>
-            <Text style={styles.readOnlyValue}>Sarah Jenkins</Text>
-
-            <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
-            <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" />
-
-            <Text style={styles.fieldLabel}>MOBILE PHONE</Text>
-            <TextInput style={styles.input} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+    <ImageBackground
+      source={require("../../../assets/images/bg_penguin.jpg.jpeg")}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay} />
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          <View style={styles.headerSection}>
+            <Text style={styles.name}>{fullName || "Your Name"}</Text>
+            <Text style={styles.roleLabel}>ACTIVE VOLUNTEER</Text>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Change Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Current Password"
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              secureTextEntry
-            />
-            <TextInput
-              style={[styles.input, { marginTop: 10 }]}
-              placeholder="New Password"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-            />
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Submitted Documents</Text>
-            {mockDocuments.map((doc) => (
-              <View key={doc.id} style={styles.documentRow}>
-                <Ionicons name="document-text-outline" size={18} color={COLORS.blue} />
-                <Text style={styles.documentName}>{doc.name}</Text>
-                <Ionicons name="checkmark-circle" size={18} color={COLORS.green} />
+          <View style={styles.content}>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Personal Details</Text>
+              <Text style={styles.fieldLabel}>FULL NAME (READ ONLY)</Text>
+              <Text style={styles.readOnlyValue}>{fullName || "—"}</Text>
+              <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
+              <View style={styles.inputRow}>
+                <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" placeholder="you@example.com" />
+                <Ionicons name="pencil" size={16} color={COLORS.blue} />
               </View>
-            ))}
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Contact Support</Text>
-            <View style={styles.contactRow}>
-              <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
-              <Text style={styles.contactText}>volunteers@sanccob.co.za</Text>
+              <Text style={styles.fieldLabel}>MOBILE PHONE</Text>
+              <View style={styles.inputRow}>
+                <TextInput style={styles.input} value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+27 00 000 0000" />
+                <Ionicons name="pencil" size={16} color={COLORS.blue} />
+              </View>
             </View>
-            <View style={styles.contactRow}>
-              <Ionicons name="call-outline" size={18} color={COLORS.grey} />
-              <Text style={styles.contactText}>+27 21 557 6155</Text>
-            </View>
-          </View>
 
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={18} color={COLORS.red} />
-            <Text style={styles.logoutText}>Log Out</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Change Password</Text>
+              <TextInput
+                style={styles.plainInput}
+                placeholder="Current Password"
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                secureTextEntry
+              />
+              <TextInput
+                style={[styles.plainInput, { marginTop: 10 }]}
+                placeholder="New Password"
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Contact Support</Text>
+              <View style={styles.contactRow}>
+                <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
+                <Text style={styles.contactText}>volunteers@sanccob.co.za</Text>
+              </View>
+              <View style={styles.contactRow}>
+                <Ionicons name="call-outline" size={18} color={COLORS.grey} />
+                <Text style={styles.contactText}>+27 21 557 6155</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={18} color={COLORS.red} />
+              <Text style={styles.logoutText}>Log Out</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white },
-  headerSection: { alignItems: "center", backgroundColor: "#F5F7F8", paddingVertical: 30 },
-  avatarWrapper: { position: "relative" },
-  avatar: { width: 90, height: 90, borderRadius: 45, backgroundColor: COLORS.blue, alignItems: "center", justifyContent: "center" },
-  editBadge: { position: "absolute", bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.blue, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: COLORS.white },
-  name: { fontSize: 18, fontWeight: "700", color: COLORS.navy, marginTop: 12 },
-  roleLabel: { fontSize: 11, color: COLORS.grey, letterSpacing: 1, marginTop: 2 },
+  background: { flex: 1 },
+  overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.75)" },
+  container: { flex: 1 },
+  headerSection: { alignItems: "center", paddingVertical: 30 },
+  name: { fontSize: 20, fontWeight: "800", color: COLORS.navy },
+  roleLabel: { fontSize: 11, color: COLORS.navy, fontWeight: "700", letterSpacing: 1, marginTop: 4, opacity: 0.8 },
   content: { padding: 20 },
-  card: { borderWidth: 1, borderColor: "#E2E5E8", borderRadius: 12, padding: 16, marginBottom: 16 },
-  cardTitle: { fontSize: 15, fontWeight: "700", color: COLORS.navy, marginBottom: 12 },
-  fieldLabel: { fontSize: 10, color: COLORS.grey, fontWeight: "600", marginTop: 10, marginBottom: 4 },
-  readOnlyValue: { fontSize: 15, color: COLORS.navy, fontWeight: "600" },
-  input: { borderWidth: 1, borderColor: "#D8DCDF", backgroundColor: "#F5F7F8", borderRadius: 8, padding: 10, fontSize: 14 },
-  documentRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
-  documentName: { flex: 1, fontSize: 13, color: COLORS.black },
+  card: {
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardTitle: { fontSize: 15, fontWeight: "800", color: COLORS.navy, marginBottom: 12 },
+  fieldLabel: { fontSize: 10, color: COLORS.grey, fontWeight: "700", marginTop: 10, marginBottom: 4 },
+  readOnlyValue: { fontSize: 15, color: COLORS.navy, fontWeight: "700" },
+  inputRow: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#D8DCDF", backgroundColor: COLORS.lightGrey, borderRadius: 8, paddingHorizontal: 10 },
+  input: { flex: 1, paddingVertical: 10, fontSize: 14 },
+  plainInput: { borderWidth: 1, borderColor: "#D8DCDF", backgroundColor: COLORS.lightGrey, borderRadius: 8, padding: 10, fontSize: 14 },
   contactRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 },
   contactText: { fontSize: 13, color: COLORS.black },
-  logoutButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: COLORS.red, borderRadius: 10, paddingVertical: 14, gap: 8 },
-  logoutText: { color: COLORS.red, fontWeight: "700", fontSize: 15 },
+  logoutButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: COLORS.red, borderRadius: 12, paddingVertical: 14, gap: 8 },
+  logoutText: { color: COLORS.red, fontWeight: "800", fontSize: 15 },
 });
