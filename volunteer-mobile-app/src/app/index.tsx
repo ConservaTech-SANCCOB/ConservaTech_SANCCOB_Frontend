@@ -10,7 +10,7 @@ export default function WelcomeScreen() {
     <View style={styles.container}>
       <View style={styles.banner}>
         <View style={styles.logoCircle}>
-          <Image source={require("../../assets/images/sanccob-icon.png")} style={{ width: 50, height: 50, resizeMode: "contain" }} />
+          <Image source={require("../../assets/images/sanccob-icon.png")} style={{ width: 50, height: 50, resizeMode: "cover" }} />
         </View>
         <Text style={styles.title}>SANCCOB</Text>
         <Text style={styles.subtitle}>VOLUNTEER PORTAL</Text>
@@ -41,7 +41,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   banner: { backgroundColor: COLORS.navy, alignItems: "center", paddingTop: 100, paddingBottom: 60 },
-  logoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: COLORS.white, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  logoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: COLORS.white, alignItems: "center", justifyContent: "center", marginBottom: 16, overflow: "hidden" },
   title: { fontSize: 26, fontWeight: "bold", color: COLORS.white },
   subtitle: { fontSize: 13, color: COLORS.sky, letterSpacing: 1, marginTop: 4 },
   options: { flex: 1, padding: 24, justifyContent: "center", gap: 14 },
