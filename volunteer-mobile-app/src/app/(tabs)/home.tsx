@@ -1,81 +1,73 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useState } from "react";
+import { Image, ImageBackground, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BookingCard from "../../components/BookingCard";
+import NotificationsDropdown from "../../components/NotificationsDropdown";
 import { mockBookings } from "../../data/mockBookings";
 import { COLORS } from "../../utils/colors";
 
 export default function HomeScreen() {
-  const router = useRouter();
-  const upcoming = mockBookings.filter((b) => b.status !== "Cancelled").slice(0, 2);
-  const completed = 14;
-  const total = 28;
-  const percent = Math.round((completed / total) * 100);
+  const [refreshing, setRefreshing] = useState(false);
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
+  const upcoming = mockBookings.slice(0, 2);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    // TODO: replace with real API calls once bookings/notifications endpoints exist
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    setRefreshing(false);
+  }, []);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, paddingTop: 60 }}>
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.welcome}>Welcome back, Sarah!</Text>
-          <Text style={styles.subtitle}>SANCCOB Cape Town Volunteer</Text>
-        </View>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={26} color={COLORS.white} />
-        </View>
-      </View>
+    <>
+      <ImageBackground
+        source={require("../../../assets/images/bg_penguin.jpg.jpeg")}
+        style={styles.background}
+        resizeMode="cover"
+      >
+         <View style={styles.overlay} />
 
-      <Text style={styles.sectionTitle}>This Week's Bookings</Text>
-      {upcoming.map((booking) => (
-        <BookingCard key={booking.id} booking={booking} showActions={false} />
-      ))}
+        <ScrollView
+          contentContainerStyle={{ padding: 20, paddingTop: 60 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.white} />
+          }
+        >
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.welcome}>Welcome back!</Text>
+              <Text style={styles.subtitle}>SANCCOB Cape Town Volunteer</Text>
+            </View>
+            <TouchableOpacity style={styles.bellButton} onPress={() => setNotificationsVisible(true)}>
+              <Ionicons name="notifications-outline" size={22} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
 
-      <TouchableOpacity style={styles.skillsBanner} onPress={() => router.push("/(tabs)/progress/skills")}>
-        <View style={styles.skillsIcon}>
-          <Ionicons name="paw-outline" size={22} color={COLORS.navy} />
-        </View>
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.skillsTitle}>Skills & Training</Text>
-          <Text style={styles.skillsSubtitle}>{completed} of {total} skills completed</Text>
-        </View>
-        <View style={styles.percentCircle}>
-          <Text style={styles.percentText}>{percent}%</Text>
-        </View>
-      </TouchableOpacity>
+          <Text style={styles.sectionTitle}>This Week's Shifts</Text>
+          {upcoming.length > 0 ? (
+            upcoming.map((booking) => <BookingCard key={booking.id} booking={booking} />)
+          ) : (
+            <View style={styles.emptyCard}>
+              <Ionicons name="calendar-outline" size={28} color={COLORS.grey} />
+              <Text style={styles.emptyCardText}>No shifts yet, set your availability to get started.</Text>
+            </View>
+          )}
+        </ScrollView>
+      </ImageBackground>
 
-      <Text style={styles.sectionTitle}>Notifications</Text>
-      <View style={styles.notification}>
-        <View style={styles.dot} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.notificationText}>New shift auto-assigned for Saturday, 14 Oct.</Text>
-          <Text style={styles.notificationTime}>2 hours ago</Text>
-        </View>
-      </View>
-      <View style={styles.notification}>
-        <View style={[styles.dot, { backgroundColor: "transparent" }]} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.notificationText}>Your Booking Change Request for Friday, 13 Oct was Approved.</Text>
-          <Text style={styles.notificationTime}>1 day ago</Text>
-        </View>
-      </View>
-    </ScrollView>
+      <NotificationsDropdown visible={notificationsVisible} onClose={() => setNotificationsVisible(false)} />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white },
+  background: { flex: 1 },
+  overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.75)" },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  welcome: { fontSize: 22, fontWeight: "bold", color: COLORS.navy },
-  subtitle: { fontSize: 13, color: COLORS.grey, marginTop: 2 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.blue, alignItems: "center", justifyContent: "center" },
-  sectionTitle: { fontSize: 17, fontWeight: "700", color: COLORS.navy, marginTop: 24, marginBottom: 12 },
-  skillsBanner: { flexDirection: "row", alignItems: "center", backgroundColor: COLORS.sky, borderRadius: 14, padding: 16, marginTop: 8 },
-  skillsIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.white, alignItems: "center", justifyContent: "center" },
-  skillsTitle: { fontSize: 15, fontWeight: "700", color: COLORS.navy },
-  skillsSubtitle: { fontSize: 13, color: COLORS.navy, marginTop: 2 },
-  percentCircle: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: COLORS.navy, alignItems: "center", justifyContent: "center" },
-  percentText: { fontSize: 13, fontWeight: "700", color: COLORS.navy },
-  notification: { flexDirection: "row", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#F0F2F5", gap: 10 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.sky, marginTop: 5 },
-  notificationText: { fontSize: 14, color: COLORS.black },
-  notificationTime: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
+  welcome: { fontSize: 24, fontWeight: "800", color: COLORS.navy },
+  subtitle: { fontSize: 13, color: COLORS.navy, marginTop: 2, opacity: 0.8 },
+  bellButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.blue, alignItems: "center", justifyContent: "center" },
+  sectionTitle: { fontSize: 17, fontWeight: "800", color: COLORS.navy, marginTop: 28, marginBottom: 12, textShadowColor: "rgba(0,0,0,0.4)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+  emptyCard: { alignItems: "center", justifyContent: "center", backgroundColor: COLORS.white, borderRadius: 12, padding: 24, gap: 8 },
+  emptyCardText: { fontSize: 13, color: COLORS.grey, textAlign: "center" },
 });
