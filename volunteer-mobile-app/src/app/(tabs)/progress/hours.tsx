@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { mockShifts, shiftStats } from "../../../data/mockShifts";
 import { COLORS } from "../../../utils/colors";
 
@@ -9,21 +10,20 @@ export default function HoursWorkedScreen() {
   const months = Array.from(new Set(mockShifts.map((s) => s.monthLabel)));
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.navy} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Your Volunteering Stats</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <ImageBackground
-        source={require("../../../../assets/images/bg_kelpGull.jpg.jpeg")}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        <View style={styles.overlay} />
+    <ImageBackground
+      source={require("../../../../assets/images/bg_kelpGull.jpg.jpeg")}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay} />
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.navy} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Your Volunteering Stats</Text>
+          <View style={{ width: 24 }} />
+        </View>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
@@ -70,17 +70,17 @@ export default function HoursWorkedScreen() {
             </View>
           )}
         </ScrollView>
-      </ImageBackground>
-    </View>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, backgroundColor: COLORS.white },
-  headerTitle: { fontSize: 17, fontWeight: "800", color: COLORS.navy },
   background: { flex: 1 },
   overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.75)" },
+  container: { flex: 1 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14 },
+  headerTitle: { fontSize: 17, fontWeight: "800", color: COLORS.navy },
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   statCard: { flex: 1, backgroundColor: COLORS.white, borderRadius: 12, padding: 14, alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
   statLabel: { fontSize: 10, color: COLORS.grey, fontWeight: "700" },
