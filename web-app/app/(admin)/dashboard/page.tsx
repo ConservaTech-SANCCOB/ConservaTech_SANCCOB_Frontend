@@ -26,6 +26,12 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Modal State for Editing Conservation Impact
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [rescuedInput, setRescuedInput] = useState("");
+  const [releasedInput, setReleasedInput] = useState("");
+  const [modalError, setModalError] = useState("");
+
   useEffect(() => {
     async function loadStats() {
       try {
@@ -42,6 +48,51 @@ export default function DashboardPage() {
 
     loadStats();
   }, [token]);
+
+  // Handle Conservation Data Update
+  const handleSaveConservationData = (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalError("");
+    
+    const rescued = parseInt(rescuedInput, 10);
+    const released = parseInt(releasedInput, 10);
+
+    if (isNaN(rescued) || isNaN(released)) {
+      setModalError("Please enter valid numeric values.");
+      return;
+    }
+
+    if (released > rescued) {
+      setModalError("Released birds cannot exceed total rescued birds.");
+      return;
+    }
+
+    const percentReleased = rescued > 0 ? Math.round((released / rescued) * 100) : 0;
+
+    setStats((prev) =>
+      prev
+        ? {
+            ...prev,
+            conservation: {
+              totalRescued: rescued,
+              totalReleased: released,
+              percentReleased,
+            },
+          }
+        : null
+    );
+
+    setIsModalOpen(false);
+  };
+
+  const openModal = () => {
+    if (stats) {
+      setRescuedInput(stats.conservation.totalRescued.toString());
+      setReleasedInput(stats.conservation.totalReleased.toString());
+    }
+    setModalError("");
+    setIsModalOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -90,6 +141,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
+        {/* Conservation Impact Card */}
         <Card
           title="Conservation Impact"
           subtitle="Bird rescue & release outcomes"
@@ -102,7 +154,7 @@ export default function DashboardPage() {
                   <Pie
                     data={[
                       { name: "Released", value: stats.conservation.totalReleased },
-                      { name: "Admitted to care", value: stats.conservation.totalRescued - stats.conservation.totalReleased },
+                      { name: "Admitted to care", value: Math.max(0, stats.conservation.totalRescued - stats.conservation.totalReleased) },
                     ]}
                     dataKey="value"
                     innerRadius={36}
@@ -132,6 +184,16 @@ export default function DashboardPage() {
                 <LegendDot color={GREEN} label="Successfully released" />
               </div>
             </div>
+          </div>
+
+          {/* Edit Data Button positioned at Bottom Left */}
+          <div className="pt-3 border-t border-slate-100 mt-3 flex justify-start">
+            <button
+              onClick={openModal}
+              className="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md px-2.5 py-1 transition-colors"
+            >
+              Edit Data
+            </button>
           </div>
         </Card>
 
@@ -241,6 +303,71 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+      {/* Modal for Editing Conservation Data */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Update Conservation Data</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Enter the total rescued and released numbers to update the dashboard pie chart.
+              </p>
+            </div>
+
+            {modalError && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
+                {modalError}
+              </p>
+            )}
+
+            <form onSubmit={handleSaveConservationData} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Total Birds Rescued
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={rescuedInput}
+                  onChange={(e) => setRescuedInput(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Total Birds Released
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={releasedInput}
+                  onChange={(e) => setReleasedInput(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
