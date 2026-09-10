@@ -19,7 +19,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setIsSubmitting(true);
-
+    
     try {
     // Trim whitespace before passing to login
     await login(email.trim(), password.trim(), keepSignedIn);

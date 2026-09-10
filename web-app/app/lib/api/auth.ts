@@ -39,20 +39,3 @@ export async function loginRequest(
 }
 
 
-
-//----------------------------------- END OF FILE ---------------------------------//
-    // Mock response for testing purposes
-//     if (email === "cathy@sanccob.co.za" && password === "password123") {
-//         return {
-//             token: "mock-jwt-token-123",
-//             user: {
-//                 id: "1",
-//                 name: "Cathy",
-//                 email: "cathy@sanccob.co.za",
-//                 role: "admin"
-//             }
-//         };
-//     } 
-//         throw new Error("Invalid email or password");
-    
-// }

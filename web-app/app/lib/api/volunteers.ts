@@ -10,9 +10,12 @@ export interface Volunteer {
   area: string;
   email: string;
   phone: string;
-  hoursCompleted: number;
+  address: string;
+  joinedDate: string;
+  weeklyHoursLogged: number;
+  maxWeeklyHours: number;
+  annualHoursLogged: number;
   availability: string[];
-  maxHours: string;
 }
 
 export interface ShiftRequest {
@@ -56,9 +59,12 @@ export async function fetchVolunteers(token: string | null): Promise<Volunteer[]
       area: "African Penguin Pen A",
       email: "a.dlamini@gmail.com",
       phone: "+27 71 234 5678",
-      hoursCompleted: 142,
+      address: "12 Ocean View Dr, Sea Point, Cape Town",
+      joinedDate: "2025-03-15",
+      weeklyHoursLogged: 20,
+      maxWeeklyHours: 40,
+      annualHoursLogged: 142,
       availability: ["Mon", "Wed", "Fri"],
-      maxHours: "40 hrs / week",
     },
     {
       id: "2",
@@ -67,9 +73,12 @@ export async function fetchVolunteers(token: string | null): Promise<Volunteer[]
       area: "NUR",
       email: "c.anderson@gmail.com",
       phone: "+27 82 109 8765",
-      hoursCompleted: 124,
+      address: "4 Main Rd, Kalk Bay, Cape Town",
+      joinedDate: "2024-11-02",
+      weeklyHoursLogged: 15,
+      maxWeeklyHours: 40,
+      annualHoursLogged: 124,
       availability: ["Tue", "Thu", "Sat"],
-      maxHours: "40 hrs / week",
     },
     {
       id: "3",
@@ -78,11 +87,56 @@ export async function fetchVolunteers(token: string | null): Promise<Volunteer[]
       area: "African Penguin Pen B",
       email: "e.botha@gmail.com",
       phone: "+27 84 654 3210",
-      hoursCompleted: 156,
+      address: "9 Beach Rd, Muizenberg, Cape Town",
+      joinedDate: "2025-01-20",
+      weeklyHoursLogged: 25,
+      maxWeeklyHours: 40,
+      annualHoursLogged: 156,
       availability: ["Tue", "Wed", "Sat", "Sun"],
-      maxHours: "40 hrs / week",
     },
   ];
+}
+
+// FE-A08 addition: create a new volunteer profile
+export async function createVolunteer(
+  token: string | null,
+  volunteer: Omit<Volunteer, "id" | "initials" | "weeklyHoursLogged" | "annualHoursLogged" | "joinedDate">
+): Promise<Volunteer> {
+  if (USE_REAL_API) {
+    const response = await fetch(`${API_URL}/volunteers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(volunteer),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to create volunteer");
+    }
+
+    return response.json();
+  }
+
+  // --- MOCK: generate a fake volunteer locally ---
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  const initials = volunteer.name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  return {
+    ...volunteer,
+    id: `local-${Date.now()}`,
+    initials,
+    weeklyHoursLogged: 0,
+    annualHoursLogged: 0,
+    joinedDate: new Date().toISOString().split("T")[0],
+  };
 }
 
 export async function fetchShiftRequests(token: string | null): Promise<ShiftRequest[]> {
