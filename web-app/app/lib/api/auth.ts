@@ -1,5 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+// Matches the exact backend Swagger response schema
 export interface LoginResponse {
   token: string;
   role: string;
@@ -10,10 +11,9 @@ export async function loginRequest(
   password: string
 ): Promise<LoginResponse> {
   if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL environment variable is not defined");
+    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
   }
 
-  // Updated to match backend route: /api/Auth/login
   const response = await fetch(`${API_URL}/api/Auth/login`, {
     method: "POST",
     headers: {
@@ -32,6 +32,9 @@ export async function loginRequest(
   }
 
   const data: LoginResponse = await response.json();
+  
+  console.log("[Auth API Response]", data);
+
   return data;
 }
 

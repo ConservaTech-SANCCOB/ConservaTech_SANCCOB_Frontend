@@ -49,13 +49,13 @@ export function Topbar() {
   return (
     <header className="h-16 border-b flex items-center justify-between px-6">
       <div className="relative flex items-center w-64">
-        <span className="absolute left-3 text-slate-400">
+        <span className="absolute left-3 text-slate-600">
           <SearchIcon />
         </span>
         <input
           type="text"
           placeholder="Search..."
-          className="w-full pl-9 pr-4 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          className="w-full pl-9 pr-4 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
         />
       </div>
 

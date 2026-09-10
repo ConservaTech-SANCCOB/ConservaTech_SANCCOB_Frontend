@@ -11,27 +11,46 @@ export default function RequestChangeScreen() {
   const router = useRouter();
   const { bookingId } = useLocalSearchParams<{ bookingId?: string }>();
   const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const booking =
-    mockBookings.find((b) => b.id === bookingId) ||
-    mockBookings.find((b) => b.status !== "Cancelled");
+  const booking = mockBookings.find((b) => b.id === bookingId);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!reason.trim()) {
       Alert.alert("Reason required", "Please tell us why you'd like to change this booking.");
       return;
     }
-    Alert.alert(
-      "Request Submitted",
-      "Your booking change request has been sent for approval. Your original booking stays active until it's reviewed.",
-      [{ text: "OK", onPress: () => router.back() }]
-    );
+    setSubmitting(true);
+    try {
+      // TODO: replace with real POST once a shift-change-request endpoint exists
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      Alert.alert(
+        "Request Submitted",
+        "Your request has been sent for review. Your original assignment stays active until it's reviewed.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    } catch (error) {
+      console.error("Request change error:", error);
+      Alert.alert("Couldn't submit", "Something went wrong, try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!booking) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={{ padding: 20 }}>No booking found.</Text>
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.navy} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Request Change</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.notFound}>
+          <Ionicons name="alert-circle-outline" size={32} color={COLORS.grey} />
+          <Text style={styles.notFoundText}>We couldn't find that shift. Go back and try again.</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -49,15 +68,15 @@ export default function RequestChangeScreen() {
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         <View style={styles.warningBanner}>
           <Ionicons name="alarm-outline" size={20} color={COLORS.amber} />
-          <Text style={styles.warningText}>Your original booking stays active until your request is reviewed.</Text>
+          <Text style={styles.warningText}>Your original shift stays active until your request is reviewed.</Text>
         </View>
 
-        <Text style={styles.sectionLabel}>Select Booking to Change</Text>
+        <Text style={styles.sectionLabel}>Shift to Change</Text>
 
         <View style={styles.bookingCard}>
           <View style={styles.bookingHeaderRow}>
             <Text style={styles.bookingDate}>{booking.date}</Text>
-            <StatusBadge status="Pending Approval" />
+            <StatusBadge status={booking.status} />
           </View>
           <Text style={styles.bookingDetail}>Time Slot: {booking.timeSlot}</Text>
           <Text style={styles.bookingTask}>Task: {booking.assignedTask}</Text>
@@ -67,13 +86,13 @@ export default function RequestChangeScreen() {
             style={styles.reasonInput}
             multiline
             numberOfLines={4}
-            placeholder="Let us know why you need this booking changed..."
+            placeholder="Let us know why you need this changed..."
             value={reason}
             onChangeText={setReason}
           />
 
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>Submit Request</Text>
+          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={submitting}>
+            <Text style={styles.submitButtonText}>{submitting ? "Submitting..." : "Submit Request"}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -97,4 +116,6 @@ const styles = StyleSheet.create({
   reasonInput: { borderWidth: 1, borderColor: "#D8DCDF", backgroundColor: "#F5F7F8", borderRadius: 8, padding: 12, minHeight: 90, textAlignVertical: "top" },
   submitButton: { backgroundColor: COLORS.navy, borderRadius: 8, paddingVertical: 14, alignItems: "center", marginTop: 20 },
   submitButtonText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
+  notFound: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 10 },
+  notFoundText: { fontSize: 14, color: COLORS.grey, textAlign: "center" },
 });

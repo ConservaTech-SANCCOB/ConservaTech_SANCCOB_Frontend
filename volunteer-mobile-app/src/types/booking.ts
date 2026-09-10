@@ -1,5 +1,5 @@
-export type TimeSlot = "08:00 - 13:00" | "14:00 - 17:00" | "08:00 - 17:00";
-export type BookingStatus = "Confirmed" | "Pending Approval" | "Cancelled";
+export type TimeSlot = "Morning" | "Afternoon";
+export type BookingStatus = "Assigned" | "Conflict";
 
 export interface Booking {
   id: string;

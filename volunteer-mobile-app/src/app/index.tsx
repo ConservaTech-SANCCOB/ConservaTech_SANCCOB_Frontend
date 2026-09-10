@@ -1,61 +1,38 @@
-import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
 
-export default function LoginScreen() {
+export default function WelcomeScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-
-  const handleLogin = () => {
-    router.replace("/(tabs)/home");
-  };
 
   return (
     <View style={styles.container}>
       <View style={styles.banner}>
         <View style={styles.logoCircle}>
-          <Ionicons name="paw-outline" size={40} color={COLORS.navy} />
+          <Image source={require("../../assets/images/sanccob-icon.png")} style={{ width: 50, height: 50, resizeMode: "cover" }} />
         </View>
         <Text style={styles.title}>SANCCOB</Text>
         <Text style={styles.subtitle}>VOLUNTEER PORTAL</Text>
       </View>
 
-      <View style={styles.form}>
-        <Text style={styles.label}>Email Address</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="you@example.com"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-
-        <Text style={styles.label}>Password</Text>
-        <View style={styles.passwordRow}>
-          <TextInput
-            style={styles.passwordInput}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-          />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={22} color={COLORS.grey} />
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Log In</Text>
+      <View style={styles.options}>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => router.push("/login")}>
+          <Ionicons name="log-in-outline" size={20} color={COLORS.white} />
+          <Text style={styles.primaryButtonText}>Login as Volunteer</Text>
         </TouchableOpacity>
 
-        <Text style={styles.helperText}>
-          Accounts are created by SANCCOB admin after your application is approved.
-        </Text>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push("/activate")}>
+          <Ionicons name="key-outline" size={20} color={COLORS.blue} />
+          <Text style={styles.secondaryButtonText}>Activate New Account</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.tertiaryButton}
+          onPress={() => Alert.alert("Coming Soon", "Staff login isn't available in this app yet.")}
+        >
+          <Text style={styles.tertiaryButtonText}>Login as Staff</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -63,16 +40,15 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
-  banner: { backgroundColor: COLORS.navy, alignItems: "center", paddingTop: 80, paddingBottom: 40 },
-  logoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: COLORS.white, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  banner: { backgroundColor: COLORS.navy, alignItems: "center", paddingTop: 100, paddingBottom: 60 },
+  logoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: COLORS.white, alignItems: "center", justifyContent: "center", marginBottom: 16, overflow: "hidden" },
   title: { fontSize: 26, fontWeight: "bold", color: COLORS.white },
   subtitle: { fontSize: 13, color: COLORS.sky, letterSpacing: 1, marginTop: 4 },
-  form: { padding: 24 },
-  label: { fontSize: 14, fontWeight: "600", color: COLORS.navy, marginBottom: 6, marginTop: 16 },
-  input: { borderWidth: 1, borderColor: "#D8DCDF", backgroundColor: "#F5F7F8", borderRadius: 8, padding: 12 },
-  passwordRow: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#D8DCDF", backgroundColor: "#F5F7F8", borderRadius: 8, paddingHorizontal: 12 },
-  passwordInput: { flex: 1, paddingVertical: 12 },
-  loginButton: { backgroundColor: COLORS.sky, borderRadius: 8, paddingVertical: 14, alignItems: "center", marginTop: 28 },
-  loginButtonText: { color: COLORS.navy, fontWeight: "bold", fontSize: 16 },
-  helperText: { textAlign: "center", color: COLORS.grey, fontSize: 12, marginTop: 16, lineHeight: 18 },
+  options: { flex: 1, padding: 24, justifyContent: "center", gap: 14 },
+  primaryButton: { flexDirection: "row", backgroundColor: COLORS.sky, borderRadius: 8, paddingVertical: 14, alignItems: "center", justifyContent: "center", gap: 8 },
+  primaryButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
+  secondaryButton: { flexDirection: "row", borderWidth: 1, borderColor: COLORS.blue, borderRadius: 8, paddingVertical: 14, alignItems: "center", justifyContent: "center", gap: 8 },
+  secondaryButtonText: { color: COLORS.blue, fontWeight: "bold", fontSize: 16 },
+  tertiaryButton: { alignItems: "center", paddingVertical: 12 },
+  tertiaryButtonText: { color: COLORS.grey, fontSize: 14 },
 });
