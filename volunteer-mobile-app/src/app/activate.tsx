@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 12, color: COLORS.sky, letterSpacing: 1, marginTop: 4 },
   background: { flex: 1 },
   overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.55)" },
-  form: { padding: 24, flex: 1, justifyContent: "center" },
+  form: { padding: 24, paddingTop: 40 },
   label: { fontSize: 14, fontWeight: "600", color: COLORS.navy, marginBottom: 6, marginTop: 16 },
   input: { borderWidth: 1, borderColor: "#D8DCDF", backgroundColor: COLORS.white, borderRadius: 8, padding: 12 },
   passwordRow: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#D8DCDF", backgroundColor: COLORS.white, borderRadius: 8, paddingHorizontal: 12 },

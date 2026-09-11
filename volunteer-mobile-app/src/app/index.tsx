@@ -27,12 +27,9 @@ export default function WelcomeScreen() {
           <Text style={styles.secondaryButtonText}>Activate New Account</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.tertiaryButton}
-          onPress={() => Alert.alert("Coming Soon", "Staff login isn't available in this app yet.")}
-        >
-          <Text style={styles.tertiaryButtonText}>Login as Staff</Text>
-        </TouchableOpacity>
+        <TouchableOpacity style={styles.tertiaryButton} onPress={() => router.push("/trainer-pin")}>
+  <Text style={styles.tertiaryButtonText}>Login as Staff</Text>
+</TouchableOpacity>
       </View>
     </View>
   );

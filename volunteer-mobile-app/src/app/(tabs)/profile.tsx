@@ -11,8 +11,7 @@ export default function ProfileScreen() {
   const [fullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  
 
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
@@ -59,23 +58,7 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Change Password</Text>
-              <TextInput
-                style={styles.plainInput}
-                placeholder="Current Password"
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-                secureTextEntry
-              />
-              <TextInput
-                style={[styles.plainInput, { marginTop: 10 }]}
-                placeholder="New Password"
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry
-              />
-            </View>
+            
 
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Contact Support</Text>

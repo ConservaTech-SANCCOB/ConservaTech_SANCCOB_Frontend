@@ -74,13 +74,14 @@ export default function BookingsScreen() {
               </View>
             )}
             ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Ionicons name="calendar-outline" size={40} color={COLORS.grey} />
-                <Text style={styles.emptyTitle}>No shifts scheduled yet</Text>
-                <Text style={styles.emptyText}>
-                  Set your availability and you'll be automatically matched to shifts that fit.
-                </Text>
-              </View>
+              <View style={styles.emptyStateCard}>
+  <Ionicons name="calendar-outline" size={40} color={COLORS.grey} />
+  <Text style={styles.emptyTitle}>No shifts scheduled yet</Text>
+  <Text style={styles.emptyText}>
+    Set your availability and you'll be automatically matched to shifts that fit.
+  </Text>
+</View> 
+
             }
           />
         ) : loading ? (
@@ -134,6 +135,7 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: COLORS.white },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyState: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 12 },
+  emptyStateCard: { alignItems: "center", justifyContent: "center", backgroundColor: COLORS.white, borderRadius: 14, padding: 32, gap: 12, margin: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   emptyTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
   shiftCard: { backgroundColor: COLORS.white, borderRadius: 14, padding: 16, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
