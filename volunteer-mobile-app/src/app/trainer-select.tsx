@@ -1,17 +1,23 @@
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, FlatList } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
 import { mockTrainers } from "../data/mockTrainers";
+import { Trainer } from "../types/trainer";
 
 export default function TrainerSelectScreen() {
   const router = useRouter();
 
-  const handleSelect = (trainerId: string) => {
-  // TODO: real endpoint should issue a token for this specific trainer
-  // TODO: replace with real trainer dashboard once it's built
-  Alert.alert("Trainer Dashboard", `Selected trainer ${trainerId}, dashboard not built yet.`);
-};
+  const handleSelect = (trainer: Trainer) => {
+    // TODO: real endpoint should issue a token for this specific trainer
+    router.push({
+      pathname: "/trainer-dashboard",
+      params: {
+        trainerId: trainer.id,
+        trainerName: `${trainer.firstName} ${trainer.lastName}`,
+      },
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -24,7 +30,7 @@ export default function TrainerSelectScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 20 }}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.trainerRow} onPress={() => handleSelect(item.id)}>
+          <TouchableOpacity style={styles.trainerRow} onPress={() => handleSelect(item)}>
             <View style={styles.avatar}>
               <Ionicons name="person" size={22} color={COLORS.white} />
             </View>
