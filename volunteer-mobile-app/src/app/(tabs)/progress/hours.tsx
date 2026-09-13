@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,32 +16,27 @@ export default function HoursWorkedScreen() {
       style={styles.background}
       resizeMode="cover"
     >
-      <View style={styles.overlay} />
+      <LinearGradient
+        colors={["rgba(255,255,255,0.86)", "rgba(255,255,255,0.76)", "rgba(255,255,255,0.84)"]}
+        locations={[0, 0.42, 1]}
+        style={StyleSheet.absoluteFill}
+      />
       <SafeAreaView style={styles.container} edges={["top"]}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.navy} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Your Volunteering Stats</Text>
-          <View style={{ width: 24 }} />
-        </View>
-        <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>TOTAL HOURS</Text>
-              <Text style={styles.statValue}>{shiftStats.totalHours}h</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>TOTAL DAYS</Text>
-              <Text style={styles.statValue}>{shiftStats.totalDays} days</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>THIS MONTH</Text>
-              <Text style={styles.statValue}>{shiftStats.hoursThisMonth}h</Text>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: 150 }}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="arrow-back" size={22} color={COLORS.navy} />
+            </TouchableOpacity>
+            <View style={styles.headerCard}>
+              <Text style={styles.headerTitle}>Your Volunteering Stats</Text>
             </View>
           </View>
 
-          <Text style={styles.logTitle}>Completed Shifts Log</Text>
+          
+
+          <View style={styles.sectionTitleCard}>
+            <Text style={styles.logTitle}>Completed Shifts Log</Text>
+          </View>
 
           {months.length > 0 ? (
             months.map((month) => (
@@ -63,7 +59,7 @@ export default function HoursWorkedScreen() {
               </View>
             ))
           ) : (
-            <View style={styles.emptyState}>
+            <View style={styles.emptyStateCard}>
               <Ionicons name="time-outline" size={32} color={COLORS.grey} />
               <Text style={styles.emptyTitle}>No shifts completed yet</Text>
               <Text style={styles.emptyText}>Your worked shifts will show up here once you've completed some.</Text>
@@ -77,22 +73,104 @@ export default function HoursWorkedScreen() {
 
 const styles = StyleSheet.create({
   background: { flex: 1 },
-  overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.75)" },
   container: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14 },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 24 },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  headerCard: {
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
   headerTitle: { fontSize: 17, fontWeight: "800", color: COLORS.navy },
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
-  statCard: { flex: 1, backgroundColor: COLORS.white, borderRadius: 12, padding: 14, alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  statCard: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 14,
+    padding: 14,
+    alignItems: "center",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
   statLabel: { fontSize: 10, color: COLORS.grey, fontWeight: "700" },
   statValue: { fontSize: 20, color: COLORS.navy, fontWeight: "800", marginTop: 6 },
-  logTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy, marginBottom: 14 },
+  sectionTitleCard: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  logTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
   monthLabel: { fontSize: 12, color: COLORS.grey, fontWeight: "700", marginTop: 14, marginBottom: 8 },
-  shiftRow: { flexDirection: "row", justifyContent: "space-between", backgroundColor: COLORS.white, borderRadius: 12, padding: 14, marginBottom: 8, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  shiftRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 6,
+  },
   shiftDate: { fontSize: 14, fontWeight: "800", color: COLORS.black },
   shiftDescription: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
   shiftHours: { fontSize: 14, fontWeight: "800", color: COLORS.blue },
   shiftTime: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
-  emptyState: { alignItems: "center", padding: 24, gap: 8 },
+  emptyStateCard: {
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 14,
+    padding: 24,
+    gap: 8,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
   emptyTitle: { fontSize: 15, fontWeight: "800", color: COLORS.navy },
-  emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
+emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
 });
