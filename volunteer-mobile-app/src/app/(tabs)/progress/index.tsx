@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -50,16 +51,23 @@ export default function TrainingScreen() {
       style={styles.background}
       resizeMode="cover"
     >
-      <View style={styles.overlay} />
+      <LinearGradient
+        colors={["rgba(255,255,255,0.86)", "rgba(255,255,255,0.76)", "rgba(255,255,255,0.84)"]}
+        locations={[0, 0.42, 1]}
+        style={StyleSheet.absoluteFill}
+      />
       <SafeAreaView style={styles.container} edges={["top"]}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Training</Text>
-          <TouchableOpacity style={styles.hoursButton} onPress={() => router.push("/(tabs)/progress/hours")}>
-            <Ionicons name="bar-chart-outline" size={16} color={COLORS.white} />
-            <Text style={styles.hoursButtonText}>Stats</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView contentContainerStyle={{ padding: 20 }}>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: 150 }}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerCard}>
+              <Text style={styles.headerTitle}>Training</Text>
+            </View>
+            <TouchableOpacity style={styles.hoursButton} onPress={() => router.push("/(tabs)/progress/hours")}>
+              <Ionicons name="bar-chart-outline" size={16} color={COLORS.navy} />
+              <Text style={styles.hoursButtonText}>Stats</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryText}>{completedCount} of {totalCount} skills completed</Text>
@@ -81,7 +89,7 @@ export default function TrainingScreen() {
 
           {penRoutines.length > 0 && (
             <>
-              <TouchableOpacity style={[styles.sectionHeader, { marginTop: 24 }]} onPress={() => setPenExpanded(!penExpanded)}>
+              <TouchableOpacity style={[styles.sectionHeader, { marginTop: 20 }]} onPress={() => setPenExpanded(!penExpanded)}>
                 <View>
                   <Text style={styles.sectionTitle}>Pen Routines</Text>
                   <Text style={styles.sectionSubtitle}>{penCompletedCount} of {penRoutines.length} completed</Text>
@@ -106,28 +114,117 @@ export default function TrainingScreen() {
 
 const styles = StyleSheet.create({
   background: { flex: 1 },
-  overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.75)" },
   container: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
-  headerTitle: { fontSize: 22, fontWeight: "800", color: COLORS.navy },
-  hoursButton: { flexDirection: "row", alignItems: "center", backgroundColor: COLORS.blue, borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14, gap: 6 },
-  hoursButtonText: { color: COLORS.white, fontWeight: "800", fontSize: 13 },
-  summaryCard: { backgroundColor: COLORS.white, borderRadius: 14, padding: 18, marginBottom: 24, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+  headerCard: {
+  paddingVertical: 14,
+  paddingHorizontal: 18,
+  borderRadius: 22,
+  backgroundColor: "rgba(255,255,255,0.55)",
+  borderWidth: 1.5,
+  borderColor: "rgba(255,255,255,0.9)",
+  shadowColor: "#002e4c",
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.3,
+  shadowRadius: 16,
+  elevation: 8,
+},
+  headerTitle: { fontSize: 20, fontWeight: "800", color: COLORS.navy },
+  hoursButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 20,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    gap: 6,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  hoursButtonText: { color: COLORS.navy, fontWeight: "800", fontSize: 13 },
+  summaryCard: {
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 24,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.5,
+    shadowRadius: 40,
+    elevation: 16,
+  },
   summaryRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
   summaryText: { fontSize: 14, color: COLORS.navy, fontWeight: "700" },
   summaryPercent: { fontSize: 18, color: COLORS.navy, fontWeight: "800" },
-  progressTrack: { height: 10, backgroundColor: "#E2E5E8", borderRadius: 5, overflow: "hidden" },
+  progressTrack: { height: 10, backgroundColor: "rgba(0,46,76,0.15)", borderRadius: 5, overflow: "hidden" },
   progressFill: { height: 10, backgroundColor: COLORS.amber, borderRadius: 5 },
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 18,
+    elevation: 8,
+  },
   sectionTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
   sectionSubtitle: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
-  skillRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: COLORS.white, borderRadius: 12, padding: 14, marginBottom: 8, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  skillName: { fontSize: 14, color: COLORS.black, fontWeight: "600", flexShrink: 1 },
+  skillRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  skillName: { fontSize: 14, color: COLORS.black, flexShrink: 1 },
   seasonalTag: { backgroundColor: COLORS.amberBg, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  seasonalText: { fontSize: 10, color: "#B8860B", fontWeight: "800" },
+  seasonalText: { fontSize: 10, color: COLORS.amber, fontWeight: "700" },
   statusRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  completedText: { fontSize: 12, color: COLORS.green, fontWeight: "700" },
-  incompleteText: { fontSize: 12, color: COLORS.grey, fontWeight: "600" },
-  lockedNotice: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: COLORS.white, borderRadius: 12, padding: 16, marginTop: 20 },
+  completedText: { fontSize: 12, color: COLORS.green, fontWeight: "600" },
+  incompleteText: { fontSize: 12, color: COLORS.grey },
+  lockedNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 20,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 18,
+    elevation: 8,
+  },
   lockedText: { fontSize: 12, color: COLORS.grey, flex: 1 },
 });
