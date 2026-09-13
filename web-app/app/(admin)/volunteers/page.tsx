@@ -8,10 +8,48 @@ import {
   createVolunteer,
   Volunteer,
   ShiftRequest,
+  CreateVolunteerPayload,
 } from "../../lib/api/volunteers";
 
 const ALL_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const ANNUAL_HOURS_TARGET = 1920;
+
+// Returns the Monday of a given week, formatted as YYYY-MM-DD
+function getStartOfWeek(d: Date = new Date()): string {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(date.setDate(diff));
+  return monday.toISOString().split("T")[0];
+}
+
+// e.g. getStartOfWeek + offset 2 -> "Sep 15"
+function formatDateLabel(startDateStr: string, dayOffset: number): string {
+  const start = new Date(startDateStr);
+  const targetDate = new Date(start);
+  targetDate.setDate(start.getDate() + dayOffset);
+  return targetDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// Turns "07:00–13:00" into 6 (hours). Handles both en-dash and hyphen.
+function parseShiftHours(time: string): number {
+  if (!time) return 0;
+  const [start, end] = time.split(/[–-]/).map((t) => t.trim());
+  const toMinutes = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + (m || 0);
+  };
+  const diff = toMinutes(end) - toMinutes(start);
+  return diff > 0 ? diff / 60 : 0;
+}
+
+// A volunteer's weekly hours = sum of hours for availability slots the admin has confirmed.
+function getWeeklyHours(volunteer: Volunteer): number {
+  if (!volunteer.availability) return 0;
+  return volunteer.availability
+    .filter((slot) => volunteer.confirmedShifts?.includes(slot.day))
+    .reduce((total, slot) => total + parseShiftHours(slot.time), 0);
+}
 
 export default function VolunteersPage() {
   const { token } = useAuth();
@@ -23,11 +61,12 @@ export default function VolunteersPage() {
 
   const [viewingVolunteer, setViewingVolunteer] = useState<Volunteer | null>(null);
   const [editingVolunteer, setEditingVolunteer] = useState<Volunteer | null>(null);
+  const [schedulingVolunteer, setSchedulingVolunteer] = useState<Volunteer | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
-            id: string;
-            type: "Approved" | "Declined";
-             volunteerName: string;
-         } | null>(null);
+    id: string;
+    type: "Approved" | "Declined";
+    volunteerName: string;
+  } | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -40,7 +79,7 @@ export default function VolunteersPage() {
         setVolunteers(vData);
         setRequests(rData);
       } catch (err) {
-        console.error("Failed to load volunteer data", err);
+        console.error("Failed to load volunteer data from API", err);
       } finally {
         setIsLoading(false);
       }
@@ -61,15 +100,34 @@ export default function VolunteersPage() {
     setEditingVolunteer(null);
   };
 
-  const handleCreate = async (newVolunteer: {
-    name: string;
-    email: string;
-    phone: string;
-    area: string;
-    address: string;
-    availability: string[];
-    maxWeeklyHours: number;
-  }) => {
+  const handleToggleShift = (volunteerId: string, day: string) => {
+    setVolunteers((prev) =>
+      prev.map((v) => {
+        if (v.id !== volunteerId) return v;
+        const confirmed = v.confirmedShifts || [];
+        const isConfirmed = confirmed.includes(day);
+        return {
+          ...v,
+          confirmedShifts: isConfirmed
+            ? confirmed.filter((d) => d !== day)
+            : [...confirmed, day],
+        };
+      })
+    );
+    setSchedulingVolunteer((prev) => {
+      if (!prev || prev.id !== volunteerId) return prev;
+      const confirmed = prev.confirmedShifts || [];
+      const isConfirmed = confirmed.includes(day);
+      return {
+        ...prev,
+        confirmedShifts: isConfirmed
+          ? confirmed.filter((d) => d !== day)
+          : [...confirmed, day],
+      };
+    });
+  };
+
+  const handleCreate = async (newVolunteer: CreateVolunteerPayload) => {
     const created = await createVolunteer(token, newVolunteer);
     setVolunteers((prev) => [...prev, created]);
     setActiveTab("management");
@@ -77,9 +135,9 @@ export default function VolunteersPage() {
 
   const filteredVolunteers = volunteers.filter(
     (v) =>
-      v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.area.toLowerCase().includes(searchQuery.toLowerCase())
+      (v.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (v.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (v.area || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -135,7 +193,7 @@ export default function VolunteersPage() {
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-5">
         {isLoading ? (
           <div className="py-16 text-center text-slate-400 text-sm font-medium">
-            Loading volunteer data…
+            Loading volunteer data from API…
           </div>
         ) : activeTab === "management" ? (
           /* TAB 1: VOLUNTEER MANAGEMENT */
@@ -170,78 +228,89 @@ export default function VolunteersPage() {
                     <th className="pb-3 px-4">Volunteer Name</th>
                     <th className="pb-3 px-4">Contact Information</th>
                     <th className="pb-3 px-4">Weekly Hours</th>
-                    <th className="pb-3 px-4">Availability</th>
-                    <th className="pb-3 px-4">Max Hours</th>
+                    <th className="pb-3 px-4">Schedule</th>
                     <th className="pb-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100/80">
-                  {filteredVolunteers.map((v) => {
-                    const progressPercentage = (v.weeklyHoursLogged / v.maxWeeklyHours) * 100;
-                    return (
-                      <tr key={v.id} className="hover:bg-slate-50/70 transition-colors group">
-                        <td className="py-4 px-4">
-                          <div className="w-9 h-9 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shadow-sm">
-                            {v.initials}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <p className="font-medium text-slate-800 text-sm group-hover:text-blue-600 transition-colors">
-                            {v.name}
-                          </p>
-                        </td>
-                        <td className="py-4 px-4 space-y-1">
-                          <p className="text-slate-600 text-[11px]">{v.email}</p>
-                          <p className="text-slate-400 text-[11px]">{v.phone}</p>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-baseline gap-1">
-                            <span className="font-bold text-slate-900">
-                              {v.weeklyHoursLogged}/{v.maxWeeklyHours}
-                            </span>
-                            <span className="text-[10px] text-slate-400">hrs</span>
-                          </div>
-                          <div className="w-28 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
-                            <div
-                              className="h-full bg-blue-600 rounded-full"
-                              style={{ width: `${progressPercentage}%` }}
-                            />
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex flex-wrap gap-1">
-                            {v.availability.map((day) => (
-                              <span
-                                key={day}
-                                className="bg-sky-50 text-sky-700 px-2 py-0.5 rounded-md text-[10px] font-semibold"
-                              >
-                                {day}
+                  {filteredVolunteers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                        No volunteers found.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredVolunteers.map((v) => {
+                      const weeklyHours = getWeeklyHours(v);
+                      const maxHours = v.maxWeeklyHours || 40;
+                      const progressPercentage = (weeklyHours / maxHours) * 100;
+                      const confirmedCount = v.confirmedShifts?.length || 0;
+                      const totalSlots = v.availability?.length || 0;
+
+                      return (
+                        <tr key={v.id} className="hover:bg-slate-50/70 transition-colors group">
+                          <td className="py-4 px-4">
+                            <div className="w-9 h-9 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                              {v.initials}
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <p className="font-medium text-slate-800 text-sm group-hover:text-blue-600 transition-colors">
+                              {v.name}
+                            </p>
+                          </td>
+                          <td className="py-4 px-4 space-y-1">
+                            <p className="text-slate-600 text-[11px]">{v.email}</p>
+                            <p className="text-slate-400 text-[11px]">{v.phone}</p>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-baseline gap-1">
+                              <span className="font-bold text-slate-900">
+                                {weeklyHours}/{maxHours}
                               </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 font-medium text-slate-700">
-                          {v.maxWeeklyHours} hrs / week
-                        </td>
-                        <td className="py-4 px-4 text-right space-x-1">
-                          <button
-                            onClick={() => setViewingVolunteer(v)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-                            aria-label="View volunteer"
-                          >
-                            <EyeIcon />
-                          </button>
-                          <button
-                            onClick={() => setEditingVolunteer(v)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-                            aria-label="Edit volunteer"
-                          >
-                            <EditNoteIcon />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                              <span className="text-[10px] text-slate-400">hrs</span>
+                            </div>
+                            <div className="w-28 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                              <div
+                                className="h-full bg-blue-600 rounded-full"
+                                style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                              />
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <button
+                              onClick={() => setSchedulingVolunteer(v)}
+                              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-slate-600 hover:text-blue-700 transition-colors"
+                            >
+                              <CalendarCheckIcon />
+                              <span className="text-xs font-semibold">View Schedule</span>
+                              {totalSlots > 0 && (
+                                <span className="text-[10px] text-slate-400 group-hover:text-blue-500">
+                                  {confirmedCount}/{totalSlots}
+                                </span>
+                              )}
+                            </button>
+                          </td>
+                          <td className="py-4 px-4 text-right space-x-1">
+                            <button
+                              onClick={() => setViewingVolunteer(v)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                              aria-label="View volunteer"
+                            >
+                              <EyeIcon />
+                            </button>
+                            <button
+                              onClick={() => setEditingVolunteer(v)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                              aria-label="Edit volunteer"
+                            >
+                              <EditNoteIcon />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -270,73 +339,85 @@ export default function VolunteersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100/80">
-                  {requests.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shrink-0">
-                            {r.volunteerInitials}
-                          </div>
-                          <span className="font-medium text-slate-800 text-xs">
-                            {r.volunteerName}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 font-medium text-slate-700">{r.currentDate}</td>
-                      <td className="py-4 px-4 font-medium text-slate-700">{r.currentTime}</td>
-                      <td className="py-4 px-4 font-medium text-slate-700">{r.requestedDate}</td>
-                      <td className="py-4 px-4 font-medium text-slate-700">{r.requestedTime}</td>
-                      <td className="py-4 px-4">
-                        <span
-                          className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
-                            r.requestType === "Cancellation"
-                              ? "bg-red-50 text-red-600 border border-red-100"
-                              : "bg-blue-50 text-blue-600 border border-blue-100"
-                          }`}
-                        >
-                          {r.requestType}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 max-w-[160px] truncate text-slate-400 font-medium">
-                        {r.reason}
-                      </td>
-                      <td className="py-4 px-4">
-                        <span
-                          className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
-                            r.status === "Approved"
-                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                              : r.status === "Declined"
-                              ? "bg-red-50 text-red-600 border border-red-100"
-                              : "bg-amber-50 text-amber-600 border border-amber-100"
-                          }`}
-                        >
-                          {r.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        {r.status === "Pending" ? (
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              onClick={() => setConfirmAction({ id: r.id, type: "Approved", volunteerName: r.volunteerName })}
-                               className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
-                                title="Approve"
-                            >
-                              ✓
-                            </button>
-                            <button
-                              onClick={() => setConfirmAction({ id: r.id, type: "Declined", volunteerName: r.volunteerName })}
-                                 className="w-7 h-7 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
-                                 title="Decline"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-slate-300 font-bold">-</span>
-                        )}
+                  {requests.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-8 text-center text-slate-400 font-medium">
+                        No shift requests submitted yet.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    requests.map((r) => (
+                      <tr key={r.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shrink-0">
+                              {r.volunteerInitials}
+                            </div>
+                            <span className="font-medium text-slate-800 text-xs">
+                              {r.volunteerName}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 font-medium text-slate-700">{r.currentDate}</td>
+                        <td className="py-4 px-4 font-medium text-slate-700">{r.currentTime}</td>
+                        <td className="py-4 px-4 font-medium text-slate-700">{r.requestedDate}</td>
+                        <td className="py-4 px-4 font-medium text-slate-700">{r.requestedTime}</td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
+                              r.requestType === "Cancellation"
+                                ? "bg-red-50 text-red-600 border border-red-100"
+                                : "bg-blue-50 text-blue-600 border border-blue-100"
+                            }`}
+                          >
+                            {r.requestType}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 max-w-[160px] truncate text-slate-400 font-medium">
+                          {r.reason}
+                        </td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
+                              r.status === "Approved"
+                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                : r.status === "Declined"
+                                ? "bg-red-50 text-red-600 border border-red-100"
+                                : "bg-amber-50 text-amber-600 border border-amber-100"
+                            }`}
+                          >
+                            {r.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          {r.status === "Pending" ? (
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() =>
+                                  setConfirmAction({ id: r.id, type: "Approved", volunteerName: r.volunteerName })
+                                }
+                                className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
+                                title="Approve"
+                              >
+                                ✓
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setConfirmAction({ id: r.id, type: "Declined", volunteerName: r.volunteerName })
+                                }
+                                className="w-7 h-7 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
+                                title="Decline"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-300 font-bold">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -363,22 +444,129 @@ export default function VolunteersPage() {
           onSave={handleSaveEdit}
         />
       )}
-      
+
+      {/* SCHEDULE / ATTENDANCE MODAL */}
+      {schedulingVolunteer && (
+        <ScheduleModal
+          volunteer={schedulingVolunteer}
+          onClose={() => setSchedulingVolunteer(null)}
+          onToggleShift={(day) => handleToggleShift(schedulingVolunteer.id, day)}
+        />
+      )}
+
       {/* CONFIRM APPROVE/DECLINE MODAL */}
       {confirmAction && (
         <ConfirmActionModal
           type={confirmAction.type}
+          volunteerName={confirmAction.volunteerName}
           onCancel={() => setConfirmAction(null)}
           onConfirm={() => {
-            handleAction(
-              confirmAction.id,
-              confirmAction.type
-            );
+            handleAction(confirmAction.id, confirmAction.type);
             setConfirmAction(null);
-          } } volunteerName={""}  />
-)}
-
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+// ---- Schedule / Attendance Modal ----
+
+function ScheduleModal({
+  volunteer,
+  onClose,
+  onToggleShift,
+}: {
+  volunteer: Volunteer;
+  onClose: () => void;
+  onToggleShift: (day: string) => void;
+}) {
+  const weeklyHours = getWeeklyHours(volunteer);
+  const [selectedWeekStart, setSelectedWeekStart] = useState<string>(() => getStartOfWeek());
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.value) return;
+    const selected = new Date(e.target.value);
+    setSelectedWeekStart(getStartOfWeek(selected));
+  };
+
+  const availabilitySlots = volunteer.availability || [];
+  const confirmedShifts = volunteer.confirmedShifts || [];
+
+  return (
+    <ModalOverlay onClose={onClose}>
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-lg font-bold text-slate-900">{volunteer.name}&apos;s Schedule</h2>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <CloseIcon />
+        </button>
+      </div>
+      <p className="text-sm text-slate-500 mb-4">
+        Confirm which shifts the volunteer actually showed up for this week.
+      </p>
+
+      {/* Week Selector */}
+      <div className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 mb-5">
+        <div className="flex items-center gap-2">
+          <CalendarCheckIcon />
+          <span className="text-xs font-semibold text-slate-700">Week of:</span>
+        </div>
+        <input
+          type="date"
+          value={selectedWeekStart}
+          onChange={handleDateChange}
+          className="bg-white border border-slate-200 text-xs font-semibold text-slate-800 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+        />
+      </div>
+
+      {availabilitySlots.length === 0 ? (
+        <p className="text-sm text-slate-400 py-6 text-center">No availability set yet.</p>
+      ) : (
+        <div className="space-y-2 mb-5">
+          {availabilitySlots.map((slot) => {
+            const dayIndex = ALL_DAYS.indexOf(slot.day);
+            const dateLabel = dayIndex !== -1 ? formatDateLabel(selectedWeekStart, dayIndex) : "";
+            const isConfirmed = confirmedShifts.includes(slot.day);
+
+            return (
+              <button
+                key={slot.day}
+                onClick={() => onToggleShift(slot.day)}
+                className={`w-full flex items-center justify-between rounded-xl px-4 py-3 border transition-colors text-left ${
+                  isConfirmed
+                    ? "bg-emerald-50 border-emerald-200"
+                    : "bg-slate-50 border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
+                      isConfirmed ? "bg-emerald-600 text-white" : "bg-white border border-slate-300"
+                    }`}
+                  >
+                    {isConfirmed && <CheckIcon />}
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-slate-800">{slot.day}</span>
+                    {dateLabel && (
+                      <span className="text-xs text-slate-400 ml-2">({dateLabel})</span>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm text-slate-500">{slot.time}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="bg-slate-50 rounded-xl px-4 py-3 flex justify-between items-center">
+        <span className="text-sm font-medium text-slate-600">Confirmed hours this week</span>
+        <span className="text-sm font-bold text-slate-900">
+          {weeklyHours} / {volunteer.maxWeeklyHours || 40} hrs
+        </span>
+      </div>
+    </ModalOverlay>
   );
 }
 
@@ -388,36 +576,34 @@ function CreateVolunteerForm({
   onCreate,
   onCancel,
 }: {
-  onCreate: (v: {
-    name: string;
-    email: string;
-    phone: string;
-    area: string;
-    address: string;
-    availability: string[];
-    maxWeeklyHours: number;
-  }) => void;
+  onCreate: (v: CreateVolunteerPayload) => void;
   onCancel: () => void;
 }) {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [area, setArea] = useState("");
-  const [address, setAddress] = useState("");
-  const [availability, setAvailability] = useState<string[]>([]);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [nationality, setNationality] = useState("");
+  const [ageBracket, setAgeBracket] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const toggleDay = (day: string) => {
-    setAvailability((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await onCreate({ name, email, phone, area, address, availability, maxWeeklyHours: 40 });
-    setIsSubmitting(false);
+    try {
+      await onCreate({
+        firstName,
+        lastName,
+        email,
+        phoneNumber,
+        nationality,
+        ageBracket,
+      });
+    } catch (err) {
+      console.error("Failed to create volunteer", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -428,31 +614,12 @@ function CreateVolunteerForm({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="Full Name" value={name} onChange={setName} required />
+        <FormField label="First Name" value={firstName} onChange={setFirstName} required />
+        <FormField label="Last Name" value={lastName} onChange={setLastName} required />
         <FormField label="Email" value={email} onChange={setEmail} type="email" required />
-        <FormField label="Phone" value={phone} onChange={setPhone} required />
-        <FormField label="Primary Area" value={area} onChange={setArea} required />
-      </div>
-      <FormField label="Address" value={address} onChange={setAddress} />
-
-      <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-2">Availability</label>
-        <div className="flex flex-wrap gap-2">
-          {ALL_DAYS.map((day) => (
-            <button
-              key={day}
-              type="button"
-              onClick={() => toggleDay(day)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                availability.includes(day)
-                  ? "bg-blue-700 text-white"
-                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-              }`}
-            >
-              {day}
-            </button>
-          ))}
-        </div>
+        <FormField label="Phone Number" value={phoneNumber} onChange={setPhoneNumber} required />
+        <FormField label="Nationality" value={nationality} onChange={setNationality} required />
+        <FormField label="Age Bracket" value={ageBracket} onChange={setAgeBracket} required />
       </div>
 
       <div className="flex items-center gap-3 pt-2">
@@ -505,7 +672,9 @@ function FormField({
 // ---- View Modal ----
 
 function ViewVolunteerModal({ volunteer, onClose }: { volunteer: Volunteer; onClose: () => void }) {
-  const annualProgress = Math.min((volunteer.annualHoursLogged / ANNUAL_HOURS_TARGET) * 100, 100);
+  const logged = volunteer.annualHoursLogged || 0;
+  const annualProgress = Math.min((logged / ANNUAL_HOURS_TARGET) * 100, 100);
+  const slots = volunteer.availability || [];
 
   return (
     <ModalOverlay onClose={onClose}>
@@ -522,7 +691,9 @@ function ViewVolunteerModal({ volunteer, onClose }: { volunteer: Volunteer; onCl
         </div>
         <div>
           <p className="font-bold text-slate-900">{volunteer.name}</p>
-          <p className="text-sm text-slate-500">{volunteer.area}</p>
+          <p className="text-sm text-slate-500">
+            {volunteer.nationality || "—"} · {volunteer.ageBracket || "—"}
+          </p>
           <p className="text-xs text-slate-400">Joined {volunteer.joinedDate}</p>
         </div>
       </div>
@@ -530,14 +701,13 @@ function ViewVolunteerModal({ volunteer, onClose }: { volunteer: Volunteer; onCl
       <div className="space-y-3 mb-5">
         <ContactRow icon={<MailIcon />} label="Email" value={volunteer.email} />
         <ContactRow icon={<PhoneIcon />} label="Phone" value={volunteer.phone} />
-        <ContactRow icon={<PinIcon />} label="Address" value={volunteer.address} />
       </div>
 
       <div className="bg-slate-50 rounded-xl p-4 mb-5">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm font-medium text-slate-600">Hours Logged</span>
           <span className="text-sm font-bold text-slate-900">
-            {volunteer.annualHoursLogged} / {ANNUAL_HOURS_TARGET} hrs
+            {logged} / {ANNUAL_HOURS_TARGET} hrs
           </span>
         </div>
         <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
@@ -547,20 +717,21 @@ function ViewVolunteerModal({ volunteer, onClose }: { volunteer: Volunteer; onCl
 
       <div>
         <p className="text-sm font-medium text-slate-600 mb-2">Availability</p>
-        <div className="flex flex-wrap gap-2">
-          {ALL_DAYS.map((day) => (
-            <span
-              key={day}
-              className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                volunteer.availability.includes(day)
-                  ? "bg-blue-700 text-white"
-                  : "bg-slate-100 text-slate-400"
-              }`}
-            >
-              {day}
-            </span>
-          ))}
-        </div>
+        {slots.length > 0 ? (
+          <div className="space-y-2">
+            {slots.map((slot) => (
+              <div
+                key={slot.day}
+                className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2"
+              >
+                <span className="text-sm font-semibold text-slate-800">{slot.day}</span>
+                <span className="text-sm text-slate-500">{slot.time}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400">No availability set yet.</p>
+        )}
       </div>
     </ModalOverlay>
   );
@@ -594,17 +765,11 @@ function EditVolunteerModal({
   const [name, setName] = useState(volunteer.name);
   const [email, setEmail] = useState(volunteer.email);
   const [phone, setPhone] = useState(volunteer.phone);
-  const [area, setArea] = useState(volunteer.area);
-  const [availability, setAvailability] = useState<string[]>(volunteer.availability);
-
-  const toggleDay = (day: string) => {
-    setAvailability((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    );
-  };
+  const [nationality, setNationality] = useState(volunteer.nationality || "");
+  const [ageBracket, setAgeBracket] = useState(volunteer.ageBracket || "");
 
   const handleSave = () => {
-    onSave({ ...volunteer, name, email, phone, area, availability });
+    onSave({ ...volunteer, name, email, phone, nationality, ageBracket });
   };
 
   return (
@@ -616,31 +781,12 @@ function EditVolunteerModal({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-5">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <FormField label="Full Name" value={name} onChange={setName} />
         <FormField label="Email" value={email} onChange={setEmail} type="email" />
         <FormField label="Phone" value={phone} onChange={setPhone} />
-        <FormField label="Primary Area" value={area} onChange={setArea} />
-      </div>
-
-      <div className="mb-6">
-        <label className="block text-xs font-semibold text-slate-700 mb-2">Availability</label>
-        <div className="flex flex-wrap gap-2">
-          {ALL_DAYS.map((day) => (
-            <button
-              key={day}
-              type="button"
-              onClick={() => toggleDay(day)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                availability.includes(day)
-                  ? "bg-blue-700 text-white"
-                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-              }`}
-            >
-              {day}
-            </button>
-          ))}
-        </div>
+        <FormField label="Age Bracket" value={ageBracket} onChange={setAgeBracket} />
+        <FormField label="Nationality" value={nationality} onChange={setNationality} />
       </div>
 
       <div className="flex items-center gap-3">
@@ -662,7 +808,8 @@ function EditVolunteerModal({
   );
 }
 
-// ----Confirm Action Modal ----
+// ---- Confirm Action Modal ----
+
 function ConfirmActionModal({
   type,
   volunteerName,
@@ -704,6 +851,7 @@ function ConfirmActionModal({
     </ModalOverlay>
   );
 }
+
 // ---- Shared modal shell ----
 
 function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
@@ -758,6 +906,16 @@ function EditNoteIcon() {
   );
 }
 
+function CalendarCheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M3 9h18M8 3v3M16 3v3" />
+      <path d="m9 15 2 2 4-4" />
+    </svg>
+  );
+}
+
 function CloseIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -787,15 +945,6 @@ function PhoneIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z" />
-    </svg>
-  );
-}
-
-function PinIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z" />
-      <circle cx="12" cy="10" r="3" />
     </svg>
   );
 }
