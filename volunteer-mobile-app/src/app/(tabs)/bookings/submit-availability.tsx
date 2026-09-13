@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, ImageBackground } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -72,99 +73,152 @@ export default function SubmitAvailabilityScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.topRow}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.navy} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Submit Availability</Text>
-      </View>
-
-      <View style={styles.submitRow}>
-        <TouchableOpacity style={styles.submitButton} onPress={handleSave} disabled={saving}>
-          {saving ? (
-            <ActivityIndicator size="small" color={COLORS.navy} />
-          ) : (
-            <Text style={styles.submitButtonText}>Submit</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}>
-        <View style={styles.infoBanner}>
-          <Ionicons name="information-circle-outline" size={20} color={COLORS.navy} />
-          <Text style={styles.infoText}>
-            The system automatically assigns you a day, time slot, and task based on your availability and completed skills, you cannot choose a specific booking directly.
-          </Text>
-        </View>
-
-        {DAYS.map((day) => (
-          <View key={day} style={styles.daySection}>
-            <Text style={styles.dayLabel}>Select Time Slots for {day}</Text>
-            <View style={styles.slotRow}>
-              {SLOTS.map((slot) => {
-                const active = selected.has(slotKey(day, slot));
-                return (
-                  <TouchableOpacity
-                    key={slot}
-                    style={[styles.slotButton, active && styles.slotButtonActive]}
-                    onPress={() => toggle(day, slot)}
-                  >
-                    <Text style={[styles.slotText, active && styles.slotTextActive]}>{slot}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+    <ImageBackground
+      source={require("../../../../assets/images/bg_kelpGull.jpg.jpeg")}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <LinearGradient
+        colors={["rgba(255,255,255,0.86)", "rgba(255,255,255,0.76)", "rgba(255,255,255,0.84)"]}
+        locations={[0, 0.42, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: 20 }}>
+          <View style={styles.topRow}>
+            <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="arrow-back" size={22} color={COLORS.navy} />
+            </TouchableOpacity>
+            <View style={styles.titleCard}>
+              <Text style={styles.headerTitle}>Submit Availability</Text>
             </View>
           </View>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+
+          <View style={styles.submitRow}>
+            <TouchableOpacity style={styles.submitButton} onPress={handleSave} disabled={saving}>
+              {saving ? (
+                <ActivityIndicator size="small" color={COLORS.navy} />
+              ) : (
+                <Text style={styles.submitButtonText}>Submit</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.infoBanner}>
+            <Ionicons name="information-circle-outline" size={20} color={COLORS.navy} />
+            <Text style={styles.infoText}>
+              The system automatically assigns you a day, time slot, and task based on your availability and completed skills, you cannot choose a specific booking directly.
+            </Text>
+          </View>
+
+          {DAYS.map((day) => (
+            <View key={day} style={styles.daySection}>
+              <Text style={styles.dayLabel}>Select Time Slots for {day}</Text>
+              <View style={styles.slotRow}>
+                {SLOTS.map((slot) => {
+                  const active = selected.has(slotKey(day, slot));
+                  return (
+                    <TouchableOpacity
+                      key={slot}
+                      style={[styles.slotButton, active && styles.slotButtonActive]}
+                      onPress={() => toggle(day, slot)}
+                    >
+                      <Text style={[styles.slotText, active && styles.slotTextActive]}>{slot}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#E1E8ED" },
+  background: { flex: 1 },
+  container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  topRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 14, gap: 12 },
-  headerTitle: { fontSize: 19, fontWeight: "800", color: COLORS.navy },
-  submitRow: { alignItems: "flex-end", paddingHorizontal: 20, marginTop: -8, marginBottom: 12, zIndex: 1 },
-  submitButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 215, 63, 0.9)",
-    borderWidth: 2,
-    borderColor: "#FFD73F",
-    borderRadius: 22,
-    paddingVertical: 13,
-    paddingHorizontal: 22,
-    gap: 6,
-    shadowColor: "#FFD73F",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
+  topRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 },
+  titleCard: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
     shadowRadius: 16,
-    elevation: 10,
+    elevation: 8,
   },
-  submitButtonText: { color: COLORS.navy, fontWeight: "900", fontSize: 16 },
-  infoBanner: { flexDirection: "row", backgroundColor: COLORS.amberBg, borderRadius: 10, padding: 12, gap: 10, marginBottom: 20 },
+  headerTitle: { fontSize: 17, fontWeight: "800", color: COLORS.navy },
+  submitRow: { alignItems: "flex-end", marginBottom: 16 },
+  submitButton: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "rgba(255,255,255,0.55)",
+  borderWidth: 1.5,
+  borderColor: "rgba(255,255,255,0.9)",
+  borderRadius: 22,
+  paddingVertical: 13,
+  paddingHorizontal: 22,
+  gap: 6,
+  shadowColor: "#002e4c",
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.3,
+  shadowRadius: 16,
+  elevation: 8,
+},
+submitButtonText: { color: COLORS.navy, fontWeight: "800", fontSize: 15 },
+  infoBanner: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 14,
+    padding: 14,
+    gap: 10,
+    marginBottom: 20,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
   infoText: { flex: 1, fontSize: 12, color: COLORS.navy, lineHeight: 17 },
-  daySection: { marginBottom: 20, paddingBottom: 20, borderBottomWidth: 2, borderBottomColor: COLORS.navy },
-  dayLabel: { fontSize: 15, fontWeight: "900", color: COLORS.navy, marginBottom: 10, letterSpacing: 0.2 },
+  daySection: {
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  dayLabel: { fontSize: 13, fontWeight: "900", color: COLORS.navy, marginBottom: 10, letterSpacing: 0.2 },
   slotRow: { flexDirection: "row", gap: 10 },
   slotButton: {
     flex: 1,
     flexDirection: "row",
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: "#C5D0D8",
+    backgroundColor: "rgba(255,255,255,0.7)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
     borderRadius: 20,
     paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
   },
   slotButtonActive: {
     backgroundColor: "rgba(83, 199, 255, 0.35)",
