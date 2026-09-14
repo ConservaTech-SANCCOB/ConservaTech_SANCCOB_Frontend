@@ -1,11 +1,97 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  FlatList,
+  ImageBackground,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
+import MyShiftCard from "../../../components/MyShiftCard";
+import { DateBadge, ShiftMeta } from "../../../components/ShiftCardParts";
 import { getAllShifts, getMyShifts, MyShift, Shift } from "../../../services/shifts";
 import { COLORS } from "../../../utils/colors";
+import { bucketForDate, DateBucket } from "../../../utils/dateBuckets";
+import { formatTimeSlotLabel } from "../../../utils/timeSlot";
+
+type ListRow =
+  | { type: "header"; key: string; title: string }
+  | { type: "mine"; key: string; item: MyShift }
+  | { type: "available"; key: string; item: Shift };
+
+function groupMyShifts(shifts: MyShift[]): ListRow[] {
+  const order: DateBucket[] = ["Today", "This Week", "Later", "Past"];
+  const buckets: Record<string, MyShift[]> = {};
+  shifts.forEach((item) => {
+    const key = bucketForDate(item.shiftDate);
+    if (!buckets[key]) buckets[key] = [];
+    buckets[key].push(item);
+  });
+  const rows: ListRow[] = [];
+  order.forEach((title) => {
+    const items = buckets[title];
+    if (!items || items.length === 0) return;
+    rows.push({ type: "header", key: `header-${title}`, title });
+    items.forEach((item) => rows.push({ type: "mine", key: `mine-${item.rosterAssignmentId}`, item }));
+  });
+  return rows;
+}
+
+function AvailableShiftCard({ item }: { item: Shift }) {
+  const limited = item.capacity <= 1;
+  return (
+    <View style={styles.shiftCard}>
+      <DateBadge dateStr={item.shiftDate} />
+      <View style={styles.shiftCardBody}>
+        <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
+        <ShiftMeta timeSlot={item.timeSlot} location={item.location} />
+        <View style={styles.capacityRow}>
+          <View style={styles.capacityChip}>
+            <Ionicons name="people-outline" size={13} color={COLORS.navy} />
+            <Text style={styles.capacityChipText}>{item.capacity} needed</Text>
+          </View>
+          {limited && (
+            <View style={styles.limitedTag}>
+              <Text style={styles.limitedTagText}>Limited spots</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function SkeletonCard() {
+  const opacity = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.9, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [opacity]);
+
+  return (
+    <Animated.View style={[styles.shiftCard, { opacity }]}>
+      <View style={styles.skeletonBadge} />
+      <View style={styles.shiftCardBody}>
+        <View style={styles.skeletonLineWide} />
+        <View style={styles.skeletonLineNarrow} />
+      </View>
+    </Animated.View>
+  );
+}
 
 export default function BookingsScreen() {
   const router = useRouter();
@@ -13,20 +99,71 @@ export default function BookingsScreen() {
   const [myShifts, setMyShifts] = useState<MyShift[]>([]);
   const [availableShifts, setAvailableShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
-    setLoadError(false);
-    const request = tab === "mine" ? getMyShifts() : getAllShifts();
-    request
-      .then((data) => (tab === "mine" ? setMyShifts(data as MyShift[]) : setAvailableShifts(data as Shift[])))
-      .catch((error) => {
+  const load = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      setLoadError(false);
+      try {
+        if (tab === "mine") {
+          setMyShifts(await getMyShifts());
+        } else {
+          setAvailableShifts(await getAllShifts());
+        }
+      } catch (error) {
         console.error(`Load ${tab} shifts error:`, error);
         setLoadError(true);
-      })
-      .finally(() => setLoading(false));
-  }, [tab]);
+      } finally {
+        if (isRefresh) setRefreshing(false);
+        else setLoading(false);
+      }
+    },
+    [tab]
+  );
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const rows: ListRow[] =
+    tab === "mine"
+      ? groupMyShifts(myShifts)
+      : availableShifts.map((item) => ({ type: "available", key: `available-${item.shiftId}`, item }));
+
+  const header = (
+    <>
+      <View style={styles.headerRow}>
+        <View style={styles.headerCard}>
+          <Text style={styles.title}>Upcoming Shifts</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.availabilityButton}
+          onPress={() => router.push("/(tabs)/bookings/submit-availability")}
+        >
+          <Ionicons name="calendar-outline" size={16} color={COLORS.navy} />
+          <Text style={styles.availabilityButtonText}>Availability</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.segmentRow}>
+        <TouchableOpacity
+          style={[styles.segment, tab === "mine" && styles.segmentActive]}
+          onPress={() => setTab("mine")}
+        >
+          <Text style={[styles.segmentText, tab === "mine" && styles.segmentTextActive]}>My Shifts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.segment, tab === "available" && styles.segmentActive]}
+          onPress={() => setTab("available")}
+        >
+          <Text style={[styles.segmentText, tab === "available" && styles.segmentTextActive]}>Available Shifts</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
 
   return (
     <ImageBackground
@@ -41,54 +178,29 @@ export default function BookingsScreen() {
       />
       <SafeAreaView style={styles.container} edges={["top"]}>
         <FlatList
-          ListHeaderComponent={
-            <>
-              <View style={styles.headerRow}>
-                <View style={styles.headerCard}>
-                  <Text style={styles.title}>Upcoming Shifts</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.availabilityButton}
-                  onPress={() => router.push("/(tabs)/bookings/submit-availability")}
-                >
-                  <Ionicons name="calendar-outline" size={16} color={COLORS.navy} />
-                  <Text style={styles.availabilityButtonText}>Availability</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.segmentRow}>
-                <TouchableOpacity
-                  style={[styles.segment, tab === "mine" && styles.segmentActive]}
-                  onPress={() => setTab("mine")}
-                >
-                  <Text style={[styles.segmentText, tab === "mine" && styles.segmentTextActive]}>My Shifts</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.segment, tab === "available" && styles.segmentActive]}
-                  onPress={() => setTab("available")}
-                >
-                  <Text style={[styles.segmentText, tab === "available" && styles.segmentTextActive]}>Available Shifts</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          }
-          data={tab === "mine" ? myShifts : availableShifts}
-          keyExtractor={(item: any) => (tab === "mine" ? item.rosterAssignmentId : item.shiftId).toString()}
+          ListHeaderComponent={header}
+          data={rows}
+          keyExtractor={(row) => row.key}
           contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: 150, flexGrow: 1 }}
-          renderItem={({ item }: any) => (
-            <View style={styles.shiftCard}>
-              <Text style={styles.shiftDate}>{item.shiftDate}</Text>
-              <Text style={styles.shiftDetail}>{item.timeSlot}{item.location ? ` · ${item.location}` : ""}</Text>
-              <Text style={styles.shiftDetail}>
-                {tab === "mine" ? `Status: ${item.status}` : `Capacity: ${item.capacity}`}
-              </Text>
-            </View>
-          )}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={COLORS.blue} />
+          }
+          renderItem={({ item: row }) => {
+            if (row.type === "header") {
+              return <Text style={styles.sectionHeader}>{row.title}</Text>;
+            }
+            if (row.type === "mine") {
+              return <MyShiftCard item={row.item} />;
+            }
+            return <AvailableShiftCard item={row.item} />;
+          }}
           ListEmptyComponent={
             loading ? (
-              <View style={styles.center}>
-                <ActivityIndicator color={COLORS.blue} />
-              </View>
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
             ) : loadError ? (
               <View style={styles.emptyStateCard}>
                 <Ionicons name="warning-outline" size={40} color={COLORS.grey} />
@@ -120,84 +232,108 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
   headerCard: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
     paddingVertical: 14,
     paddingHorizontal: 18,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   title: { fontSize: 20, fontWeight: "800", color: COLORS.navy },
   availabilityButton: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
     borderRadius: 20,
     paddingVertical: 9,
     paddingHorizontal: 14,
     gap: 6,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   availabilityButtonText: { color: COLORS.navy, fontWeight: "800", fontSize: 13 },
   segmentRow: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
     flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
     borderRadius: 14,
     padding: 4,
     marginBottom: 16,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
+  },
+  segment: { flex: 1, paddingVertical: 8, alignItems: "center", borderRadius: 10 },
+  segmentActive: {
+    backgroundColor: "rgba(83, 199, 255, 0.35)",
+    shadowColor: "#00D4FF",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
     shadowRadius: 16,
     elevation: 8,
   },
-  segment: { flex: 1, paddingVertical: 8, alignItems: "center", borderRadius: 10 },
-  segmentActive: { backgroundColor: COLORS.blue },
   segmentText: { fontSize: 13, color: COLORS.grey, fontWeight: "700" },
-  segmentTextActive: { color: COLORS.white },
-  center: { paddingVertical: 40, alignItems: "center" },
+  segmentTextActive: { color: COLORS.navy, fontWeight: "900" },
+  sectionHeader: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: COLORS.navy,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    marginBottom: 8,
+    marginTop: 4,
+  },
   emptyStateCard: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
     borderRadius: 18,
     padding: 26,
     gap: 12,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   emptyTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
   shiftCard: {
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
-    borderRadius: 14,
-    padding: 16,
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_MD,
+    flexDirection: "row",
+    gap: 12,
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 12,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    elevation: 6,
   },
-  shiftDate: { fontSize: 15, fontWeight: "800", color: COLORS.navy },
-  shiftDetail: { fontSize: 13, color: COLORS.grey, marginTop: 4 },
+  shiftCardBody: { flex: 1, gap: 6 },
+  shiftTimeLabel: { fontSize: 15, fontWeight: "800", color: COLORS.navy },
+  capacityRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
+  capacityChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(0,46,76,0.08)",
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  capacityChipText: { fontSize: 11, fontWeight: "800", color: COLORS.navy },
+  limitedTag: {
+    backgroundColor: COLORS.amberBg,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  limitedTagText: { fontSize: 11, fontWeight: "800", color: "#9A7B00" },
+  skeletonBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,46,76,0.12)",
+  },
+  skeletonLineWide: {
+    height: 14,
+    borderRadius: 7,
+    width: "70%",
+    backgroundColor: "rgba(0,46,76,0.12)",
+  },
+  skeletonLineNarrow: {
+    height: 12,
+    borderRadius: 6,
+    width: "45%",
+    backgroundColor: "rgba(0,46,76,0.1)",
+    marginTop: 6,
+  },
 });

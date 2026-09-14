@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, ImageBackground, ActivityIndicator } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "../../../utils/colors";
+import { GLASS_CARD, GLASS_SHADOW_LG } from "../../../constants/glassCard";
 import { mockBookings } from "../../../data/mockBookings";
 import StatusBadge from "../../../components/StatusBadge";
 
@@ -37,85 +39,157 @@ export default function RequestChangeScreen() {
     }
   };
 
-  if (!booking) {
-    return (
-      <SafeAreaView style={styles.container} edges={["top"]}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.navy} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Request Change</Text>
-          <View style={{ width: 24 }} />
-        </View>
-        <View style={styles.notFound}>
-          <Ionicons name="alert-circle-outline" size={32} color={COLORS.grey} />
-          <Text style={styles.notFoundText}>We couldn't find that shift. Go back and try again.</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.navy} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Request Change</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <View style={styles.warningBanner}>
-          <Ionicons name="alarm-outline" size={20} color={COLORS.amber} />
-          <Text style={styles.warningText}>Your original shift stays active until your request is reviewed.</Text>
-        </View>
-
-        <Text style={styles.sectionLabel}>Shift to Change</Text>
-
-        <View style={styles.bookingCard}>
-          <View style={styles.bookingHeaderRow}>
-            <Text style={styles.bookingDate}>{booking.date}</Text>
-            <StatusBadge status={booking.status} />
+    <ImageBackground
+      source={require("../../../../assets/images/bg_kelpGull.jpg.jpeg")}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <LinearGradient
+        colors={["rgba(255,255,255,0.86)", "rgba(255,255,255,0.76)", "rgba(255,255,255,0.84)"]}
+        locations={[0, 0.42, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: 40 }}>
+          <View style={styles.topRow}>
+            <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="arrow-back" size={22} color={COLORS.navy} />
+            </TouchableOpacity>
+            <View style={styles.titleCard}>
+              <Text style={styles.headerTitle}>Request Change</Text>
+            </View>
           </View>
-          <Text style={styles.bookingDetail}>Time Slot: {booking.timeSlot}</Text>
-          <Text style={styles.bookingTask}>Task: {booking.assignedTask}</Text>
 
-          <Text style={styles.reasonLabel}>Reason for change request</Text>
-          <TextInput
-            style={styles.reasonInput}
-            multiline
-            numberOfLines={4}
-            placeholder="Let us know why you need this changed..."
-            value={reason}
-            onChangeText={setReason}
-          />
+          {!booking ? (
+            <View style={styles.emptyStateCard}>
+              <Ionicons name="alert-circle-outline" size={32} color={COLORS.grey} />
+              <Text style={styles.emptyTitle}>We couldn't find that shift</Text>
+              <Text style={styles.emptyText}>Go back and try again.</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.warningBanner}>
+                <Ionicons name="alarm-outline" size={20} color={COLORS.amber} />
+                <Text style={styles.warningText}>
+                  Your original shift stays active until your request is reviewed.
+                </Text>
+              </View>
 
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={submitting}>
-            <Text style={styles.submitButtonText}>{submitting ? "Submitting..." : "Submit Request"}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+              <Text style={styles.sectionLabel}>Shift to Change</Text>
+
+              <View style={styles.bookingCard}>
+                <View style={styles.bookingHeaderRow}>
+                  <Text style={styles.bookingDate}>{booking.date}</Text>
+                  <StatusBadge status={booking.status} />
+                </View>
+                <Text style={styles.bookingDetail}>Time Slot: {booking.timeSlot}</Text>
+                <Text style={styles.bookingTask}>Task: {booking.assignedTask}</Text>
+
+                <Text style={styles.reasonLabel}>Reason for change request</Text>
+                <TextInput
+                  style={styles.reasonInput}
+                  multiline
+                  numberOfLines={4}
+                  placeholder="Let us know why you need this changed..."
+                  placeholderTextColor={COLORS.grey}
+                  value={reason}
+                  onChangeText={setReason}
+                />
+
+                <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={submitting}>
+                  {submitting ? (
+                    <ActivityIndicator size="small" color={COLORS.navy} />
+                  ) : (
+                    <>
+                      <Ionicons name="swap-horizontal-outline" size={16} color={COLORS.navy} />
+                      <Text style={styles.submitButtonText}>Submit Request</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#F0F2F5" },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.navy },
-  warningBanner: { flexDirection: "row", backgroundColor: "#FFF4D9", borderRadius: 10, padding: 12, gap: 10, marginBottom: 20 },
+  background: { flex: 1 },
+  container: { flex: 1 },
+  topRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 },
+  titleCard: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+  },
+  headerTitle: { fontSize: 17, fontWeight: "800", color: COLORS.navy },
+  warningBanner: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
+    flexDirection: "row",
+    borderRadius: 14,
+    padding: 14,
+    gap: 10,
+    marginBottom: 20,
+  },
   warningText: { flex: 1, fontSize: 13, color: COLORS.navy, lineHeight: 18 },
-  sectionLabel: { fontSize: 16, fontWeight: "700", color: COLORS.navy, marginBottom: 10 },
-  bookingCard: { borderWidth: 1, borderColor: "#E2E5E8", borderRadius: 12, padding: 16 },
+  sectionLabel: { fontSize: 14, fontWeight: "800", color: COLORS.navy, marginBottom: 10 },
+  bookingCard: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
+    borderRadius: 16,
+    padding: 16,
+  },
   bookingHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  bookingDate: { fontSize: 16, fontWeight: "700", color: COLORS.navy },
+  bookingDate: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
   bookingDetail: { fontSize: 14, color: COLORS.black, marginTop: 10 },
   bookingTask: { fontSize: 13, color: COLORS.grey, marginTop: 2 },
-  reasonLabel: { fontSize: 14, fontWeight: "600", color: COLORS.navy, marginTop: 16, marginBottom: 8 },
-  reasonInput: { borderWidth: 1, borderColor: "#D8DCDF", backgroundColor: "#F5F7F8", borderRadius: 8, padding: 12, minHeight: 90, textAlignVertical: "top" },
-  submitButton: { backgroundColor: COLORS.navy, borderRadius: 8, paddingVertical: 14, alignItems: "center", marginTop: 20 },
-  submitButtonText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
-  notFound: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 10 },
-  notFoundText: { fontSize: 14, color: COLORS.grey, textAlign: "center" },
+  reasonLabel: { fontSize: 13, fontWeight: "700", color: COLORS.navy, marginTop: 16, marginBottom: 8 },
+  reasonInput: {
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 14,
+    padding: 12,
+    minHeight: 90,
+    textAlignVertical: "top",
+    fontSize: 14,
+    color: COLORS.navy,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  submitButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(83, 199, 255, 0.35)",
+    borderRadius: 16,
+    paddingVertical: 14,
+    marginTop: 20,
+    shadowColor: "#00D4FF",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  submitButtonText: { color: COLORS.navy, fontWeight: "800", fontSize: 15 },
+  emptyStateCard: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
+    alignItems: "center",
+    borderRadius: 18,
+    padding: 26,
+    gap: 8,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
+  emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center" },
 });
