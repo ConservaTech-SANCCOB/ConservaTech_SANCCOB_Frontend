@@ -1,16 +1,112 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useRef, useState } from "react";
+import { Alert, Animated, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle } from "react-native-svg";
 import { penRoutines, supportingAreas } from "../../../data/mockSkills";
 import { Skill } from "../../../types/skill";
+import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
 import { COLORS } from "../../../utils/colors";
+
+function ProgressRing({ percent, size = 92, strokeWidth = 10 }: { percent: number; size?: number; strokeWidth?: number }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, percent));
+  const strokeDashoffset = circumference - (clamped / 100) * circumference;
+
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size} height={size}>
+        <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(0,46,76,0.12)" strokeWidth={strokeWidth} fill="none" />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={COLORS.amber}
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          fill="none"
+          rotation="-90"
+          origin={`${size / 2}, ${size / 2}`}
+        />
+      </Svg>
+      <View style={StyleSheet.absoluteFill}>
+        <View style={styles.ringLabelWrap}>
+          <Text style={styles.ringPercent}>{clamped}%</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function getMilestone(percent: number, totalCount: number): { icon: keyof typeof Ionicons.glyphMap; text: string } | null {
+  if (totalCount === 0) return null;
+  if (percent >= 100) return { icon: "trophy", text: "All skills completed!" };
+  if (percent >= 50) return { icon: "flag", text: "Halfway there, keep going" };
+  return null;
+}
+
+function SectionHeader({
+  title,
+  subtitle,
+  expanded,
+  locked,
+  onPress,
+}: {
+  title: string;
+  subtitle: string;
+  expanded: boolean;
+  locked?: boolean;
+  onPress: () => void;
+}) {
+  const rotation = useRef(new Animated.Value(expanded ? 1 : 0)).current;
+
+  const toggle = () => {
+    Animated.timing(rotation, {
+      toValue: expanded ? 0 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+    onPress();
+  };
+
+  const spin = rotation.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"] });
+
+  return (
+    <TouchableOpacity
+      style={[styles.sectionHeader, locked && styles.sectionHeaderLocked]}
+      onPress={toggle}
+      disabled={locked}
+      activeOpacity={locked ? 1 : 0.7}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.sectionTitle, locked && styles.sectionTitleLocked]}>{title}</Text>
+        <Text style={styles.sectionSubtitle}>{subtitle}</Text>
+      </View>
+      {locked ? (
+        <Ionicons name="lock-closed" size={18} color={COLORS.grey} />
+      ) : (
+        <Animated.View style={{ transform: [{ rotate: spin }] }}>
+          <Ionicons name="chevron-down" size={20} color={COLORS.navy} />
+        </Animated.View>
+      )}
+    </TouchableOpacity>
+  );
+}
 
 function SkillRow({ skill }: { skill: Skill }) {
   return (
-    <View style={styles.skillRow}>
+    <TouchableOpacity
+      style={styles.skillRow}
+      activeOpacity={0.7}
+      onPress={() =>
+        Alert.alert(skill.name, skill.completed ? "You've completed this skill." : "Not started yet.")
+      }
+    >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
         <Text style={styles.skillName}>{skill.name}</Text>
         {skill.seasonal && (
@@ -30,7 +126,7 @@ function SkillRow({ skill }: { skill: Skill }) {
           <Ionicons name="ellipse-outline" size={20} color={COLORS.grey} />
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -44,6 +140,8 @@ export default function TrainingScreen() {
   const totalCount = allSkills.length;
   const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const penCompletedCount = penRoutines.filter((s) => s.completed).length;
+  const penLocked = penRoutines.length === 0;
+  const milestone = getMilestone(percent, totalCount);
 
   return (
     <ImageBackground
@@ -69,43 +167,43 @@ export default function TrainingScreen() {
           </View>
 
           <View style={styles.summaryCard}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryText}>{completedCount} of {totalCount} skills completed</Text>
-              <Text style={styles.summaryPercent}>{percent}%</Text>
-            </View>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${percent}%` }]} />
+            <View style={styles.summaryTopRow}>
+              <ProgressRing percent={percent} />
+              <View style={styles.summaryTextCol}>
+                <Text style={styles.summaryText}>{completedCount} of {totalCount}</Text>
+                <Text style={styles.summarySubtext}>skills completed</Text>
+                {milestone && (
+                  <View style={styles.milestoneBadge}>
+                    <Ionicons name={milestone.icon} size={13} color="#9A7B00" />
+                    <Text style={styles.milestoneText}>{milestone.text}</Text>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.sectionHeader} onPress={() => setSupportingExpanded(!supportingExpanded)}>
-            <View>
-              <Text style={styles.sectionTitle}>Supporting Areas</Text>
-              <Text style={styles.sectionSubtitle}>Must be completed before moving to Pen Routines</Text>
-            </View>
-            <Ionicons name={supportingExpanded ? "chevron-up" : "chevron-down"} size={20} color={COLORS.navy} />
-          </TouchableOpacity>
+          <SectionHeader
+            title="Supporting Areas"
+            subtitle="Must be completed before moving to Pen Routines"
+            expanded={supportingExpanded}
+            onPress={() => setSupportingExpanded(!supportingExpanded)}
+          />
           {supportingExpanded && supportingAreas.map((skill) => <SkillRow key={skill.id} skill={skill} />)}
 
-          {penRoutines.length > 0 && (
-            <>
-              <TouchableOpacity style={[styles.sectionHeader, { marginTop: 20 }]} onPress={() => setPenExpanded(!penExpanded)}>
-                <View>
-                  <Text style={styles.sectionTitle}>Pen Routines</Text>
-                  <Text style={styles.sectionSubtitle}>{penCompletedCount} of {penRoutines.length} completed</Text>
-                </View>
-                <Ionicons name={penExpanded ? "chevron-up" : "chevron-down"} size={20} color={COLORS.navy} />
-              </TouchableOpacity>
-              {penExpanded && penRoutines.map((skill) => <SkillRow key={skill.id} skill={skill} />)}
-            </>
-          )}
-
-          {penRoutines.length === 0 && (
-            <View style={styles.lockedNotice}>
-              <Ionicons name="lock-closed-outline" size={16} color={COLORS.grey} />
-              <Text style={styles.lockedText}>Complete Supporting Areas to unlock these skills.</Text>
-            </View>
-          )}
+          <View style={{ marginTop: 20 }}>
+            <SectionHeader
+              title="Pen Routines"
+              subtitle={
+                penLocked
+                  ? "Complete Supporting Areas to unlock these skills"
+                  : `${penCompletedCount} of ${penRoutines.length} completed`
+              }
+              expanded={penExpanded}
+              locked={penLocked}
+              onPress={() => setPenExpanded(!penExpanded)}
+            />
+          </View>
+          {!penLocked && penExpanded && penRoutines.map((skill) => <SkillRow key={skill.id} skill={skill} />)}
         </ScrollView>
       </SafeAreaView>
     </ImageBackground>
@@ -122,87 +220,79 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   headerCard: {
-  paddingVertical: 14,
-  paddingHorizontal: 18,
-  borderRadius: 22,
-  backgroundColor: "rgba(255,255,255,0.55)",
-  borderWidth: 1.5,
-  borderColor: "rgba(255,255,255,0.9)",
-  shadowColor: "#002e4c",
-  shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.3,
-  shadowRadius: 16,
-  elevation: 8,
-},
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 22,
+  },
   headerTitle: { fontSize: 20, fontWeight: "800", color: COLORS.navy },
   hoursButton: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
     borderRadius: 20,
     paddingVertical: 9,
     paddingHorizontal: 14,
     gap: 6,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   hoursButtonText: { color: COLORS.navy, fontWeight: "800", fontSize: 13 },
   summaryCard: {
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
+    ...GLASS_CARD,
     borderRadius: 18,
     padding: 18,
     marginBottom: 24,
-    shadowColor: "#002e4c",
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.5,
     shadowRadius: 40,
     elevation: 16,
   },
-  summaryRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
-  summaryText: { fontSize: 14, color: COLORS.navy, fontWeight: "700" },
-  summaryPercent: { fontSize: 18, color: COLORS.navy, fontWeight: "800" },
-  progressTrack: { height: 10, backgroundColor: "rgba(0,46,76,0.15)", borderRadius: 5, overflow: "hidden" },
-  progressFill: { height: 10, backgroundColor: COLORS.amber, borderRadius: 5 },
+  summaryTopRow: { flexDirection: "row", alignItems: "center", gap: 18 },
+  summaryTextCol: { flex: 1, gap: 2 },
+  ringLabelWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+  ringPercent: { fontSize: 18, fontWeight: "900", color: COLORS.navy },
+  summaryText: { fontSize: 18, color: COLORS.navy, fontWeight: "800" },
+  summarySubtext: { fontSize: 13, color: COLORS.grey, fontWeight: "600" },
+  milestoneBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.amberBg,
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    marginTop: 8,
+  },
+  milestoneText: { fontSize: 11, fontWeight: "800", color: "#9A7B00" },
   sectionHeader: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
     shadowRadius: 18,
-    elevation: 8,
+  },
+  sectionHeaderLocked: {
+    backgroundColor: "rgba(255,255,255,0.35)",
+    shadowOpacity: 0.15,
   },
   sectionTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
+  sectionTitleLocked: { color: COLORS.grey },
   sectionSubtitle: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
   skillRow: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_MD,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    elevation: 6,
   },
   skillName: { fontSize: 14, color: COLORS.black, flexShrink: 1 },
   seasonalTag: { backgroundColor: COLORS.amberBg, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
@@ -210,21 +300,4 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   completedText: { fontSize: 12, color: COLORS.green, fontWeight: "600" },
   incompleteText: { fontSize: 12, color: COLORS.grey },
-  lockedNotice: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
-    borderRadius: 14,
-    padding: 16,
-    marginTop: 20,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  lockedText: { fontSize: 12, color: COLORS.grey, flex: 1 },
 });

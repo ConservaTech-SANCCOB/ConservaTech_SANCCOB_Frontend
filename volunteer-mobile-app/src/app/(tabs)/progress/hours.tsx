@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
 import { mockShifts, shiftStats } from "../../../data/mockShifts";
 import { COLORS } from "../../../utils/colors";
 
@@ -32,7 +33,23 @@ export default function HoursWorkedScreen() {
             </View>
           </View>
 
-          
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Ionicons name="time-outline" size={18} color={COLORS.blue} />
+              <Text style={styles.statValue}>{shiftStats.totalHours.toFixed(1)}</Text>
+              <Text style={styles.statLabel}>Total Hours</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="calendar-outline" size={18} color={COLORS.blue} />
+              <Text style={styles.statValue}>{shiftStats.totalDays}</Text>
+              <Text style={styles.statLabel}>Shifts Done</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="trending-up-outline" size={18} color={COLORS.blue} />
+              <Text style={styles.statValue}>{shiftStats.hoursThisMonth.toFixed(1)}</Text>
+              <Text style={styles.statLabel}>This Month</Text>
+            </View>
+          </View>
 
           <View style={styles.sectionTitleCard}>
             <Text style={styles.logTitle}>Completed Shifts Log</Text>
@@ -51,7 +68,10 @@ export default function HoursWorkedScreen() {
                         <Text style={styles.shiftDescription}>{shift.description}</Text>
                       </View>
                       <View style={{ alignItems: "flex-end" }}>
-                        <Text style={styles.shiftHours}>{shift.hours.toFixed(1)} hrs</Text>
+                        <View style={styles.shiftHoursRow}>
+                          <Ionicons name="time-outline" size={13} color={COLORS.blue} />
+                          <Text style={styles.shiftHours}>{shift.hours.toFixed(1)} hrs</Text>
+                        </View>
                         <Text style={styles.shiftTime}>{shift.timeRange}</Text>
                       </View>
                     </View>
@@ -76,101 +96,67 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 24 },
   backButton: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
     width: 40,
     height: 40,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   headerCard: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
     paddingVertical: 14,
     paddingHorizontal: 18,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   headerTitle: { fontSize: 17, fontWeight: "800", color: COLORS.navy },
-  statsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
+  statsRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
   statCard: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
     flex: 1,
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
-    borderRadius: 14,
-    padding: 14,
     alignItems: "center",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    gap: 4,
+    borderRadius: 16,
+    paddingVertical: 14,
   },
-  statLabel: { fontSize: 10, color: COLORS.grey, fontWeight: "700" },
-  statValue: { fontSize: 20, color: COLORS.navy, fontWeight: "800", marginTop: 6 },
+  statValue: { fontSize: 18, fontWeight: "900", color: COLORS.navy },
+  statLabel: { fontSize: 10, fontWeight: "700", color: COLORS.grey, textAlign: "center" },
   sectionTitleCard: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
     alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
     borderRadius: 14,
     paddingVertical: 10,
     paddingHorizontal: 16,
     marginBottom: 14,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   logTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
   monthLabel: { fontSize: 12, color: COLORS.grey, fontWeight: "700", marginTop: 14, marginBottom: 8 },
   shiftRow: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_MD,
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    elevation: 6,
   },
   shiftDate: { fontSize: 14, fontWeight: "800", color: COLORS.black },
   shiftDescription: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
+  shiftHoursRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   shiftHours: { fontSize: 14, fontWeight: "800", color: COLORS.blue },
   shiftTime: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
   emptyStateCard: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
     borderRadius: 14,
     padding: 24,
     gap: 8,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   emptyTitle: { fontSize: 15, fontWeight: "800", color: COLORS.navy },
-emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
+  emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
 });
