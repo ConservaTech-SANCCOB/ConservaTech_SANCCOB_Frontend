@@ -25,7 +25,7 @@ export interface Volunteer {
   availability: AvailabilitySlot[];
   confirmedShifts: string[];
   nationality?: string;
-  ageBracket?: string;
+  ageBracket: AgeBracket;
 }
 
 export interface CreateVolunteerPayload {
@@ -34,10 +34,21 @@ export interface CreateVolunteerPayload {
   email: string;
   phoneNumber: string;
   nationality: string;
-  ageBracket: string;
+  ageBracket: AgeBracket;
   availability?: AvailabilitySlot[];
   maxWeeklyHours?: number;
 }
+
+export const AGE_BRACKETS = [
+  "18-24",
+  "25-34",
+  "35-44",
+  "45-54",
+  "55-64",
+  "65+",
+] as const;
+
+export type AgeBracket = (typeof AGE_BRACKETS)[number];
 
 export interface ShiftRequest {
   id: string;
@@ -115,7 +126,7 @@ export async function createVolunteer(
       email: payload.email.trim(),
       phoneNumber: payload.phoneNumber.trim(),
       nationality: payload.nationality.trim(),
-      ageBracket: payload.ageBracket.trim(),
+      ageBracket: payload.ageBracket,
       availability: payload.availability,
       maxWeeklyHours: payload.maxWeeklyHours,
     }),

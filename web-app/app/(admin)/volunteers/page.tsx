@@ -9,6 +9,8 @@ import {
   Volunteer,
   ShiftRequest,
   CreateVolunteerPayload,
+  AGE_BRACKETS,
+  type AgeBracket,
 } from "../../lib/api/volunteers";
 
 const ALL_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -31,15 +33,44 @@ function formatDateLabel(startDateStr: string, dayOffset: number): string {
   return targetDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-// Turns "07:00–13:00" into 6 (hours). Handles both en-dash and hyphen.
+// Safely calculates half-day & full-day shifts in 12-hour or 24-hour formats
 function parseShiftHours(time: string): number {
-  if (!time) return 0;
-  const [start, end] = time.split(/[–-]/).map((t) => t.trim());
+  if (!time || (!time.includes("–") && !time.includes("-"))) return 0;
+
+  const parts = time.split(/[–-]/).map((t) => t.trim());
+  if (parts.length !== 2) return 0;
+
   const toMinutes = (t: string) => {
-    const [h, m] = t.split(":").map(Number);
-    return h * 60 + (m || 0);
+    const raw = t.toLowerCase();
+    const isPM = raw.includes("pm");
+    const isAM = raw.includes("am");
+    
+    // Extract numbers for hours and optional minutes
+    const clean = raw.replace(/[^0-9:]/g, "");
+    const [hStr, mStr] = clean.split(":");
+    let hours = parseInt(hStr, 10);
+    const minutes = mStr ? parseInt(mStr, 10) : 0;
+
+    if (isNaN(hours)) return 0;
+
+    // Convert 12-hour AM/PM to 24-hour minutes
+    if (isPM && hours < 12) hours += 12;
+    if (isAM && hours === 12) hours = 0;
+
+    return hours * 60 + (isNaN(minutes) ? 0 : minutes);
   };
-  const diff = toMinutes(end) - toMinutes(start);
+
+  const startMinutes = toMinutes(parts[0]);
+  const endMinutes = toMinutes(parts[1]);
+
+  const openingTime = 8 * 60;   // 8:00 AM (480 mins)
+  const closingTime = 17 * 60;  // 5:00 PM (1020 mins)
+
+  // Clamp shift window strictly within 8:00 AM – 5:00 PM
+  const validStart = Math.max(startMinutes, openingTime);
+  const validEnd = Math.min(endMinutes, closingTime);
+
+  const diff = validEnd - validStart;
   return diff > 0 ? diff / 60 : 0;
 }
 
@@ -136,8 +167,7 @@ export default function VolunteersPage() {
   const filteredVolunteers = volunteers.filter(
     (v) =>
       (v.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (v.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (v.area || "").toLowerCase().includes(searchQuery.toLowerCase())
+      (v.email || "").toLowerCase().includes(searchQuery.toLowerCase()) 
   );
 
   return (
@@ -228,7 +258,7 @@ export default function VolunteersPage() {
                     <th className="pb-3 px-4">Volunteer Name</th>
                     <th className="pb-3 px-4">Contact Information</th>
                     <th className="pb-3 px-4">Weekly Hours</th>
-                    <th className="pb-3 px-4">Schedule</th>
+                    <th className="pb-3 px-4">Attendance</th>
                     <th className="pb-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -283,7 +313,7 @@ export default function VolunteersPage() {
                               className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-slate-600 hover:text-blue-700 transition-colors"
                             >
                               <CalendarCheckIcon />
-                              <span className="text-xs font-semibold">View Schedule</span>
+                              <span className="text-xs font-semibold">View Attendance</span>
                               {totalSlots > 0 && (
                                 <span className="text-[10px] text-slate-400 group-hover:text-blue-500">
                                   {confirmedCount}/{totalSlots}
@@ -584,12 +614,16 @@ function CreateVolunteerForm({
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [nationality, setNationality] = useState("");
-  const [ageBracket, setAgeBracket] = useState("");
+  const [ageBracket, setAgeBracket] = useState<AgeBracket | "">("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+   if (!ageBracket) return;
+
     setIsSubmitting(true);
+
     try {
       await onCreate({
         firstName,
@@ -597,7 +631,7 @@ function CreateVolunteerForm({
         email,
         phoneNumber,
         nationality,
-        ageBracket,
+        ageBracket, 
       });
     } catch (err) {
       console.error("Failed to create volunteer", err);
@@ -605,24 +639,87 @@ function CreateVolunteerForm({
       setIsSubmitting(false);
     }
   };
-
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+      {/* Form Heading */}
       <div>
-        <h2 className="font-bold text-slate-900 text-sm">Create Volunteer Profile</h2>
-        <p className="text-xs text-slate-400 mt-0.5">Add a new volunteer to the system</p>
+        <h2 className="font-bold text-slate-900 text-sm">
+          Create Volunteer Profile
+        </h2>
+
+        <p className="text-xs text-slate-400 mt-0.5">
+          Add a new volunteer to the system
+        </p>
       </div>
 
+      {/* Form Fields */}
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="First Name" value={firstName} onChange={setFirstName} required />
-        <FormField label="Last Name" value={lastName} onChange={setLastName} required />
-        <FormField label="Email" value={email} onChange={setEmail} type="email" required />
-        <FormField label="Phone Number" value={phoneNumber} onChange={setPhoneNumber} required />
-        <FormField label="Nationality" value={nationality} onChange={setNationality} required />
-        <FormField label="Age Bracket" value={ageBracket} onChange={setAgeBracket} required />
+
+        <FormField
+          label="First Name"
+          value={firstName}
+          onChange={setFirstName}
+          required
+        />
+
+        <FormField
+          label="Last Name"
+          value={lastName}
+          onChange={setLastName}
+          required
+        />
+
+        <FormField
+          label="Email"
+          value={email}
+          onChange={setEmail}
+          type="email"
+          required
+        />
+
+        <FormField
+          label="Phone Number"
+          value={phoneNumber}
+          onChange={setPhoneNumber}
+          required
+        />
+
+        <FormField
+          label="Nationality"
+          value={nationality}
+          onChange={setNationality}
+          required
+        />
+
+        {/* Age Bracket Dropdown */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            Age Bracket
+          </label>
+
+          <select
+            value={ageBracket}
+            onChange={(e) => setAgeBracket(e.target.value as AgeBracket)}
+            required
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 cursor-pointer"
+          >
+            <option value="" disabled>
+              Select age bracket
+            </option>
+
+            {AGE_BRACKETS.map((bracket) => (
+              <option key={bracket} value={bracket}>
+                {bracket}
+              </option>
+            ))}
+          </select>
+        </div>
+
       </div>
 
+      {/* Form Actions */}
       <div className="flex items-center gap-3 pt-2">
+
         <button
           type="button"
           onClick={onCancel}
@@ -630,6 +727,7 @@ function CreateVolunteerForm({
         >
           Cancel
         </button>
+
         <button
           type="submit"
           disabled={isSubmitting}
@@ -637,6 +735,7 @@ function CreateVolunteerForm({
         >
           {isSubmitting ? "Creating..." : "Create Volunteer"}
         </button>
+
       </div>
     </form>
   );
@@ -765,37 +864,104 @@ function EditVolunteerModal({
   const [name, setName] = useState(volunteer.name);
   const [email, setEmail] = useState(volunteer.email);
   const [phone, setPhone] = useState(volunteer.phone);
-  const [nationality, setNationality] = useState(volunteer.nationality || "");
-  const [ageBracket, setAgeBracket] = useState(volunteer.ageBracket || "");
+  const [nationality, setNationality] = useState(
+    volunteer.nationality || ""
+  );
+  const [ageBracket, setAgeBracket] = useState(
+    volunteer.ageBracket || ""
+  );
 
   const handleSave = () => {
-    onSave({ ...volunteer, name, email, phone, nationality, ageBracket });
+    onSave({
+      ...volunteer,
+      name,
+      email,
+      phone,
+      nationality,
+      ageBracket,
+    });
   };
 
   return (
     <ModalOverlay onClose={onCancel}>
+
+      {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-slate-900">Edit Volunteer</h2>
-        <button onClick={onCancel} className="text-slate-400 hover:text-slate-600">
+        <h2 className="text-lg font-bold text-slate-900">
+          Edit Volunteer
+        </h2>
+
+        <button
+          onClick={onCancel}
+          className="text-slate-400 hover:text-slate-600"
+        >
           <CloseIcon />
         </button>
       </div>
 
+      {/* Form Fields */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <FormField label="Full Name" value={name} onChange={setName} />
-        <FormField label="Email" value={email} onChange={setEmail} type="email" />
-        <FormField label="Phone" value={phone} onChange={setPhone} />
-        <FormField label="Age Bracket" value={ageBracket} onChange={setAgeBracket} />
-        <FormField label="Nationality" value={nationality} onChange={setNationality} />
+
+        <FormField
+          label="Full Name"
+          value={name}
+          onChange={setName}
+        />
+
+        <FormField
+          label="Email"
+          value={email}
+          onChange={setEmail}
+          type="email"
+        />
+
+        <FormField
+          label="Phone"
+          value={phone}
+          onChange={setPhone}
+        />
+
+        {/* Age Bracket Dropdown */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            Age Bracket
+          </label>
+
+          <select
+            value={ageBracket}
+            onChange={(e) => setAgeBracket(e.target.value as AgeBracket)}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 cursor-pointer"
+          >
+            <option value="" disabled>
+              Select age bracket
+            </option>
+
+            {AGE_BRACKETS.map((bracket) => (
+              <option key={bracket} value={bracket}>
+                {bracket}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <FormField
+          label="Nationality"
+          value={nationality}
+          onChange={setNationality}
+        />
+
       </div>
 
+      {/* Actions */}
       <div className="flex items-center gap-3">
+
         <button
           onClick={onCancel}
           className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
         >
           Cancel
         </button>
+
         <button
           onClick={handleSave}
           className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 transition-colors"
@@ -803,11 +969,12 @@ function EditVolunteerModal({
           <CheckIcon />
           Save Changes
         </button>
+
       </div>
+
     </ModalOverlay>
   );
 }
-
 // ---- Confirm Action Modal ----
 
 function ConfirmActionModal({
