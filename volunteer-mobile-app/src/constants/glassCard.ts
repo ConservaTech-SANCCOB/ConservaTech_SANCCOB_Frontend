@@ -7,7 +7,7 @@ import { ViewStyle } from "react-native";
  * for the elevation, since that varies between hero cards and list rows.
  */
 export const GLASS_CARD: ViewStyle = {
-  backgroundColor: "rgba(255,255,255,0.55)",
+  backgroundColor: "rgba(255,255,255,0.85)",
   borderWidth: 1.5,
   borderColor: "rgba(255,255,255,0.9)",
   shadowColor: "#002e4c",
