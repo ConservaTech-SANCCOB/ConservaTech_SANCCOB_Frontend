@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   FlatList,
   ImageBackground,
@@ -18,7 +19,7 @@ import MyShiftCard from "../../../components/MyShiftCard";
 import { DateBadge, ShiftMeta } from "../../../components/ShiftCardParts";
 import { getAllShifts, getMyShifts, MyShift, Shift } from "../../../services/shifts";
 import { COLORS } from "../../../utils/colors";
-import { bucketForDate, DateBucket } from "../../../utils/dateBuckets";
+import { bucketForDate, DateBucket, getRelativeLabel } from "../../../utils/dateBuckets";
 import { formatTimeSlotLabel } from "../../../utils/timeSlot";
 
 type ListRow =
@@ -47,10 +48,22 @@ function groupMyShifts(shifts: MyShift[]): ListRow[] {
 function AvailableShiftCard({ item }: { item: Shift }) {
   const limited = item.capacity <= 1;
   return (
-    <View style={styles.shiftCard}>
+    <TouchableOpacity
+      style={styles.shiftCard}
+      activeOpacity={0.7}
+      onPress={() =>
+        Alert.alert(
+          `${formatTimeSlotLabel(item.timeSlot)} shift`,
+          `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\nCapacity: ${item.capacity} needed`
+        )
+      }
+    >
       <DateBadge dateStr={item.shiftDate} />
       <View style={styles.shiftCardBody}>
-        <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
+        <View style={styles.topRow}>
+          <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
+          <Text style={styles.relativeLabel}>{getRelativeLabel(item.shiftDate)}</Text>
+        </View>
         <ShiftMeta timeSlot={item.timeSlot} location={item.location} />
         <View style={styles.capacityRow}>
           <View style={styles.capacityChip}>
@@ -64,7 +77,7 @@ function AvailableShiftCard({ item }: { item: Shift }) {
           )}
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -298,7 +311,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   shiftCardBody: { flex: 1, gap: 6 },
+  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   shiftTimeLabel: { fontSize: 15, fontWeight: "800", color: COLORS.navy },
+  relativeLabel: { fontSize: 11, fontWeight: "700", color: COLORS.grey },
   capacityRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
   capacityChip: {
     flexDirection: "row",
