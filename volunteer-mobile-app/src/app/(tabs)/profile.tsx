@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Alert, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GLASS_CARD, GLASS_SHADOW_LG } from "../../constants/glassCard";
@@ -16,11 +16,6 @@ export default function ProfileScreen() {
   const [phone, setPhone] = useState("");
   const [nationality, setNationality] = useState("");
   const [ageBracket, setAgeBracket] = useState("");
-
-  const emailRef = useRef<TextInput>(null);
-  const phoneRef = useRef<TextInput>(null);
-  const nationalityRef = useRef<TextInput>(null);
-  const ageBracketRef = useRef<TextInput>(null);
 
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
@@ -67,64 +62,44 @@ export default function ProfileScreen() {
 
             <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
             <View style={styles.inputRow}>
+              <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
               <TextInput
-                ref={emailRef}
                 style={styles.input}
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
-                placeholder="you@example.com"
-                placeholderTextColor={COLORS.grey}
               />
-              <TouchableOpacity style={styles.editBadge} onPress={() => emailRef.current?.focus()} hitSlop={8}>
-                <Ionicons name="pencil" size={14} color={COLORS.blue} />
-              </TouchableOpacity>
             </View>
 
             <Text style={styles.fieldLabel}>MOBILE PHONE</Text>
             <View style={styles.inputRow}>
+              <Ionicons name="call-outline" size={18} color={COLORS.grey} />
               <TextInput
-                ref={phoneRef}
                 style={styles.input}
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
-                placeholder="+27 00 000 0000"
-                placeholderTextColor={COLORS.grey}
               />
-              <TouchableOpacity style={styles.editBadge} onPress={() => phoneRef.current?.focus()} hitSlop={8}>
-                <Ionicons name="pencil" size={14} color={COLORS.blue} />
-              </TouchableOpacity>
             </View>
 
             <Text style={styles.fieldLabel}>NATIONALITY</Text>
             <View style={styles.inputRow}>
+              <Ionicons name="flag-outline" size={18} color={COLORS.grey} />
               <TextInput
-                ref={nationalityRef}
                 style={styles.input}
                 value={nationality}
                 onChangeText={setNationality}
-                placeholder="South African"
-                placeholderTextColor={COLORS.grey}
               />
-              <TouchableOpacity style={styles.editBadge} onPress={() => nationalityRef.current?.focus()} hitSlop={8}>
-                <Ionicons name="pencil" size={14} color={COLORS.blue} />
-              </TouchableOpacity>
             </View>
 
             <Text style={styles.fieldLabel}>AGE BRACKET</Text>
             <View style={styles.inputRow}>
+              <Ionicons name="hourglass-outline" size={18} color={COLORS.grey} />
               <TextInput
-                ref={ageBracketRef}
                 style={styles.input}
                 value={ageBracket}
                 onChangeText={setAgeBracket}
-                placeholder="18-25"
-                placeholderTextColor={COLORS.grey}
               />
-              <TouchableOpacity style={styles.editBadge} onPress={() => ageBracketRef.current?.focus()} hitSlop={8}>
-                <Ionicons name="pencil" size={14} color={COLORS.blue} />
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -177,27 +152,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 14,
-    paddingHorizontal: 6,
-    paddingLeft: 14,
-    gap: 8,
+    borderColor: "rgba(0,46,76,0.3)",
+    backgroundColor: COLORS.lightGrey,
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    gap: 10,
     shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  input: { flex: 1, paddingVertical: 12, fontSize: 14, fontWeight: "600", color: COLORS.navy },
-  editBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(83, 199, 255, 0.18)",
-  },
+  input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "600", color: COLORS.navy },
   contactRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 },
   contactText: { fontSize: 13, color: COLORS.black },
   logoutButton: {
