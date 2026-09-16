@@ -9,8 +9,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
+import { GLASS_CARD, GLASS_SHADOW_MD } from "../constants/glassCard";
 import { getVolunteers, getVolunteerTraining } from "../services/training";
 import { TRAINING_CATALOG } from "../data/mockTrainingCatalog";
 import { Volunteer } from "../types/volunteer";
@@ -59,14 +61,16 @@ export default function TrainerDashboardScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient colors={["#00567f", "#002e4c"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.header}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.title}>Volunteers</Text>
             {!!trainerName && <Text style={styles.subtitle}>{`Signed in as ${trainerName}`}</Text>}
           </View>
-          <TouchableOpacity style={styles.logoutButton} onPress={() => router.replace("/")}>
-            <Ionicons name="log-out-outline" size={20} color={COLORS.white} />
+          <TouchableOpacity style={styles.logoutButtonWrap} onPress={() => router.replace("/")}>
+            <View style={styles.logoutButton}>
+              <Ionicons name="log-out-outline" size={20} color={COLORS.white} />
+            </View>
           </TouchableOpacity>
         </View>
         <View style={styles.searchBox}>
@@ -79,7 +83,7 @@ export default function TrainerDashboardScreen() {
             onChangeText={setSearch}
           />
         </View>
-      </View>
+      </LinearGradient>
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
@@ -105,9 +109,14 @@ export default function TrainerDashboardScreen() {
                   })
                 }
               >
-                <View style={styles.avatar}>
+                <LinearGradient
+                  colors={["#6FD0FF", "#2BA8E0"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.avatar}
+                >
                   <Ionicons name="person" size={20} color={COLORS.white} />
-                </View>
+                </LinearGradient>
                 <View style={styles.volunteerInfo}>
                   <Text style={styles.volunteerName}>{`${item.firstName} ${item.lastName}`}</Text>
                   <Text style={styles.volunteerArea}>{item.area}</Text>
@@ -139,15 +148,25 @@ export default function TrainerDashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.lightGrey },
-  header: { backgroundColor: COLORS.navy, paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
+  header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
   headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   title: { fontSize: 22, fontWeight: "800", color: COLORS.white },
   subtitle: { fontSize: 12, color: COLORS.sky, marginTop: 4 },
+  logoutButtonWrap: {
+    borderRadius: 18,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   logoutButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.5)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -155,29 +174,41 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: COLORS.white,
-    borderRadius: 10,
-    paddingHorizontal: 12,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     marginTop: 16,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
   searchInput: { flex: 1, fontSize: 14, color: COLORS.black },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
   volunteerRow: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_MD,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: COLORS.white,
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.navy, alignItems: "center", justifyContent: "center" },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
   volunteerInfo: { flex: 1 },
   volunteerName: { fontSize: 14, fontWeight: "700", color: COLORS.navy },
   volunteerArea: { fontSize: 12, color: COLORS.grey, marginTop: 2 },

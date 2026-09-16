@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Tabs } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Animated, ColorValue, LayoutChangeEvent, Pressable, StyleSheet, View } from "react-native";
@@ -21,7 +22,22 @@ function TabIcon({
   focused: boolean;
 }) {
   const iconName = (focused ? name : `${name}-outline`) as keyof typeof Ionicons.glyphMap;
-  return <Ionicons name={iconName} size={focused ? size + 2 : size} color={color} />;
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (focused) {
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.15, duration: 140, useNativeDriver: true }),
+        Animated.spring(pulse, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }),
+      ]).start();
+    }
+  }, [focused, pulse]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale: pulse }] }}>
+      <Ionicons name={iconName} size={focused ? size + 2 : size} color={color} />
+    </Animated.View>
+  );
 }
 
 function TabButton({
@@ -36,7 +52,7 @@ function TabButton({
   const scale = useRef(new Animated.Value(1)).current;
 
   const pressIn = () => {
-    Animated.spring(scale, { toValue: 0.86, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
   };
   const pressOut = () => {
     Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }).start();
@@ -49,11 +65,10 @@ function TabButton({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const translateX = useRef(new Animated.Value(0)).current;
-  const buttonLayouts = useRef<Array<{ x: number; width: number }>>([]);
+  const buttonLayouts = useRef<{ x: number; width: number }[]>([]);
 
   const moveIndicatorTo = (index: number, animate: boolean) => {
     const layout = buttonLayouts.current[index];
@@ -92,12 +107,19 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   return (
     <View style={[getTabBarStyle(insets.bottom), styles.barContainer]}>
       <View style={styles.indicatorLayer} pointerEvents="none">
-        <Animated.View style={[styles.indicator, { transform: [{ translateX }] }]} />
+        <Animated.View style={[styles.indicatorWrap, { transform: [{ translateX }] }]}>
+          <LinearGradient
+            colors={["#6FD0FF", "#2BA8E0"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.indicatorFill}
+          />
+        </Animated.View>
       </View>
       {state.routes.map((route: { key: string; name: string }, index: number) => {
         const { options } = descriptors[route.key];
         const focused = state.index === index;
-        const color = focused ? COLORS.navy : COLORS.grey;
+        const color = focused ? COLORS.white : COLORS.grey;
 
         const onPress = () => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -165,15 +187,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  indicator: {
+  indicatorWrap: {
     width: INDICATOR_WIDTH,
     height: INDICATOR_HEIGHT,
     borderRadius: 14,
-    backgroundColor: "rgba(83, 199, 255, 0.22)",
-    shadowColor: COLORS.sky,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
     elevation: 10,
+  },
+  indicatorFill: {
+    flex: 1,
+    borderRadius: 14,
   },
 });

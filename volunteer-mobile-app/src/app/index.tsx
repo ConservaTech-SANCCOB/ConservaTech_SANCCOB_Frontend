@@ -30,19 +30,40 @@ export default function WelcomeScreen() {
 
         <View style={styles.options}>
           <View style={styles.buttonGroup}>
-            <TouchableOpacity style={styles.primaryButton} onPress={() => router.push("/login")}>
-              <Ionicons name="log-in-outline" size={20} color={COLORS.navy} />
-              <Text style={styles.primaryButtonText}>Login as Volunteer</Text>
+            <TouchableOpacity style={styles.primaryButtonWrap} onPress={() => router.push("/login")}>
+              <LinearGradient
+                colors={["#6FD0FF", "#2BA8E0"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.primaryButton}
+              >
+                <Ionicons name="log-in-outline" size={20} color={COLORS.white} />
+                <Text style={styles.primaryButtonText}>Login as Volunteer</Text>
+              </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.tertiaryButton} onPress={() => router.push("/trainer-pin")}>
-              <Ionicons name="school-outline" size={20} color={COLORS.navy} />
-              <Text style={styles.tertiaryButtonText}>Login as Trainer</Text>
+            <TouchableOpacity style={styles.tertiaryButtonWrap} onPress={() => router.push("/trainer-pin")}>
+              <LinearGradient
+                colors={["#6FD0FF", "#2BA8E0"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.tertiaryButton}
+              >
+                <Ionicons name="school-outline" size={20} color={COLORS.white} />
+                <Text style={styles.tertiaryButtonText}>Login as Trainer</Text>
+              </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push("/activate")}>
-              <Ionicons name="key-outline" size={20} color={COLORS.navy} />
-              <Text style={styles.secondaryButtonText}>Activate New Account</Text>
+            <TouchableOpacity style={styles.secondaryButtonWrap} onPress={() => router.push("/activate")}>
+              <LinearGradient
+                colors={["#6FD0FF", "#2BA8E0"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.secondaryButton}
+              >
+                <Ionicons name="key-outline" size={20} color={COLORS.white} />
+                <Text style={styles.secondaryButtonText}>Activate New Account</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
@@ -55,7 +76,7 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
-  banner: { alignItems: "center", paddingTop: 100, paddingBottom: 60 },
+  banner: { alignItems: "center", paddingTop: 100, paddingBottom: 120 },
   logoCircle: {
     width: 90,
     height: 90,
@@ -92,39 +113,62 @@ const styles = StyleSheet.create({
   },
   buttonGroup: { flex: 1, justifyContent: "center", gap: 16 },
   footerText: { textAlign: "center", color: COLORS.grey, fontSize: 12, marginTop: 16 },
+  primaryButtonWrap: {
+    marginTop: 16,
+    borderRadius: 16,
+    borderWidth: 0.75,
+    borderColor: "rgba(255,255,255,0.5)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
+  },
   primaryButton: {
     flexDirection: "row",
-    backgroundColor: "rgba(83, 199, 255, 0.75)",
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    marginTop: 16,
   },
-  primaryButtonText: { color: COLORS.navy, fontWeight: "bold", fontSize: 16 },
+  primaryButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
+  secondaryButtonWrap: {
+    borderRadius: 16,
+    borderWidth: 0.75,
+    borderColor: "rgba(255,255,255,0.5)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
+  },
   secondaryButton: {
     flexDirection: "row",
-    backgroundColor: "rgba(83, 199, 255, 0.12)",
-    borderWidth: 1.5,
-    borderColor: "rgba(83, 199, 255, 0.6)",
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
-  secondaryButtonText: { color: COLORS.navy, fontWeight: "bold", fontSize: 16 },
+  secondaryButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
+  tertiaryButtonWrap: {
+    borderRadius: 16,
+    borderWidth: 0.75,
+    borderColor: "rgba(255,255,255,0.5)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
+  },
   tertiaryButton: {
     flexDirection: "row",
-    backgroundColor: "rgba(83, 199, 255, 0.12)",
-    borderWidth: 1.5,
-    borderColor: "rgba(83, 199, 255, 0.6)",
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
-  tertiaryButtonText: { color: COLORS.navy, fontWeight: "bold", fontSize: 16 },
+  tertiaryButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
 });
