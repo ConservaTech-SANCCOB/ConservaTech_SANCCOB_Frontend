@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../utils/colors";
 import { parseLocalDate } from "../utils/dateBuckets";
@@ -8,25 +9,26 @@ export function DateBadge({ dateStr }: { dateStr: string }) {
   const day = dateObj.getDate();
   const weekday = dateObj.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
   return (
-    <View style={styles.dateBadge}>
+    <LinearGradient colors={["#6FD0FF", "#2BA8E0"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.dateBadge}>
       <Text style={styles.dateBadgeDay}>{day}</Text>
       <Text style={styles.dateBadgeWeekday}>{weekday}</Text>
-    </View>
+    </LinearGradient>
   );
 }
 
 export function ShiftMeta({ timeSlot, location }: { timeSlot: string; location: string | null }) {
   return (
-    <View style={styles.shiftMetaCol}>
-      <View style={styles.shiftMetaRow}>
-        <Ionicons name="time-outline" size={13} color={COLORS.grey} />
-        <Text style={styles.shiftMetaText}>{timeSlot}</Text>
-      </View>
+    <View style={styles.shiftMetaRow}>
+      <Ionicons name="time-outline" size={16} color={COLORS.grey} />
+      <Text style={styles.shiftMetaText}>{timeSlot}</Text>
       {location ? (
-        <View style={styles.shiftMetaRow}>
-          <Ionicons name="location-outline" size={13} color={COLORS.grey} />
-          <Text style={styles.shiftMetaText}>{location}</Text>
-        </View>
+        <>
+          <Text style={styles.metaDot}>·</Text>
+          <Ionicons name="location-outline" size={16} color={COLORS.grey} />
+          <Text style={styles.shiftMetaText} numberOfLines={1} ellipsizeMode="tail">
+            {location}
+          </Text>
+        </>
       ) : null}
     </View>
   );
@@ -34,16 +36,20 @@ export function ShiftMeta({ timeSlot, location }: { timeSlot: string; location: 
 
 const styles = StyleSheet.create({
   dateBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: COLORS.blue,
+    width: 72,
+    height: 72,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  dateBadgeDay: { fontSize: 18, fontWeight: "900", color: COLORS.white, lineHeight: 20 },
-  dateBadgeWeekday: { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.85)", letterSpacing: 0.4 },
-  shiftMetaCol: { gap: 2 },
-  shiftMetaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  shiftMetaText: { fontSize: 12, color: COLORS.grey, fontWeight: "600" },
+  dateBadgeDay: { fontSize: 26, fontWeight: "900", color: COLORS.white, lineHeight: 28 },
+  dateBadgeWeekday: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.85)", letterSpacing: 0.5 },
+  shiftMetaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  shiftMetaText: { flexShrink: 1, fontSize: 14, color: COLORS.grey, fontWeight: "600" },
+  metaDot: { fontSize: 14, color: COLORS.grey, fontWeight: "700" },
 });

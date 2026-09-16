@@ -68,15 +68,22 @@ export default function LoginScreen() {
               <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={COLORS.grey} />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color={COLORS.navy} />
-            ) : (
-              <>
-                <Ionicons name="log-in-outline" size={20} color={COLORS.navy} />
-                <Text style={styles.loginButtonText}>Log In</Text>
-              </>
-            )}
+          <TouchableOpacity style={styles.loginButtonWrap} onPress={handleLogin} disabled={loading}>
+            <LinearGradient
+              colors={["#6FD0FF", "#2BA8E0"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.loginButton}
+            >
+              {loading ? (
+                <ActivityIndicator color={COLORS.white} />
+              ) : (
+                <>
+                  <Ionicons name="log-in-outline" size={20} color={COLORS.white} />
+                  <Text style={styles.loginButtonText}>Log In</Text>
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => Alert.alert("Coming Soon", "Password reset isn't available yet.")}>
   <Text style={styles.helperText}>Forgot your password?</Text>
@@ -138,16 +145,25 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "600", color: COLORS.navy },
+  loginButtonWrap: {
+    marginTop: 28,
+    borderRadius: 16,
+    borderWidth: 0.75,
+    borderColor: "rgba(255,255,255,0.5)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
+  },
   loginButton: {
     flexDirection: "row",
-    backgroundColor: "rgba(83, 199, 255, 0.75)",
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    marginTop: 28,
   },
-  loginButtonText: { color: COLORS.navy, fontWeight: "bold", fontSize: 16 },
+  loginButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
   helperText: { textAlign: "center", color: COLORS.navy, fontSize: 12, marginTop: 16, lineHeight: 18 },
 });
