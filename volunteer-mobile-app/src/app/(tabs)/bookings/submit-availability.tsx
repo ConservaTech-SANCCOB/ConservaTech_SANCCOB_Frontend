@@ -127,9 +127,17 @@ export default function SubmitAvailabilityScreen() {
                   return (
                     <TouchableOpacity
                       key={slot}
-                      style={[styles.slotButton, active && styles.slotButtonActive]}
+                      style={[styles.slotButton, active && styles.slotButtonActiveWrap]}
                       onPress={() => toggle(day, slot)}
                     >
+                      {active && (
+                        <LinearGradient
+                          colors={["#6FD0FF", "#2BA8E0"]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 0, y: 1 }}
+                          style={styles.slotButtonActiveFill}
+                        />
+                      )}
                       <Text style={[styles.slotLabel, active && styles.slotTextActive]}>{TIME_SLOT_LABELS[slot]}</Text>
                       <Text style={[styles.slotText, active && styles.slotTextActive]}>{slot}</Text>
                     </TouchableOpacity>
@@ -141,18 +149,34 @@ export default function SubmitAvailabilityScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      <View style={[styles.bottomBar, { bottom: 12 + insets.bottom }]}>
-        <TouchableOpacity style={styles.bottomBarButton} onPress={handleSave} disabled={saving}>
+      <LinearGradient
+        colors={["rgba(0,46,76,0)", "rgba(0,46,76,0.32)"]}
+        style={styles.bottomScrim}
+        pointerEvents="none"
+      />
+
+      <TouchableOpacity
+        style={[styles.bottomBarButtonWrap, { bottom: 12 + insets.bottom }]}
+        onPress={handleSave}
+        disabled={saving}
+        activeOpacity={0.85}
+      >
+        <LinearGradient
+          colors={["#6FD0FF", "#2BA8E0"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.bottomBarButton}
+        >
           {saving ? (
-            <ActivityIndicator size="small" color={COLORS.navy} />
+            <ActivityIndicator size="small" color={COLORS.white} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle-outline" size={20} color={COLORS.navy} />
+              <Ionicons name="checkmark-circle-outline" size={20} color={COLORS.white} />
               <Text style={styles.bottomBarButtonText}>Submit Availability</Text>
             </>
           )}
-        </TouchableOpacity>
-      </View>
+        </LinearGradient>
+      </TouchableOpacity>
     </ImageBackground>
   );
 }
@@ -207,28 +231,46 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  slotButtonActive: {
-    backgroundColor: "rgba(83, 199, 255, 0.35)",
+  slotButtonActiveWrap: {
     borderWidth: 0,
-    shadowColor: "#00D4FF",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
     shadowRadius: 18,
     elevation: 10,
   },
+  slotButtonActiveFill: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
+  },
   slotLabel: { fontSize: 13, color: COLORS.navy, fontWeight: "800" },
   slotText: { fontSize: 11, color: COLORS.grey, fontWeight: "700" },
-  slotTextActive: { color: COLORS.navy, fontWeight: "900" },
-  bottomBar: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
+  slotTextActive: { color: COLORS.white, fontWeight: "900" },
+  bottomScrim: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 190,
+  },
+  bottomBarButtonWrap: {
     position: "absolute",
     left: 0,
     right: 0,
     marginHorizontal: 44,
     height: 60,
     borderRadius: 30,
-    padding: 6,
+    borderWidth: 0.75,
+    borderColor: "rgba(0,46,76,0.4)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
   },
   bottomBarButton: {
     flex: 1,
@@ -236,13 +278,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 24,
-    backgroundColor: "rgba(83, 199, 255, 0.55)",
-    shadowColor: "#00D4FF",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 22,
-    elevation: 12,
+    borderRadius: 28.5,
   },
-  bottomBarButtonText: { color: COLORS.navy, fontWeight: "800", fontSize: 15 },
+  bottomBarButtonText: { color: COLORS.white, fontWeight: "800", fontSize: 15 },
 });

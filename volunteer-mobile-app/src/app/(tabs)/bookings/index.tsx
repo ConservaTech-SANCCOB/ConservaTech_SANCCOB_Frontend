@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   FlatList,
   ImageBackground,
@@ -18,7 +19,7 @@ import MyShiftCard from "../../../components/MyShiftCard";
 import { DateBadge, ShiftMeta } from "../../../components/ShiftCardParts";
 import { getAllShifts, getMyShifts, MyShift, Shift } from "../../../services/shifts";
 import { COLORS } from "../../../utils/colors";
-import { bucketForDate, DateBucket } from "../../../utils/dateBuckets";
+import { bucketForDate, DateBucket, getRelativeLabel } from "../../../utils/dateBuckets";
 import { formatTimeSlotLabel } from "../../../utils/timeSlot";
 
 type ListRow =
@@ -46,25 +47,49 @@ function groupMyShifts(shifts: MyShift[]): ListRow[] {
 
 function AvailableShiftCard({ item }: { item: Shift }) {
   const limited = item.capacity <= 1;
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const pressIn = () => {
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
+  };
+  const pressOut = () => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }).start();
+  };
+
   return (
-    <View style={styles.shiftCard}>
-      <DateBadge dateStr={item.shiftDate} />
-      <View style={styles.shiftCardBody}>
-        <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
-        <ShiftMeta timeSlot={item.timeSlot} location={item.location} />
-        <View style={styles.capacityRow}>
-          <View style={styles.capacityChip}>
-            <Ionicons name="people-outline" size={13} color={COLORS.navy} />
-            <Text style={styles.capacityChipText}>{item.capacity} needed</Text>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+      onPress={() =>
+        Alert.alert(
+          `${formatTimeSlotLabel(item.timeSlot)} shift`,
+          `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\nCapacity: ${item.capacity} needed`
+        )
+      }
+    >
+      <Animated.View style={[styles.shiftCard, { transform: [{ scale }] }]}>
+        <DateBadge dateStr={item.shiftDate} />
+        <View style={styles.shiftCardBody}>
+          <View style={styles.topRow}>
+            <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
+            <Text style={styles.relativeLabel}>{getRelativeLabel(item.shiftDate)}</Text>
           </View>
-          {limited && (
-            <View style={styles.limitedTag}>
-              <Text style={styles.limitedTagText}>Limited spots</Text>
+          <ShiftMeta timeSlot={item.timeSlot} location={item.location} />
+          <View style={styles.capacityRow}>
+            <View style={styles.capacityChip}>
+              <Ionicons name="people-outline" size={16} color={COLORS.navy} />
+              <Text style={styles.capacityChipText}>{item.capacity} needed</Text>
             </View>
-          )}
+            {limited && (
+              <View style={styles.limitedTag}>
+                <Text style={styles.limitedTagText}>Limited spots</Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-    </View>
+      </Animated.View>
+    </TouchableOpacity>
   );
 }
 
@@ -101,6 +126,18 @@ export default function BookingsScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [segmentRowWidth, setSegmentRowWidth] = useState(0);
+  const segmentTranslateX = useRef(new Animated.Value(0)).current;
+  const segmentIndicatorWidth = segmentRowWidth > 0 ? (segmentRowWidth - 8) / 2 : 0;
+
+  useEffect(() => {
+    Animated.spring(segmentTranslateX, {
+      toValue: tab === "mine" ? 0 : segmentIndicatorWidth,
+      useNativeDriver: true,
+      speed: 16,
+      bounciness: 8,
+    }).start();
+  }, [tab, segmentIndicatorWidth, segmentTranslateX]);
 
   const load = useCallback(
     async (isRefresh = false) => {
@@ -148,17 +185,29 @@ export default function BookingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.segmentRow}>
-        <TouchableOpacity
-          style={[styles.segment, tab === "mine" && styles.segmentActive]}
-          onPress={() => setTab("mine")}
-        >
+      <View
+        style={styles.segmentRow}
+        onLayout={(e) => setSegmentRowWidth(e.nativeEvent.layout.width)}
+      >
+        {segmentIndicatorWidth > 0 && (
+          <Animated.View
+            style={[
+              styles.segmentIndicator,
+              { width: segmentIndicatorWidth, transform: [{ translateX: segmentTranslateX }] },
+            ]}
+          >
+            <LinearGradient
+              colors={["#6FD0FF", "#2BA8E0"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.segmentIndicatorFill}
+            />
+          </Animated.View>
+        )}
+        <TouchableOpacity style={styles.segment} onPress={() => setTab("mine")}>
           <Text style={[styles.segmentText, tab === "mine" && styles.segmentTextActive]}>My Shifts</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.segment, tab === "available" && styles.segmentActive]}
-          onPress={() => setTab("available")}
-        >
+        <TouchableOpacity style={styles.segment} onPress={() => setTab("available")}>
           <Text style={[styles.segmentText, tab === "available" && styles.segmentTextActive]}>Available Shifts</Text>
         </TouchableOpacity>
       </View>
@@ -254,21 +303,27 @@ const styles = StyleSheet.create({
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
     flexDirection: "row",
-    borderRadius: 14,
+    height: 44,
     padding: 4,
+    borderRadius: 14,
     marginBottom: 16,
   },
-  segment: { flex: 1, paddingVertical: 8, alignItems: "center", borderRadius: 10 },
-  segmentActive: {
-    backgroundColor: "rgba(83, 199, 255, 0.35)",
-    shadowColor: "#00D4FF",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 16,
-    elevation: 8,
+  segment: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 10 },
+  segmentIndicator: {
+    position: "absolute",
+    top: 4,
+    bottom: 4,
+    left: 4,
+    borderRadius: 10,
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
   },
+  segmentIndicatorFill: { flex: 1, borderRadius: 10 },
   segmentText: { fontSize: 13, color: COLORS.grey, fontWeight: "700" },
-  segmentTextActive: { color: COLORS.navy, fontWeight: "900" },
+  segmentTextActive: { color: COLORS.white, fontWeight: "900" },
   sectionHeader: {
     fontSize: 12,
     fontWeight: "900",
@@ -292,48 +347,50 @@ const styles = StyleSheet.create({
     ...GLASS_CARD,
     ...GLASS_SHADOW_MD,
     flexDirection: "row",
-    gap: 12,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
+    gap: 20,
+    borderRadius: 20,
+    padding: 22,
+    marginBottom: 18,
   },
-  shiftCardBody: { flex: 1, gap: 6 },
-  shiftTimeLabel: { fontSize: 15, fontWeight: "800", color: COLORS.navy },
-  capacityRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
+  shiftCardBody: { flex: 1, gap: 8 },
+  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  shiftTimeLabel: { fontSize: 19, fontWeight: "800", color: COLORS.navy },
+  relativeLabel: { fontSize: 13, fontWeight: "700", color: COLORS.grey },
+  capacityRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 3 },
   capacityChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
     backgroundColor: "rgba(0,46,76,0.08)",
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderRadius: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 13,
+    borderRadius: 13,
   },
-  capacityChipText: { fontSize: 11, fontWeight: "800", color: COLORS.navy },
+  capacityChipText: { fontSize: 13, fontWeight: "800", color: COLORS.navy },
   limitedTag: {
     backgroundColor: COLORS.amberBg,
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderRadius: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 13,
+    borderRadius: 13,
   },
-  limitedTagText: { fontSize: 11, fontWeight: "800", color: "#9A7B00" },
+  limitedTagText: { fontSize: 13, fontWeight: "800", color: "#9A7B00" },
   skeletonBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 72,
+    height: 72,
+    borderRadius: 18,
     backgroundColor: "rgba(0,46,76,0.12)",
   },
   skeletonLineWide: {
-    height: 14,
-    borderRadius: 7,
+    height: 18,
+    borderRadius: 9,
     width: "70%",
     backgroundColor: "rgba(0,46,76,0.12)",
   },
   skeletonLineNarrow: {
-    height: 12,
-    borderRadius: 6,
+    height: 15,
+    borderRadius: 7,
     width: "45%",
     backgroundColor: "rgba(0,46,76,0.1)",
-    marginTop: 6,
+    marginTop: 8,
   },
 });

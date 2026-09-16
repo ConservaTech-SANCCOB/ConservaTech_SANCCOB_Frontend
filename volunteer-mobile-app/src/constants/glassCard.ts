@@ -7,24 +7,25 @@ import { ViewStyle } from "react-native";
  * for the elevation, since that varies between hero cards and list rows.
  */
 export const GLASS_CARD: ViewStyle = {
-  backgroundColor: "rgba(255,255,255,0.55)",
-  borderWidth: 1.5,
+  backgroundColor: "rgba(255,255,255,0.85)",
+  borderWidth: 0.75,
   borderColor: "rgba(255,255,255,0.9)",
+  borderTopColor: "rgba(255,255,255,1)",
   shadowColor: "#002e4c",
 };
 
 /** Shadow for prominent cards: headers, section chips, buttons, empty states. */
 export const GLASS_SHADOW_LG: ViewStyle = {
-  shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.3,
-  shadowRadius: 16,
+  shadowOffset: { width: 0, height: 10 },
+  shadowOpacity: 0.2,
+  shadowRadius: 22,
   elevation: 8,
 };
 
 /** Shadow for list rows: shift/skill/booking cards sitting inside a section. */
 export const GLASS_SHADOW_MD: ViewStyle = {
-  shadowOffset: { width: 0, height: 6 },
-  shadowOpacity: 0.25,
-  shadowRadius: 14,
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.18,
+  shadowRadius: 18,
   elevation: 6,
 };

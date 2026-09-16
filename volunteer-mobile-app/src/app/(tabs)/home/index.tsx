@@ -79,7 +79,7 @@ export default function HomeScreen() {
         }
       >
         <View style={styles.headerCard}>
-          <LinearGradient colors={["#00567f", "#002e4c"]} start={{ x: 0, y: 0 }} end={{ x: 0.7, y: 1 }} style={styles.avatar}>
+          <LinearGradient colors={["#6FD0FF", "#2BA8E0"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.avatar}>
             <Text style={styles.avatarInitials}>SV</Text>
           </LinearGradient>
           <View style={{ flex: 1 }}>
@@ -99,8 +99,9 @@ export default function HomeScreen() {
               THIS WEEK'S SHIFTS{thisWeeksShifts.length > 0 ? ` (${thisWeeksShifts.length})` : ""}
             </Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/(tabs)/bookings")}>
+          <TouchableOpacity style={styles.viewAllButton} onPress={() => router.push("/(tabs)/bookings")}>
             <Text style={styles.viewAllText}>View All</Text>
+            <Ionicons name="chevron-forward" size={14} color="#00567f" />
           </TouchableOpacity>
         </View>
 
@@ -118,17 +119,21 @@ export default function HomeScreen() {
           upcoming.map((shift) => <MyShiftCard key={shift.rosterAssignmentId} item={shift} />)
         ) : (
           <View style={styles.emptyCard}>
-            <View style={styles.emptyIconCircle}>
-              <Ionicons name="calendar-outline" size={26} color="#007fb0" />
-            </View>
             <Text style={styles.emptyTitle}>No shifts yet</Text>
             <Text style={styles.emptyText}>Set your availability and you'll be automatically matched to shifts that fit.</Text>
             <TouchableOpacity
-              style={styles.emptyCta}
+              style={styles.emptyCtaWrap}
               onPress={() => router.push("/(tabs)/bookings/submit-availability")}
             >
-              <Ionicons name="calendar-outline" size={16} color={COLORS.navy} />
-              <Text style={styles.emptyCtaText}>Set Availability</Text>
+              <LinearGradient
+                colors={["#6FD0FF", "#2BA8E0"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.emptyCta}
+              >
+                <Ionicons name="calendar-outline" size={16} color={COLORS.white} />
+                <Text style={styles.emptyCtaText}>Set Availability</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         )}
@@ -156,10 +161,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.5)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
   },
   avatarInitials: { color: COLORS.white, fontSize: 15, fontWeight: "800" },
   welcomeLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1.1, color: "#3f5f75" },
@@ -194,7 +202,17 @@ const styles = StyleSheet.create({
     marginTop: 40,
     marginBottom: 12,
   },
-  viewAllText: { fontSize: 12, fontWeight: "800", color: COLORS.blue },
+  viewAllButton: {
+    ...GLASS_CARD,
+    ...GLASS_SHADOW_LG,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    borderRadius: 11,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  viewAllText: { fontSize: 12, fontWeight: "800", color: "#00567f" },
   sectionChip: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
@@ -212,34 +230,24 @@ const styles = StyleSheet.create({
     padding: 26,
     paddingHorizontal: 20,
   },
-  emptyIconCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(233,247,255,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "rgba(0,120,180,0.5)",
+  emptyTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
+  emptyText: { fontSize: 13, fontWeight: "500", color: "#3d5260", textAlign: "center", maxWidth: 255, marginTop: 8 },
+  emptyCtaWrap: {
+    marginTop: 20,
+    borderRadius: 16,
+    shadowColor: "#002e4c",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.35,
     shadowRadius: 18,
+    elevation: 10,
   },
-  emptyTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy, marginTop: 14 },
-  emptyText: { fontSize: 13, fontWeight: "500", color: "#3d5260", textAlign: "center", maxWidth: 255, marginTop: 6 },
   emptyCta: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 16,
-    backgroundColor: "rgba(83, 199, 255, 0.35)",
-    borderRadius: 16,
+    borderRadius: 14.5,
     paddingVertical: 10,
     paddingHorizontal: 18,
-    shadowColor: "#00D4FF",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 16,
-    elevation: 8,
   },
-  emptyCtaText: { fontSize: 13, fontWeight: "800", color: COLORS.navy },
+  emptyCtaText: { fontSize: 13, fontWeight: "800", color: COLORS.white },
 });
