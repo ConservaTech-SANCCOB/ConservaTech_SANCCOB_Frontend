@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, ImageBackground, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import MyShiftCard from "../../../components/MyShiftCard";
 import { GLASS_CARD, GLASS_SHADOW_LG } from "../../../constants/glassCard";
@@ -49,16 +49,25 @@ export default function HomeScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadUnreadCount();
-    loadShifts().finally(() => setLoadingShifts(false));
-  }, [loadUnreadCount, loadShifts]);
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([loadUnreadCount(), loadShifts()]);
     setRefreshing(false);
   }, [loadUnreadCount, loadShifts]);
+
+  const hasLoadedRef = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasLoadedRef.current) {
+        hasLoadedRef.current = true;
+        loadUnreadCount();
+        loadShifts().finally(() => setLoadingShifts(false));
+      } else {
+        onRefresh();
+      }
+    }, [loadUnreadCount, loadShifts, onRefresh])
+  );
 
   return (
     <ImageBackground
@@ -96,7 +105,7 @@ export default function HomeScreen() {
         <View style={styles.sectionHeaderRow}>
           <View style={styles.sectionChip}>
             <Text style={styles.sectionChipText}>
-              THIS WEEK'S SHIFTS{thisWeeksShifts.length > 0 ? ` (${thisWeeksShifts.length})` : ""}
+              THIS WEEK&apos;S SHIFTS{thisWeeksShifts.length > 0 ? ` (${thisWeeksShifts.length})` : ""}
             </Text>
           </View>
           <TouchableOpacity style={styles.viewAllButton} onPress={() => router.push("/(tabs)/bookings")}>
@@ -112,7 +121,7 @@ export default function HomeScreen() {
         ) : shiftsError ? (
           <View style={styles.emptyCard}>
             <Ionicons name="warning-outline" size={26} color={COLORS.grey} />
-            <Text style={styles.emptyTitle}>Couldn't load shifts</Text>
+            <Text style={styles.emptyTitle}>Couldn&apos;t load shifts</Text>
             <Text style={styles.emptyText}>Pull down to try again in a moment.</Text>
           </View>
         ) : upcoming.length > 0 ? (
@@ -120,7 +129,7 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No shifts yet</Text>
-            <Text style={styles.emptyText}>Set your availability and you'll be automatically matched to shifts that fit.</Text>
+            <Text style={styles.emptyText}>Set your availability and you&apos;ll be automatically matched to shifts that fit.</Text>
             <TouchableOpacity
               style={styles.emptyCtaWrap}
               onPress={() => router.push("/(tabs)/bookings/submit-availability")}
@@ -162,7 +171,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.5)",
+    borderColor: "rgba(255,255,255,0.7)",
     shadowColor: "#002e4c",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,

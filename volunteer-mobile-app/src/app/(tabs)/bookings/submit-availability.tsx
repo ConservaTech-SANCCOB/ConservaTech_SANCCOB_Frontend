@@ -12,6 +12,7 @@ import { getMyAvailability, updateMyAvailability, AvailabilitySlot, TimeBlock } 
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const SLOTS: TimeBlock[] = ["08:00-13:00", "14:00-17:00", "08:00-17:00"];
+const FULL_DAY_SLOT: TimeBlock = "08:00-17:00";
 
 function slotKey(day: string, slot: string) {
   return `${day}-${slot}`;
@@ -46,17 +47,25 @@ export default function SubmitAvailabilityScreen() {
     };
   }, [navigation, insets.bottom]);
 
-  const toggle = (day: string, slot: string) => {
+  const toggle = (day: string, slot: TimeBlock) => {
     const key = slotKey(day, slot);
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      if (next.has(key)) {
+        next.delete(key);
+        return next;
+      }
+      next.add(key);
+      if (slot === FULL_DAY_SLOT) {
+        SLOTS.filter((s) => s !== FULL_DAY_SLOT).forEach((s) => next.delete(slotKey(day, s)));
+      } else {
+        next.delete(slotKey(day, FULL_DAY_SLOT));
+      }
       return next;
     });
   };
 
-  const handleSave = async () => {
+  const performSave = async () => {
     const slots: AvailabilitySlot[] = DAYS.flatMap((day) =>
       SLOTS.filter((slot) => selected.has(slotKey(day, slot))).map((timeSlot) => ({
         dayOfWeek: day,
@@ -75,6 +84,21 @@ export default function SubmitAvailabilityScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSave = () => {
+    if (selected.size === 0) {
+      Alert.alert(
+        "No availability selected",
+        "You haven't selected any availability. Saving now will clear your current availability. Continue?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Save", style: "destructive", onPress: () => performSave() },
+        ]
+      );
+      return;
+    }
+    performSave();
   };
 
   if (loading) {
@@ -104,7 +128,7 @@ export default function SubmitAvailabilityScreen() {
             </TouchableOpacity>
             <View style={styles.titleCard}>
               <Text style={styles.headerTitle}>Submit Availability</Text>
-              <Text style={styles.headerSubtitle}>Pick the days and time blocks you're free to help</Text>
+              <Text style={styles.headerSubtitle}>Pick the days and time blocks you&apos;re free to help</Text>
             </View>
           </View>
 
@@ -265,7 +289,7 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     borderWidth: 0.75,
-    borderColor: "rgba(0,46,76,0.4)",
+    borderColor: "rgba(255,255,255,0.5)",
     shadowColor: "#002e4c",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,

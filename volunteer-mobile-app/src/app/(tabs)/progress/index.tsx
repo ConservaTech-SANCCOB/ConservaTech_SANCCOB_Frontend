@@ -24,7 +24,7 @@ function ProgressRing({ percent, size = 92, strokeWidth = 10 }: { percent: numbe
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={COLORS.amber}
+          stroke={COLORS.sky}
           strokeWidth={strokeWidth}
           strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={strokeDashoffset}
@@ -41,13 +41,6 @@ function ProgressRing({ percent, size = 92, strokeWidth = 10 }: { percent: numbe
       </View>
     </View>
   );
-}
-
-function getMilestone(percent: number, totalCount: number): { icon: keyof typeof Ionicons.glyphMap; text: string } | null {
-  if (totalCount === 0) return null;
-  if (percent >= 100) return { icon: "trophy", text: "All skills completed!" };
-  if (percent >= 50) return { icon: "flag", text: "Halfway there, keep going" };
-  return null;
 }
 
 function SectionHeader({
@@ -135,13 +128,13 @@ export default function TrainingScreen() {
   const [supportingExpanded, setSupportingExpanded] = useState(true);
   const [penExpanded, setPenExpanded] = useState(false);
 
-  const allSkills = [...supportingAreas, ...penRoutines];
-  const completedCount = allSkills.filter((s) => s.completed).length;
-  const totalCount = allSkills.length;
+  const allSupportingAreasComplete = supportingAreas.length > 0 && supportingAreas.every((s) => s.completed);
+  const ringSkills = allSupportingAreasComplete ? [...supportingAreas, ...penRoutines] : supportingAreas;
+  const completedCount = ringSkills.filter((s) => s.completed).length;
+  const totalCount = ringSkills.length;
   const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const penCompletedCount = penRoutines.filter((s) => s.completed).length;
-  const penLocked = penRoutines.length === 0;
-  const milestone = getMilestone(percent, totalCount);
+  const penLocked = !allSupportingAreasComplete;
 
   return (
     <ImageBackground
@@ -172,12 +165,6 @@ export default function TrainingScreen() {
               <View style={styles.summaryTextCol}>
                 <Text style={styles.summaryText}>{completedCount} of {totalCount}</Text>
                 <Text style={styles.summarySubtext}>skills completed</Text>
-                {milestone && (
-                  <View style={styles.milestoneBadge}>
-                    <Ionicons name={milestone.icon} size={13} color="#9A7B00" />
-                    <Text style={styles.milestoneText}>{milestone.text}</Text>
-                  </View>
-                )}
               </View>
             </View>
           </View>
@@ -254,18 +241,6 @@ const styles = StyleSheet.create({
   ringPercent: { fontSize: 18, fontWeight: "900", color: COLORS.navy },
   summaryText: { fontSize: 18, color: COLORS.navy, fontWeight: "800" },
   summarySubtext: { fontSize: 13, color: COLORS.grey, fontWeight: "600" },
-  milestoneBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    backgroundColor: COLORS.amberBg,
-    borderRadius: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    marginTop: 8,
-  },
-  milestoneText: { fontSize: 11, fontWeight: "800", color: "#9A7B00" },
   sectionHeader: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,

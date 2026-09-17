@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -17,18 +17,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
 import MyShiftCard from "../../../components/MyShiftCard";
 import { DateBadge, ShiftMeta } from "../../../components/ShiftCardParts";
-import { getAllShifts, getMyShifts, MyShift, Shift } from "../../../services/shifts";
+import { getMyShifts, MyShift } from "../../../services/shifts";
+import { getVacancies, Vacancy } from "../../../services/vacancies";
 import { COLORS } from "../../../utils/colors";
 import { bucketForDate, DateBucket, getRelativeLabel } from "../../../utils/dateBuckets";
-import { formatTimeSlotLabel } from "../../../utils/timeSlot";
+import { formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
 
 type ListRow =
   | { type: "header"; key: string; title: string }
   | { type: "mine"; key: string; item: MyShift }
-  | { type: "available"; key: string; item: Shift };
+  | { type: "available"; key: string; item: Vacancy };
 
 function groupMyShifts(shifts: MyShift[]): ListRow[] {
-  const order: DateBucket[] = ["Today", "This Week", "Later", "Past"];
+  const order: DateBucket[] = ["Today", "This Week", "Later"];
   const buckets: Record<string, MyShift[]> = {};
   shifts.forEach((item) => {
     const key = bucketForDate(item.shiftDate);
@@ -45,8 +46,8 @@ function groupMyShifts(shifts: MyShift[]): ListRow[] {
   return rows;
 }
 
-function AvailableShiftCard({ item }: { item: Shift }) {
-  const limited = item.capacity <= 1;
+function AvailableShiftCard({ item }: { item: Vacancy }) {
+  const limited = item.vacanciesAvailable === 1;
   const scale = useRef(new Animated.Value(1)).current;
 
   const pressIn = () => {
@@ -64,7 +65,7 @@ function AvailableShiftCard({ item }: { item: Shift }) {
       onPress={() =>
         Alert.alert(
           `${formatTimeSlotLabel(item.timeSlot)} shift`,
-          `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\nCapacity: ${item.capacity} needed`
+          `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\n${item.vacanciesAvailable} of ${item.capacity} spots open`
         )
       }
     >
@@ -79,7 +80,9 @@ function AvailableShiftCard({ item }: { item: Shift }) {
           <View style={styles.capacityRow}>
             <View style={styles.capacityChip}>
               <Ionicons name="people-outline" size={16} color={COLORS.navy} />
-              <Text style={styles.capacityChipText}>{item.capacity} needed</Text>
+              <Text style={styles.capacityChipText}>
+                {item.vacanciesAvailable} of {item.capacity} open
+              </Text>
             </View>
             {limited && (
               <View style={styles.limitedTag}>
@@ -122,13 +125,14 @@ export default function BookingsScreen() {
   const router = useRouter();
   const [tab, setTab] = useState<"mine" | "available">("mine");
   const [myShifts, setMyShifts] = useState<MyShift[]>([]);
-  const [availableShifts, setAvailableShifts] = useState<Shift[]>([]);
+  const [availableShifts, setAvailableShifts] = useState<Vacancy[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [segmentRowWidth, setSegmentRowWidth] = useState(0);
   const segmentTranslateX = useRef(new Animated.Value(0)).current;
   const segmentIndicatorWidth = segmentRowWidth > 0 ? (segmentRowWidth - 8) / 2 : 0;
+  const hasLoadedTab = useRef<{ mine: boolean; available: boolean }>({ mine: false, available: false });
 
   useEffect(() => {
     Animated.spring(segmentTranslateX, {
@@ -148,7 +152,16 @@ export default function BookingsScreen() {
         if (tab === "mine") {
           setMyShifts(await getMyShifts());
         } else {
-          setAvailableShifts(await getAllShifts());
+          const [vacancies, myShiftsForExclusion] = await Promise.all([getVacancies(), getMyShifts()]);
+          const assignedShiftIds = new Set(myShiftsForExclusion.map((s) => s.shiftId));
+          setAvailableShifts(
+            vacancies.filter(
+              (v) =>
+                v.vacanciesAvailable > 0 &&
+                !hasShiftEnded(v.shiftDate, v.timeSlot) &&
+                !assignedShiftIds.has(v.shiftId)
+            )
+          );
         }
       } catch (error) {
         console.error(`Load ${tab} shifts error:`, error);
@@ -161,13 +174,17 @@ export default function BookingsScreen() {
     [tab]
   );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      const alreadyLoadedThisTab = hasLoadedTab.current[tab];
+      hasLoadedTab.current[tab] = true;
+      load(alreadyLoadedThisTab);
+    }, [tab, load])
+  );
 
   const rows: ListRow[] =
     tab === "mine"
-      ? groupMyShifts(myShifts)
+      ? groupMyShifts(myShifts.filter((s) => !hasShiftEnded(s.shiftDate, s.timeSlot)))
       : availableShifts.map((item) => ({ type: "available", key: `available-${item.shiftId}`, item }));
 
   const header = (
@@ -315,6 +332,8 @@ const styles = StyleSheet.create({
     bottom: 4,
     left: 4,
     borderRadius: 10,
+    borderWidth: 0.75,
+    borderColor: "rgba(255,255,255,0.5)",
     shadowColor: "#002e4c",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
