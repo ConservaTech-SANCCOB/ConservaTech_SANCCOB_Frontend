@@ -1,21 +1,64 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Alert, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GLASS_CARD, GLASS_SHADOW_LG } from "../../constants/glassCard";
 import { clearToken } from "../../utils/api";
 import { COLORS } from "../../utils/colors";
+import { getMyProfile, updateMyProfile } from "../../services/profile";
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [firstName] = useState("");
-  const [lastName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [nationality, setNationality] = useState("");
   const [ageBracket, setAgeBracket] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getMyProfile()
+      .then((profile) => {
+        setFirstName(profile.firstName ?? "");
+        setLastName(profile.lastName ?? "");
+        setEmail(profile.email ?? "");
+        setPhone(profile.phoneNumber ?? "");
+        setNationality(profile.nationality ?? "");
+        setAgeBracket(profile.ageBracket ?? "");
+      })
+      .catch((error) => {
+        console.error("Load profile error:", error);
+        setLoadError(true);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    if (!email.trim()) {
+      Alert.alert("Email required", "Please enter your email address.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateMyProfile({
+        email: email.trim(),
+        phoneNumber: phone.trim() || null,
+        nationality: nationality.trim() || null,
+        ageBracket: ageBracket.trim() || null,
+      });
+      Alert.alert("Saved", "Your profile has been updated.");
+    } catch (error) {
+      console.error("Save profile error:", error);
+      Alert.alert("Couldn't save", "Something went wrong, try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
@@ -54,53 +97,83 @@ export default function ProfileScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Personal Details</Text>
 
-            <Text style={styles.fieldLabel}>FIRST NAME (READ ONLY)</Text>
-            <Text style={styles.readOnlyValue}>{firstName || "—"}</Text>
+            {loading ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator color={COLORS.blue} />
+              </View>
+            ) : (
+              <>
+                {loadError && (
+                  <Text style={styles.loadErrorText}>Couldn&apos;t load your profile. Try again in a moment.</Text>
+                )}
 
-            <Text style={styles.fieldLabel}>LAST NAME (READ ONLY)</Text>
-            <Text style={styles.readOnlyValue}>{lastName || "—"}</Text>
+                <Text style={styles.fieldLabel}>FIRST NAME (READ ONLY)</Text>
+                <Text style={styles.readOnlyValue}>{firstName || "—"}</Text>
 
-            <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
-            <View style={styles.inputRow}>
-              <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-              />
-            </View>
+                <Text style={styles.fieldLabel}>LAST NAME (READ ONLY)</Text>
+                <Text style={styles.readOnlyValue}>{lastName || "—"}</Text>
 
-            <Text style={styles.fieldLabel}>MOBILE PHONE</Text>
-            <View style={styles.inputRow}>
-              <Ionicons name="call-outline" size={18} color={COLORS.grey} />
-              <TextInput
-                style={styles.input}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-              />
-            </View>
+                <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                  />
+                </View>
 
-            <Text style={styles.fieldLabel}>NATIONALITY</Text>
-            <View style={styles.inputRow}>
-              <Ionicons name="flag-outline" size={18} color={COLORS.grey} />
-              <TextInput
-                style={styles.input}
-                value={nationality}
-                onChangeText={setNationality}
-              />
-            </View>
+                <Text style={styles.fieldLabel}>MOBILE PHONE</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="call-outline" size={18} color={COLORS.grey} />
+                  <TextInput
+                    style={styles.input}
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                  />
+                </View>
 
-            <Text style={styles.fieldLabel}>AGE BRACKET</Text>
-            <View style={styles.inputRow}>
-              <Ionicons name="hourglass-outline" size={18} color={COLORS.grey} />
-              <TextInput
-                style={styles.input}
-                value={ageBracket}
-                onChangeText={setAgeBracket}
-              />
-            </View>
+                <Text style={styles.fieldLabel}>NATIONALITY</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="flag-outline" size={18} color={COLORS.grey} />
+                  <TextInput
+                    style={styles.input}
+                    value={nationality}
+                    onChangeText={setNationality}
+                  />
+                </View>
+
+                <Text style={styles.fieldLabel}>AGE BRACKET</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="hourglass-outline" size={18} color={COLORS.grey} />
+                  <TextInput
+                    style={styles.input}
+                    value={ageBracket}
+                    onChangeText={setAgeBracket}
+                  />
+                </View>
+
+                <TouchableOpacity style={styles.saveButtonWrap} onPress={handleSave} disabled={saving}>
+                  <LinearGradient
+                    colors={["#6FD0FF", "#2BA8E0"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.saveButton}
+                  >
+                    {saving ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <>
+                        <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.white} />
+                        <Text style={styles.saveButtonText}>Save Changes</Text>
+                      </>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
           <View style={styles.card}>
@@ -164,6 +237,28 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "600", color: COLORS.navy },
+  loadingRow: { paddingVertical: 20, alignItems: "center" },
+  loadErrorText: { fontSize: 12, color: COLORS.red, marginBottom: 8 },
+  saveButtonWrap: {
+    marginTop: 20,
+    borderRadius: 16,
+    borderWidth: 0.75,
+    borderColor: "rgba(255,255,255,0.5)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
+  },
+  saveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 15.25,
+    paddingVertical: 14,
+  },
+  saveButtonText: { color: COLORS.white, fontWeight: "800", fontSize: 15 },
   contactRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 },
   contactText: { fontSize: 13, color: COLORS.black },
   logoutButton: {

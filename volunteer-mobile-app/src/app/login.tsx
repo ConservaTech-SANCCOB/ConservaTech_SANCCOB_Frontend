@@ -85,9 +85,9 @@ export default function LoginScreen() {
               )}
             </LinearGradient>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => Alert.alert("Coming Soon", "Password reset isn't available yet.")}>
-  <Text style={styles.helperText}>Forgot your password?</Text>
-</TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/forgot-password")}>
+            <Text style={styles.helperText}>Forgot your password?</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={styles.helperText}>Back to options</Text>
           </TouchableOpacity>
