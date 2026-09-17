@@ -1,9 +1,27 @@
 import * as SecureStore from "expo-secure-store";
+import { router } from "expo-router";
 
-const BASE_URL = "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net";
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+if (!BASE_URL) {
+  throw new Error(
+    "EXPO_PUBLIC_API_URL is not set. Copy volunteer-mobile-app/.env.example to .env and fill it in."
+  );
+}
+
 const TOKEN_KEY = "auth_token";
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export class SessionExpiredError extends Error {
+  constructor() {
+    super("Session expired — please log in again.");
+    this.name = "SessionExpiredError";
+  }
+}
+
+interface RequestConfig {
+  skipSessionRedirect?: boolean;
+}
+
+async function request<T>(path: string, options: RequestInit = {}, config: RequestConfig = {}): Promise<T> {
   const token = await SecureStore.getItemAsync(TOKEN_KEY);
 
   const response = await fetch(`${BASE_URL}${path}`, {
@@ -14,6 +32,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options.headers,
     },
   });
+
+  if (response.status === 401 && !config.skipSessionRedirect) {
+    await clearToken();
+    router.replace("/login");
+    throw new SessionExpiredError();
+  }
 
   if (!response.ok) {
     const body = await response.text();
@@ -26,8 +50,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: "POST", body: JSON.stringify(body) }),
+  post: <T>(path: string, body: unknown, config?: RequestConfig) =>
+    request<T>(path, { method: "POST", body: JSON.stringify(body) }, config),
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) =>
