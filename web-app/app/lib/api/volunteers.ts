@@ -2,13 +2,23 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /* ============================================================
    TYPES
-   Matches the exact backend Swagger response schema where confirmed.
    ============================================================ */
 
 export interface AvailabilitySlot {
   day: string;
   time: string;
 }
+
+export const AGE_BRACKETS = [
+  "18-24",
+  "25-34",
+  "35-44",
+  "45-54",
+  "55-64",
+  "65+",
+] as const;
+
+export type AgeBracket = (typeof AGE_BRACKETS)[number];
 
 export interface Volunteer {
   id: string;
@@ -38,17 +48,6 @@ export interface CreateVolunteerPayload {
   availability?: AvailabilitySlot[];
   maxWeeklyHours?: number;
 }
-
-export const AGE_BRACKETS = [
-  "18-24",
-  "25-34",
-  "35-44",
-  "45-54",
-  "55-64",
-  "65+",
-] as const;
-
-export type AgeBracket = (typeof AGE_BRACKETS)[number];
 
 export interface ShiftRequest {
   id: string;
@@ -94,29 +93,17 @@ export interface ApiAvailabilitySlot {
    ADMIN VOLUNTEERS
    ============================================================ */
 
-/**
- * IMPORTANT: There is currently no confirmed GET /api/admin/volunteers
- * endpoint in the backend's Swagger docs. This does not invent one —
- * it returns an empty list until the backend team confirms the route.
- */
-export async function fetchVolunteers(token: string | null): Promise<Volunteer[]> {
-  console.warn("GET /api/admin/volunteers is not currently documented by the backend.");
-  return [];
-}
-
-// Confirmed endpoint: POST /api/admin/volunteers
+// Top endpoint cutoff: POST /api/admin/volunteers or /api/Volunteers
 export async function createVolunteer(
   token: string | null,
   payload: CreateVolunteerPayload
 ): Promise<Volunteer> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
 
   const response = await fetch(`${API_URL}/api/admin/volunteers`, {
     method: "POST",
     headers: {
-      Accept: "application/json, text/plain, */*",
+      Accept: "application/json",
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
@@ -137,272 +124,156 @@ export async function createVolunteer(
     throw new Error(errorData.message || "Unable to create volunteer");
   }
 
-  const data: Volunteer = await response.json();
-
-  console.log("[Create Volunteer API Response]", data);
-
-  return data;
+  return await response.json();
 }
 
-/* ============================================================
-   SHIFT REQUESTS
-   ============================================================ */
-
-/**
- * There is currently no confirmed admin shift-request endpoint.
- * Returns an empty array rather than calling an undocumented route.
- */
-export async function fetchShiftRequests(token: string | null): Promise<ShiftRequest[]> {
-  console.warn("Admin shift-request endpoints are not currently documented by the backend.");
+export async function fetchVolunteers(token: string | null): Promise<Volunteer[]> {
+  // Temporary local state fallback until GET endpoint is scrolled into view
   return [];
 }
 
 /* ============================================================
-   SHIFTS
+   CHANGE REQUESTS (Mapped from Swagger "ChangeRequests")
    ============================================================ */
 
-// Confirmed endpoint: GET /api/shifts
-export async function fetchShifts(token: string | null): Promise<Shift[]> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
+// Matches GET /api/change-requests/pending
+export async function fetchShiftRequests(token: string | null): Promise<ShiftRequest[]> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
 
-  const response = await fetch(`${API_URL}/api/shifts`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load shifts");
-  }
-
-  const data: Shift[] = await response.json();
-
-  console.log("[Fetch Shifts API Response]", data);
-
-  return Array.isArray(data) ? data : [];
-}
-
-// Confirmed endpoint: GET /api/shifts/week?weekStartDate=...
-export async function fetchShiftsForWeek(
-  token: string | null,
-  weekStartDate: string
-): Promise<Shift[]> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(
-    `${API_URL}/api/shifts/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
-    {
+  try {
+    const response = await fetch(`${API_URL}/api/change-requests/pending`, {
       method: "GET",
       headers: {
-        Accept: "application/json, text/plain, */*",
-        "Content-Type": "application/json",
+        Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
-    }
-  );
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load weekly shifts");
+    if (!response.ok) return [];
+    return await response.json();
+  } catch (err) {
+    console.error("Failed to fetch pending change requests", err);
+    return [];
   }
-
-  const data: Shift[] = await response.json();
-
-  console.log("[Fetch Shifts For Week API Response]", data);
-
-  return Array.isArray(data) ? data : [];
 }
 
-// Confirmed endpoint: GET /api/shifts/{shiftId}
-export async function fetchShift(token: string | null, shiftId: number): Promise<Shift> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
+// Matches PUT /api/change-requests/{id}/approve
+export async function approveShiftRequest(token: string | null, requestId: string): Promise<void> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
 
-  const response = await fetch(`${API_URL}/api/shifts/${shiftId}`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load shift");
-  }
-
-  const data: Shift = await response.json();
-
-  console.log("[Fetch Shift API Response]", data);
-
-  return data;
-}
-
-/* ============================================================
-   VACANCIES
-   ============================================================ */
-
-// Confirmed endpoint: GET /api/vacancies
-export async function fetchVacancies(token: string | null): Promise<Vacancy[]> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(`${API_URL}/api/vacancies`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load vacancies");
-  }
-
-  const data: Vacancy[] = await response.json();
-
-  console.log("[Fetch Vacancies API Response]", data);
-
-  return Array.isArray(data) ? data : [];
-}
-
-// Confirmed endpoint: GET /api/vacancies/week?weekStartDate=...
-export async function fetchVacanciesForWeek(
-  token: string | null,
-  weekStartDate: string
-): Promise<Vacancy[]> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(
-    `${API_URL}/api/vacancies/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json, text/plain, */*",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load weekly vacancies");
-  }
-
-  const data: Vacancy[] = await response.json();
-
-  console.log("[Fetch Vacancies For Week API Response]", data);
-
-  return Array.isArray(data) ? data : [];
-}
-
-// Confirmed endpoint: GET /api/vacancies/{shiftId}
-export async function fetchVacancy(token: string | null, shiftId: number): Promise<Vacancy> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(`${API_URL}/api/vacancies/${shiftId}`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load vacancy");
-  }
-
-  const data: Vacancy = await response.json();
-
-  console.log("[Fetch Vacancy API Response]", data);
-
-  return data;
-}
-
-/* ============================================================
-   VOLUNTEER MOBILE AVAILABILITY
-   These apply to the logged-in volunteer, not an arbitrary admin lookup.
-   ============================================================ */
-
-// Confirmed endpoint: GET /api/volunteers/me/availability
-export async function fetchMyAvailability(token: string | null): Promise<ApiAvailabilitySlot[]> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(`${API_URL}/api/volunteers/me/availability`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load availability");
-  }
-
-  const data: ApiAvailabilitySlot[] = await response.json();
-
-  console.log("[Fetch My Availability API Response]", data);
-
-  return Array.isArray(data) ? data : [];
-}
-
-// Confirmed endpoint: PUT /api/volunteers/me/availability
-export async function updateMyAvailability(
-  token: string | null,
-  slots: ApiAvailabilitySlot[]
-): Promise<void> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(`${API_URL}/api/volunteers/me/availability`, {
+  const response = await fetch(`${API_URL}/api/change-requests/${requestId}/approve`, {
     method: "PUT",
     headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
+      Accept: "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ slots }),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to update availability");
-  }
+  if (!response.ok) throw new Error("Failed to approve request");
+}
 
-  console.log("[Update My Availability] Success");
+// Matches PUT /api/change-requests/{id}/decline
+export async function declineShiftRequest(token: string | null, requestId: string): Promise<void> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const response = await fetch(`${API_URL}/api/change-requests/${requestId}/decline`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) throw new Error("Failed to decline request");
+}
+
+/* ============================================================
+   SHIFTS (Mapped from Swagger "Shifts" - PascalCase)
+   ============================================================ */
+
+// Matches GET /api/Shifts
+export async function fetchShifts(token: string | null): Promise<Shift[]> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const response = await fetch(`${API_URL}/api/Shifts`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) return [];
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+// Matches GET /api/Shifts/week?weekStartDate=...
+export async function fetchShiftsForWeek(token: string | null, weekStartDate: string): Promise<Shift[]> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const response = await fetch(
+    `${API_URL}/api/Shifts/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) return [];
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+/* ============================================================
+   VACANCIES (Mapped from Swagger "Vacancies" - PascalCase)
+   ============================================================ */
+
+// Matches GET /api/Vacancies
+export async function fetchVacancies(token: string | null): Promise<Vacancy[]> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const response = await fetch(`${API_URL}/api/Vacancies`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) return [];
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+/* ============================================================
+   ATTENDANCE (Mapped from Swagger "Attendance")
+   ============================================================ */
+
+// Matches GET /api/Attendance/volunteer/{userId}/weekly-hours
+export async function fetchWeeklyHours(token: string | null, userId: string): Promise<number> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const response = await fetch(`${API_URL}/api/Attendance/volunteer/${userId}/weekly-hours`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) return 0;
+  return await response.json();
 }
 
 /* ============================================================
    UTILITY EXPORTS
    ============================================================ */
 
-export { API_URL };
+// export { API_URL };
 
   // --- MOCK (remove once USE_REAL_API is permanently true) ---
 //   await new Promise((resolve) => setTimeout(resolve, 600));
