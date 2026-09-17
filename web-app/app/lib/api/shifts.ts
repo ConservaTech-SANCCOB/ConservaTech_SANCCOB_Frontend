@@ -182,6 +182,63 @@ export async function fetchVacancies(token: string | null): Promise<Vacancy[]> {
   return Array.isArray(data) ? data : [];
 }
 
+export async function fetchVacanciesForWeek(
+  token: string | null,
+  weekStartDate: string
+): Promise<Vacancy[]> {
+  if (!API_URL) {
+    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
+  }
+
+  const response = await fetch(
+    `${API_URL}/api/vacancies/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json, text/plain, */*",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Unable to load weekly vacancies");
+  }
+
+  const data: Vacancy[] = await response.json();
+  console.log("[Fetch Vacancies For Week API Response]", data);
+  return Array.isArray(data) ? data : [];
+}
+
+export async function fetchVacanciesByLocation(
+  token: string | null,
+  location: string
+): Promise<Vacancy[]> {
+  if (!API_URL) {
+    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
+  }
+
+  const response = await fetch(`${API_URL}/api/vacancies/location/${encodeURIComponent(location)}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json, text/plain, */*",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Unable to load vacancies for that location");
+  }
+
+  const data: Vacancy[] = await response.json();
+  console.log("[Fetch Vacancies By Location API Response]", data);
+  return Array.isArray(data) ? data : [];
+}
+
 /* ============================================================
    BUSINESS RULE HELPERS
    ============================================================ */
