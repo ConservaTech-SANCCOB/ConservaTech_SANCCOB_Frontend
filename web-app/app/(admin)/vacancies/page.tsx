@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth-context";
-import { fetchVacancies, fetchShifts, Vacancy, Shift } from "../../lib/api/shifts";
-
+import { fetchVacancies, fetchShifts,createShift, Vacancy, Shift,ShiftPayload } from "../../lib/api/shifts";
+import { ShiftFormModal } from "../../../components/shifts/ShiftFormModal";
 const TIME_SLOT_LABELS: Record<string, string> = {
   "08:00-13:00": "AM",
   "14:00-17:00": "PM",
@@ -17,9 +17,9 @@ export default function VacanciesPage() {
   const [allShifts, setAllShifts] = useState<Shift[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  useEffect(() => {
-    async function load() {
+    async function loadData() {
       try {
         setIsLoading(true);
         setErrorMessage("");
@@ -38,8 +38,16 @@ export default function VacanciesPage() {
         setIsLoading(false);
       }
     }
-    load();
-  }, [token]);
+
+    useEffect(() => {
+      loadData();
+    }, [token]);
+
+    async function handleCreateShift(payload: ShiftPayload) {
+      await createShift(token, payload);
+      await loadData(); // refresh both vacancies and all shifts after creating a new shift
+      setIsCreateModalOpen(false);
+    }
 
   const stats = useMemo(() => {
     const openShiftsWithVacancies = vacancies.length;
@@ -71,12 +79,12 @@ export default function VacanciesPage() {
             Open shift vacancies, calculated live from shift capacity and assignments
           </p>
         </div>
-        <Link
-          href="/shifts"
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
           className="px-4 py-2 rounded-lg bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800"
         >
           + Create Shift
-        </Link>
+        </button>
       </div>
 
       {/* Honest explanation banner — vacancies aren't editable records
@@ -169,6 +177,14 @@ export default function VacanciesPage() {
             );
           })}
         </div>
+      )}
+
+       {isCreateModalOpen && (
+        <ShiftFormModal
+          mode="create"
+          onCancel={() => setIsCreateModalOpen(false)}
+          onSave={handleCreateShift}
+        />
       )}
     </div>
   );
