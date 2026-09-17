@@ -1,14 +1,15 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Tabs } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Animated, ColorValue, LayoutChangeEvent, Pressable, StyleSheet, View } from "react-native";
 import { COLORS } from "../../utils/colors";
 import { getTabBarStyle } from "../../constants/tabBar";
 
-const INDICATOR_WIDTH = 52;
-const INDICATOR_HEIGHT = 36;
+const ACTIVE_COLOR = COLORS.blue;
+const INACTIVE_COLOR = COLORS.navy;
+const INDICATOR_HEIGHT = 44;
+const PILL_HORIZONTAL_INSET = 6;
 
 function TabIcon({
   name,
@@ -69,11 +70,14 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const translateX = useRef(new Animated.Value(0)).current;
   const buttonLayouts = useRef<{ x: number; width: number }[]>([]);
+  const [pillWidth, setPillWidth] = useState(0);
 
   const moveIndicatorTo = (index: number, animate: boolean) => {
     const layout = buttonLayouts.current[index];
     if (!layout) return;
-    const target = layout.x + (layout.width - INDICATOR_WIDTH) / 2;
+    const width = layout.width - PILL_HORIZONTAL_INSET * 2;
+    setPillWidth(width);
+    const target = layout.x + PILL_HORIZONTAL_INSET;
     if (animate) {
       Animated.spring(translateX, {
         toValue: target,
@@ -106,20 +110,17 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
   return (
     <View style={[getTabBarStyle(insets.bottom), styles.barContainer]}>
-      <View style={styles.indicatorLayer} pointerEvents="none">
-        <Animated.View style={[styles.indicatorWrap, { transform: [{ translateX }] }]}>
-          <LinearGradient
-            colors={["#6FD0FF", "#2BA8E0"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={styles.indicatorFill}
+      {pillWidth > 0 && (
+        <View style={styles.indicatorLayer} pointerEvents="none">
+          <Animated.View
+            style={[styles.indicatorPill, { width: pillWidth, transform: [{ translateX }] }]}
           />
-        </Animated.View>
-      </View>
+        </View>
+      )}
       {state.routes.map((route: { key: string; name: string }, index: number) => {
         const { options } = descriptors[route.key];
         const focused = state.index === index;
-        const color = focused ? COLORS.white : COLORS.grey;
+        const color = focused ? ACTIVE_COLOR : INACTIVE_COLOR;
 
         const onPress = () => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -130,7 +131,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
         return (
           <TabButton key={route.key} onPress={onPress} onLayout={(e) => handleButtonLayout(index, e)}>
-            {options.tabBarIcon?.({ focused, color, size: 22 })}
+            {options.tabBarIcon?.({ focused, color, size: 20 })}
           </TabButton>
         );
       })}
@@ -187,18 +188,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  indicatorWrap: {
-    width: INDICATOR_WIDTH,
+  indicatorPill: {
     height: INDICATOR_HEIGHT,
-    borderRadius: 14,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 10,
-  },
-  indicatorFill: {
-    flex: 1,
-    borderRadius: 14,
+    borderRadius: INDICATOR_HEIGHT / 2,
+    backgroundColor: "rgba(83, 199, 255, 0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(83, 199, 255, 0.35)",
   },
 });

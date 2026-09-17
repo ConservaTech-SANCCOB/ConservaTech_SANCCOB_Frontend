@@ -6,26 +6,42 @@ import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "../../../utils/colors";
 import { GLASS_CARD, GLASS_SHADOW_LG } from "../../../constants/glassCard";
-import { mockBookings } from "../../../data/mockBookings";
-import StatusBadge from "../../../components/StatusBadge";
+import { submitChangeRequest } from "../../../services/changeRequests";
+import { parseLocalDate } from "../../../utils/dateBuckets";
+import { formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
 
 export default function RequestChangeScreen() {
   const router = useRouter();
-  const { bookingId } = useLocalSearchParams<{ bookingId?: string }>();
+  const params = useLocalSearchParams<{
+    bookingId?: string;
+    shiftDate?: string;
+    timeSlot?: string;
+    location?: string;
+    status?: string;
+  }>();
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const booking = mockBookings.find((b) => b.id === bookingId);
+  const rosterAssignmentId = params.bookingId ? Number(params.bookingId) : NaN;
+  const hasShift = Boolean(params.bookingId) && Number.isFinite(rosterAssignmentId) && Boolean(params.shiftDate);
+  const ended = hasShift && hasShiftEnded(params.shiftDate as string, params.timeSlot ?? "");
+  const displayDate = params.shiftDate
+    ? parseLocalDate(params.shiftDate).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      })
+    : "";
 
   const handleSubmit = async () => {
     if (!reason.trim()) {
       Alert.alert("Reason required", "Please tell us why you'd like to change this booking.");
       return;
     }
+    if (!hasShift || ended) return;
     setSubmitting(true);
     try {
-      // TODO: replace with real POST once a shift-change-request endpoint exists
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await submitChangeRequest({ rosterAssignmentId, reason: reason.trim() });
       Alert.alert(
         "Request Submitted",
         "Your request has been sent for review. Your original assignment stays active until it's reviewed.",
@@ -61,11 +77,17 @@ export default function RequestChangeScreen() {
             </View>
           </View>
 
-          {!booking ? (
+          {!hasShift ? (
             <View style={styles.emptyStateCard}>
               <Ionicons name="alert-circle-outline" size={32} color={COLORS.grey} />
-              <Text style={styles.emptyTitle}>We couldn't find that shift</Text>
+              <Text style={styles.emptyTitle}>We couldn&apos;t find that shift</Text>
               <Text style={styles.emptyText}>Go back and try again.</Text>
+            </View>
+          ) : ended ? (
+            <View style={styles.emptyStateCard}>
+              <Ionicons name="time-outline" size={32} color={COLORS.grey} />
+              <Text style={styles.emptyTitle}>This shift has already ended</Text>
+              <Text style={styles.emptyText}>It can no longer be changed.</Text>
             </View>
           ) : (
             <>
@@ -80,11 +102,14 @@ export default function RequestChangeScreen() {
 
               <View style={styles.bookingCard}>
                 <View style={styles.bookingHeaderRow}>
-                  <Text style={styles.bookingDate}>{booking.date}</Text>
-                  <StatusBadge status={booking.status} />
+                  <Text style={styles.bookingDate}>{displayDate}</Text>
                 </View>
-                <Text style={styles.bookingDetail}>Time Slot: {booking.timeSlot}</Text>
-                <Text style={styles.bookingTask}>Task: {booking.assignedTask}</Text>
+                <Text style={styles.bookingDetail}>
+                  Time Slot: {formatTimeSlotLabel(params.timeSlot ?? "")}
+                </Text>
+                {params.location ? (
+                  <Text style={styles.bookingLocation}>Location: {params.location}</Text>
+                ) : null}
 
                 <Text style={styles.reasonLabel}>Reason for change request</Text>
                 <TextInput
@@ -97,15 +122,22 @@ export default function RequestChangeScreen() {
                   onChangeText={setReason}
                 />
 
-                <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={submitting}>
-                  {submitting ? (
-                    <ActivityIndicator size="small" color={COLORS.navy} />
-                  ) : (
-                    <>
-                      <Ionicons name="swap-horizontal-outline" size={16} color={COLORS.navy} />
-                      <Text style={styles.submitButtonText}>Submit Request</Text>
-                    </>
-                  )}
+                <TouchableOpacity style={styles.submitButtonWrap} onPress={handleSubmit} disabled={submitting}>
+                  <LinearGradient
+                    colors={["#6FD0FF", "#2BA8E0"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.submitButton}
+                  >
+                    {submitting ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <>
+                        <Ionicons name="swap-horizontal-outline" size={16} color={COLORS.white} />
+                        <Text style={styles.submitButtonText}>Submit Request</Text>
+                      </>
+                    )}
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
             </>
@@ -145,10 +177,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
   },
-  bookingHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  bookingHeaderRow: { flexDirection: "row", alignItems: "center" },
   bookingDate: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
   bookingDetail: { fontSize: 14, color: COLORS.black, marginTop: 10 },
-  bookingTask: { fontSize: 13, color: COLORS.grey, marginTop: 2 },
+  bookingLocation: { fontSize: 13, color: COLORS.grey, marginTop: 2 },
   reasonLabel: { fontSize: 13, fontWeight: "700", color: COLORS.navy, marginTop: 16, marginBottom: 8 },
   reasonInput: {
     borderWidth: 1.5,
@@ -166,22 +198,26 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  submitButtonWrap: {
+    marginTop: 20,
+    borderRadius: 16,
+    borderWidth: 0.75,
+    borderColor: "rgba(255,255,255,0.5)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
+  },
   submitButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "rgba(83, 199, 255, 0.35)",
-    borderRadius: 16,
+    borderRadius: 15.25,
     paddingVertical: 14,
-    marginTop: 20,
-    shadowColor: "#00D4FF",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 16,
-    elevation: 8,
   },
-  submitButtonText: { color: COLORS.navy, fontWeight: "800", fontSize: 15 },
+  submitButtonText: { color: COLORS.white, fontWeight: "800", fontSize: 15 },
   emptyStateCard: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
