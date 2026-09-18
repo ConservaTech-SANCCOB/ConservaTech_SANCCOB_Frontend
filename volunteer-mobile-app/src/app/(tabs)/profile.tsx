@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GLASS_CARD, GLASS_SHADOW_LG } from "../../constants/glassCard";
 import { clearToken } from "../../utils/api";
 import { COLORS } from "../../utils/colors";
@@ -11,6 +11,7 @@ import { getMyProfile, updateMyProfile } from "../../services/profile";
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -87,8 +88,8 @@ export default function ProfileScreen() {
         locations={[0, 0.42, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <SafeAreaView style={styles.container} edges={["top"]}>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: 150 }}>
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8 + insets.top, paddingBottom: 150 }}>
           <View style={styles.nameCard}>
             <Text style={styles.name}>{fullName || "Your Name"}</Text>
             <Text style={styles.roleLabel}>ACTIVE VOLUNTEER</Text>
@@ -107,11 +108,17 @@ export default function ProfileScreen() {
                   <Text style={styles.loadErrorText}>Couldn&apos;t load your profile. Try again in a moment.</Text>
                 )}
 
-                <Text style={styles.fieldLabel}>FIRST NAME (READ ONLY)</Text>
-                <Text style={styles.readOnlyValue}>{firstName || "—"}</Text>
+                <Text style={styles.fieldLabel}>FIRST NAME</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="person-outline" size={18} color={COLORS.grey} />
+                  <TextInput style={styles.input} value={firstName} editable={false} />
+                </View>
 
-                <Text style={styles.fieldLabel}>LAST NAME (READ ONLY)</Text>
-                <Text style={styles.readOnlyValue}>{lastName || "—"}</Text>
+                <Text style={styles.fieldLabel}>LAST NAME</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="person-outline" size={18} color={COLORS.grey} />
+                  <TextInput style={styles.input} value={lastName} editable={false} />
+                </View>
 
                 <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
                 <View style={styles.inputRow}>
@@ -188,12 +195,19 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={18} color={COLORS.red} />
-            <Text style={styles.logoutText}>Log Out</Text>
+          <TouchableOpacity style={styles.logoutButtonWrap} onPress={handleLogout}>
+            <LinearGradient
+              colors={["#FF8A8A", "#EB5757"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.logoutButton}
+            >
+              <Ionicons name="log-out-outline" size={18} color={COLORS.white} />
+              <Text style={styles.logoutText}>Log Out</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   );
 }
@@ -220,7 +234,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 15, fontWeight: "800", color: COLORS.navy, marginBottom: 12 },
   fieldLabel: { fontSize: 10, color: COLORS.grey, fontWeight: "700", marginTop: 10, marginBottom: 4 },
-  readOnlyValue: { fontSize: 15, color: COLORS.navy, fontWeight: "700" },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -236,7 +249,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
-  input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "600", color: COLORS.navy },
+  input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "700", color: COLORS.grey },
   loadingRow: { paddingVertical: 20, alignItems: "center" },
   loadErrorText: { fontSize: 12, color: COLORS.red, marginBottom: 8 },
   saveButtonWrap: {
@@ -261,17 +274,24 @@ const styles = StyleSheet.create({
   saveButtonText: { color: COLORS.white, fontWeight: "800", fontSize: 15 },
   contactRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 },
   contactText: { fontSize: 13, color: COLORS.black },
+  logoutButtonWrap: {
+    marginTop: 20,
+    borderRadius: 16,
+    borderWidth: 0.75,
+    borderColor: "rgba(255,255,255,0.5)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
+  },
   logoutButton: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    borderColor: COLORS.red,
-    borderTopColor: COLORS.red,
-    borderRadius: 16,
-    paddingVertical: 14,
     gap: 8,
+    borderRadius: 15.25,
+    paddingVertical: 14,
   },
-  logoutText: { color: COLORS.red, fontWeight: "800", fontSize: 15 },
+  logoutText: { color: COLORS.white, fontWeight: "800", fontSize: 15 },
 });

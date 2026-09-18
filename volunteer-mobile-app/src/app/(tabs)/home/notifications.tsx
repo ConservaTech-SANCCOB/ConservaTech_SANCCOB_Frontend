@@ -3,13 +3,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
 import { AppNotification, getMyNotifications, markNotificationRead } from "../../../services/notifications";
 import { COLORS } from "../../../utils/colors";
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -47,35 +48,30 @@ export default function NotificationsScreen() {
         locations={[0, 0.42, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <SafeAreaView style={styles.container} edges={["top"]}>
-        <View style={styles.topRow}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="arrow-back" size={22} color={COLORS.navy} />
-          </TouchableOpacity>
-          <View style={styles.titleCard}>
-            <Text style={styles.headerTitle}>Notifications</Text>
-          </View>
-        </View>
-
+      <View style={styles.container}>
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={COLORS.blue} />
-          </View>
-        ) : loadError ? (
-          <View style={styles.emptyStateCard}>
-            <Ionicons name="warning-outline" size={32} color={COLORS.grey} />
-            <Text style={styles.emptyTitle}>Couldn&apos;t load notifications</Text>
-            <Text style={styles.emptyText}>Try again in a moment.</Text>
           </View>
         ) : (
           <FlatList
             data={notifications}
             keyExtractor={(item) => item.notificationId.toString()}
-            contentContainerStyle={{ padding: 20, paddingTop: 8, flexGrow: 1 }}
+            contentContainerStyle={{ padding: 20, paddingTop: 8 + insets.top, flexGrow: 1 }}
+            ListHeaderComponent={
+              <View style={styles.topRow}>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => router.back()}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="arrow-back" size={22} color={COLORS.navy} />
+                </TouchableOpacity>
+                <View style={styles.titleCard}>
+                  <Text style={styles.headerTitle}>Notifications</Text>
+                </View>
+              </View>
+            }
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[styles.notificationCard, !item.isRead && styles.notificationCardUnread]}
@@ -86,15 +82,23 @@ export default function NotificationsScreen() {
               </TouchableOpacity>
             )}
             ListEmptyComponent={
-              <View style={styles.emptyStateCard}>
-                <Ionicons name="notifications-outline" size={32} color={COLORS.grey} />
-                <Text style={styles.emptyTitle}>Nothing yet</Text>
-                <Text style={styles.emptyText}>You&apos;ll see updates here once you&apos;re scheduled.</Text>
-              </View>
+              loadError ? (
+                <View style={styles.emptyStateCard}>
+                  <Ionicons name="warning-outline" size={32} color={COLORS.grey} />
+                  <Text style={styles.emptyTitle}>Couldn&apos;t load notifications</Text>
+                  <Text style={styles.emptyText}>Try again in a moment.</Text>
+                </View>
+              ) : (
+                <View style={styles.emptyStateCard}>
+                  <Ionicons name="notifications-outline" size={32} color={COLORS.grey} />
+                  <Text style={styles.emptyTitle}>Nothing yet</Text>
+                  <Text style={styles.emptyText}>You&apos;ll see updates here once you&apos;re scheduled.</Text>
+                </View>
+              )
             }
           />
         )}
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   );
 }
@@ -102,7 +106,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   background: { flex: 1 },
   container: { flex: 1 },
-  topRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingTop: 8, marginBottom: 16 },
+  topRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 },
   backButton: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
@@ -126,7 +130,6 @@ const styles = StyleSheet.create({
     ...GLASS_SHADOW_LG,
     alignItems: "center",
     borderRadius: 18,
-    marginHorizontal: 20,
     padding: 26,
     gap: 8,
   },

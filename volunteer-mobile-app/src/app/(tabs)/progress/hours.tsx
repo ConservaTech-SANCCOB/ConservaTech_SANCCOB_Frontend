@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
 import { getMyTotalHours } from "../../../services/attendance";
 import { getMyShifts, MyShift } from "../../../services/shifts";
@@ -37,6 +37,7 @@ type TotalHoursState = "confirmed" | "unknown";
 
 export default function HoursWorkedScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [shifts, setShifts] = useState<MyShift[]>([]);
   const [shiftsError, setShiftsError] = useState(false);
   const [attendanceHours, setAttendanceHours] = useState<number | null>(null);
@@ -102,14 +103,14 @@ export default function HoursWorkedScreen() {
         locations={[0, 0.42, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <View style={styles.container}>
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={COLORS.blue} />
           </View>
         ) : (
           <ScrollView
-            contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: 150 }}
+            contentContainerStyle={{ padding: 20, paddingTop: 8 + insets.top, paddingBottom: 150 }}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={COLORS.blue} />
             }
@@ -185,7 +186,7 @@ export default function HoursWorkedScreen() {
             )}
           </ScrollView>
         )}
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   );
 }
