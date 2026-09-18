@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Alert, Animated, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import { penRoutines, supportingAreas } from "../../../data/mockSkills";
 import { Skill } from "../../../types/skill";
@@ -125,6 +125,7 @@ function SkillRow({ skill }: { skill: Skill }) {
 
 export default function TrainingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [supportingExpanded, setSupportingExpanded] = useState(true);
   const [penExpanded, setPenExpanded] = useState(false);
 
@@ -147,8 +148,8 @@ export default function TrainingScreen() {
         locations={[0, 0.42, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <SafeAreaView style={styles.container} edges={["top"]}>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: 150 }}>
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8 + insets.top, paddingBottom: 150 }}>
           <View style={styles.headerRow}>
             <View style={styles.headerCard}>
               <Text style={styles.headerTitle}>Training</Text>
@@ -192,7 +193,7 @@ export default function TrainingScreen() {
           </View>
           {!penLocked && penExpanded && penRoutines.map((skill) => <SkillRow key={skill.id} skill={skill} />)}
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   );
 }
