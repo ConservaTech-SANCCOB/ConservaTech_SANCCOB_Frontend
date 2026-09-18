@@ -5,7 +5,10 @@ import { useAuth } from "../../lib/auth-context";
 import {
   fetchVolunteers,
   fetchShiftRequests,
+  approveShiftRequest,
+  declineShiftRequest,
   createVolunteer,
+  updateVolunteer,
   Volunteer,
   ShiftRequest,
   CreateVolunteerPayload,
@@ -99,37 +102,55 @@ export default function VolunteersPage() {
     volunteerName: string;
   } | null>(null);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setIsLoading(true);
-        const [vData, rData] = await Promise.all([
-          fetchVolunteers(token),
-          fetchShiftRequests(token),
-        ]);
-        setVolunteers(vData);
-        setRequests(rData);
-      } catch (err) {
-        console.error("Failed to load volunteer data from API", err);
-      } finally {
-        setIsLoading(false);
-      }
+  const loadData = async () => {
+    if (!token) return;
+    try {
+      setIsLoading(true);
+      const [vData, rData] = await Promise.all([
+        fetchVolunteers(token),
+        fetchShiftRequests(token),
+      ]);
+      setVolunteers(vData);
+      setRequests(rData);
+    } catch (err) {
+      console.error("Failed to load volunteer data from API", err);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadData();
   }, [token]);
 
   const pendingCount = requests.filter((r) => r.status === "Pending").length;
 
-  const handleAction = (id: string, newStatus: "Approved" | "Declined") => {
-    setRequests((prev) =>
-      prev.map((req) => (req.id === id ? { ...req, status: newStatus } : req))
-    );
+  const handleAction = async (id: string, newStatus: "Approved" | "Declined") => {
+    try {
+      if (newStatus === "Approved") {
+        await approveShiftRequest(token, id);
+      } else {
+        await declineShiftRequest(token, id);
+      }
+      setRequests((prev) =>
+        prev.map((req) => (req.id === id ? { ...req, status: newStatus } : req))
+      );
+    } catch (err) {
+      console.error(`Failed to ${newStatus.toLowerCase()} shift request`, err);
+      alert(`Unable to ${newStatus.toLowerCase()} request. Please try again.`);
+    }
   };
 
-  const handleSaveEdit = (updated: Volunteer) => {
-    setVolunteers((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
+  const handleSaveEdit = async (updated: Volunteer) => {
+  try {
+    const savedVolunteer = await updateVolunteer(token, updated.id, updated);
+    setVolunteers((prev) => prev.map((v) => (v.id === savedVolunteer.id ? savedVolunteer : v)));
     setEditingVolunteer(null);
-  };
+  } catch (err) {
+    console.error("Failed to save volunteer updates", err);
+    alert(err instanceof Error ? err.message : "Failed to update volunteer.");
+  }
+};
 
   const handleToggleShift = (volunteerId: string, day: string) => {
     setVolunteers((prev) =>
@@ -270,80 +291,94 @@ export default function VolunteersPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredVolunteers.map((v) => {
-                      const weeklyHours = getWeeklyHours(v);
+                    filteredVolunteers.map((v, index) => {
+                      const weeklyHours = v.weeklyHoursLogged || 0;
                       const maxHours = v.maxWeeklyHours || 40;
                       const progressPercentage = (weeklyHours / maxHours) * 100;
                       const confirmedCount = v.confirmedShifts?.length || 0;
                       const totalSlots = v.availability?.length || 0;
 
+                      // Robust key prevents "unique key prop" console warning
+                      const rowKey = v.id || v.email || `volunteer-${index}`;
+
                       return (
-                        <tr key={v.id} className="hover:bg-slate-50/70 transition-colors group">
-                          <td className="py-4 px-4">
-                            <div className="w-9 h-9 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shadow-sm">
-                              {v.initials}
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <p className="font-medium text-slate-800 text-sm group-hover:text-blue-600 transition-colors">
-                              {v.name}
-                            </p>
-                          </td>
-                          <td className="py-4 px-4 space-y-1">
-                            <p className="text-slate-600 text-[11px]">{v.email}</p>
-                            <p className="text-slate-400 text-[11px]">{v.phone}</p>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-baseline gap-1">
-                              <span className="font-bold text-slate-900">
-                                {weeklyHours}/{maxHours}
-                              </span>
-                              <span className="text-[10px] text-slate-400">hrs</span>
-                            </div>
-                            <div className="w-28 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
-                              <div
-                                className="h-full bg-blue-600 rounded-full"
-                                style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                              />
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <button
-                              onClick={() => setSchedulingVolunteer(v)}
-                              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-slate-600 hover:text-blue-700 transition-colors"
-                            >
-                              <CalendarCheckIcon />
-                              <span className="text-xs font-semibold">View Attendance</span>
-                              {totalSlots > 0 && (
-                                <span className="text-[10px] text-slate-400 group-hover:text-blue-500">
-                                  {confirmedCount}/{totalSlots}
-                                </span>
-                              )}
-                            </button>
-                          </td>
-                          <td className="py-4 px-4 text-right space-x-1">
-                            <button
-                              onClick={() => setViewingVolunteer(v)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-                              aria-label="View volunteer"
-                            >
-                              <EyeIcon />
-                            </button>
-                            <button
-                              onClick={() => setEditingVolunteer(v)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-                              aria-label="Edit volunteer"
-                            >
-                              <EditNoteIcon />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+    <tr key={rowKey} className="hover:bg-slate-50/70 transition-colors group">
+      {/* Profile Avatar */}
+      <td className="py-4 px-4">
+        <div className="w-9 h-9 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shadow-sm">
+          {v.initials}
+        </div>
+      </td>
+
+      {/* Volunteer Name */}
+      <td className="py-4 px-4">
+        <p className="font-medium text-slate-800 text-sm group-hover:text-blue-600 transition-colors">
+          {v.name}
+        </p>
+      </td>
+
+      {/* Contact Info */}
+      <td className="py-4 px-4 space-y-1">
+        <p className="text-slate-600 text-[11px]">{v.email}</p>
+        <p className="text-slate-400 text-[11px]">{v.phone}</p>
+      </td>
+
+      {/* Weekly Hours Progress */}
+      <td className="py-4 px-4">
+        <div className="flex items-baseline gap-1">
+          <span className="font-bold text-slate-900">
+            {weeklyHours}/{maxHours}
+          </span>
+          <span className="text-[10px] text-slate-400">hrs</span>
+        </div>
+        <div className="w-28 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+          <div
+            className="h-full bg-blue-600 rounded-full"
+            style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+          />
+        </div>
+      </td>
+
+      {/* Attendance Button */}
+      <td className="py-4 px-4">
+        <button
+          onClick={() => setSchedulingVolunteer(v)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-slate-600 hover:text-blue-700 transition-colors"
+        >
+          <CalendarCheckIcon />
+          <span className="text-xs font-semibold">View Attendance</span>
+          {totalSlots > 0 && (
+            <span className="text-[10px] text-slate-400 group-hover:text-blue-500">
+              {confirmedCount}/{totalSlots}
+            </span>
+          )}
+        </button>
+      </td>
+
+      {/* Actions */}
+      <td className="py-4 px-4 text-right space-x-1">
+        <button
+          onClick={() => setViewingVolunteer(v)}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+          aria-label="View volunteer"
+        >
+          <EyeIcon />
+        </button>
+        <button
+          onClick={() => setEditingVolunteer(v)}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+          aria-label="Edit volunteer"
+        >
+          <EditNoteIcon />
+        </button>
+      </td>
+    </tr>
+  );
+ })
+)}
+     </tbody>
+      </table>
+       </div>
           </>
         ) : activeTab === "requests" ? (
           /* TAB 2: SHIFT CHANGE REQUESTS */
@@ -376,77 +411,81 @@ export default function VolunteersPage() {
                       </td>
                     </tr>
                   ) : (
-                    requests.map((r) => (
-                      <tr key={r.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shrink-0">
-                              {r.volunteerInitials}
+                    requests.map((r, index) => {
+                      const reqKey = r.id || `${r.volunteerName}-${index}`;
+
+                      return (
+                        <tr key={reqKey} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shrink-0">
+                                {r.volunteerInitials}
+                              </div>
+                              <span className="font-medium text-slate-800 text-xs">
+                                {r.volunteerName}
+                              </span>
                             </div>
-                            <span className="font-medium text-slate-800 text-xs">
-                              {r.volunteerName}
+                          </td>
+                          <td className="py-4 px-4 font-medium text-slate-700">{r.currentDate}</td>
+                          <td className="py-4 px-4 font-medium text-slate-700">{r.currentTime}</td>
+                          <td className="py-4 px-4 font-medium text-slate-700">{r.requestedDate}</td>
+                          <td className="py-4 px-4 font-medium text-slate-700">{r.requestedTime}</td>
+                          <td className="py-4 px-4">
+                            <span
+                              className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
+                                r.requestType === "Cancellation"
+                                  ? "bg-red-50 text-red-600 border border-red-100"
+                                  : "bg-blue-50 text-blue-600 border border-blue-100"
+                              }`}
+                            >
+                              {r.requestType}
                             </span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 font-medium text-slate-700">{r.currentDate}</td>
-                        <td className="py-4 px-4 font-medium text-slate-700">{r.currentTime}</td>
-                        <td className="py-4 px-4 font-medium text-slate-700">{r.requestedDate}</td>
-                        <td className="py-4 px-4 font-medium text-slate-700">{r.requestedTime}</td>
-                        <td className="py-4 px-4">
-                          <span
-                            className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
-                              r.requestType === "Cancellation"
-                                ? "bg-red-50 text-red-600 border border-red-100"
-                                : "bg-blue-50 text-blue-600 border border-blue-100"
-                            }`}
-                          >
-                            {r.requestType}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 max-w-[160px] truncate text-slate-400 font-medium">
-                          {r.reason}
-                        </td>
-                        <td className="py-4 px-4">
-                          <span
-                            className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
-                              r.status === "Approved"
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                : r.status === "Declined"
-                                ? "bg-red-50 text-red-600 border border-red-100"
-                                : "bg-amber-50 text-amber-600 border border-amber-100"
-                            }`}
-                          >
-                            {r.status}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          {r.status === "Pending" ? (
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                onClick={() =>
-                                  setConfirmAction({ id: r.id, type: "Approved", volunteerName: r.volunteerName })
-                                }
-                                className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
-                                title="Approve"
-                              >
-                                ✓
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setConfirmAction({ id: r.id, type: "Declined", volunteerName: r.volunteerName })
-                                }
-                                className="w-7 h-7 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
-                                title="Decline"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-slate-300 font-bold">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="py-4 px-4 max-w-[160px] truncate text-slate-400 font-medium">
+                            {r.reason}
+                          </td>
+                          <td className="py-4 px-4">
+                            <span
+                              className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
+                                r.status === "Approved"
+                                  ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                  : r.status === "Declined"
+                                  ? "bg-red-50 text-red-600 border border-red-100"
+                                  : "bg-amber-50 text-amber-600 border border-amber-100"
+                              }`}
+                            >
+                              {r.status}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            {r.status === "Pending" ? (
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  onClick={() =>
+                                    setConfirmAction({ id: r.id, type: "Approved", volunteerName: r.volunteerName })
+                                  }
+                                  className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
+                                  title="Approve"
+                                >
+                                  ✓
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    setConfirmAction({ id: r.id, type: "Declined", volunteerName: r.volunteerName })
+                                  }
+                                  className="w-7 h-7 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
+                                  title="Decline"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-slate-300 font-bold">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -620,7 +659,7 @@ function CreateVolunteerForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-   if (!ageBracket) return;
+    if (!ageBracket) return;
 
     setIsSubmitting(true);
 
@@ -639,9 +678,9 @@ function CreateVolunteerForm({
       setIsSubmitting(false);
     }
   };
+
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
-      {/* Form Heading */}
       <div>
         <h2 className="font-bold text-slate-900 text-sm">
           Create Volunteer Profile
@@ -652,9 +691,7 @@ function CreateVolunteerForm({
         </p>
       </div>
 
-      {/* Form Fields */}
       <div className="grid grid-cols-2 gap-4">
-
         <FormField
           label="First Name"
           value={firstName}
@@ -691,7 +728,6 @@ function CreateVolunteerForm({
           required
         />
 
-        {/* Age Bracket Dropdown */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5">
             Age Bracket
@@ -714,12 +750,9 @@ function CreateVolunteerForm({
             ))}
           </select>
         </div>
-
       </div>
 
-      {/* Form Actions */}
       <div className="flex items-center gap-3 pt-2">
-
         <button
           type="button"
           onClick={onCancel}
@@ -735,7 +768,6 @@ function CreateVolunteerForm({
         >
           {isSubmitting ? "Creating..." : "Create Volunteer"}
         </button>
-
       </div>
     </form>
   );
@@ -884,8 +916,6 @@ function EditVolunteerModal({
 
   return (
     <ModalOverlay onClose={onCancel}>
-
-      {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-lg font-bold text-slate-900">
           Edit Volunteer
@@ -899,9 +929,7 @@ function EditVolunteerModal({
         </button>
       </div>
 
-      {/* Form Fields */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-
         <FormField
           label="Full Name"
           value={name}
@@ -921,7 +949,6 @@ function EditVolunteerModal({
           onChange={setPhone}
         />
 
-        {/* Age Bracket Dropdown */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5">
             Age Bracket
@@ -949,12 +976,9 @@ function EditVolunteerModal({
           value={nationality}
           onChange={setNationality}
         />
-
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-3">
-
         <button
           onClick={onCancel}
           className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
@@ -969,12 +993,11 @@ function EditVolunteerModal({
           <CheckIcon />
           Save Changes
         </button>
-
       </div>
-
     </ModalOverlay>
   );
 }
+
 // ---- Confirm Action Modal ----
 
 function ConfirmActionModal({

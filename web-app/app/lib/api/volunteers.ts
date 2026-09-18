@@ -62,38 +62,103 @@ export interface ShiftRequest {
   status: "Pending" | "Approved" | "Declined";
 }
 
-export interface Shift {
-  shiftId: number;
-  shiftDate: string;
-  timeSlot: string;
-  location: string;
-  birdCount: number;
-  capacity: number;
-  requiredSkillIds: number[];
-}
-
-export interface Vacancy {
-  shiftId: number;
-  shiftDate: string;
-  timeSlot: string;
-  location: string;
-  birdCount: number;
-  capacity: number;
-  assignedVolunteers: number;
-  vacanciesAvailable: number;
-  requiredSkillIds: number[];
-}
-
 export interface ApiAvailabilitySlot {
   dayOfWeek: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
   timeSlot: "Morning" | "Afternoon";
 }
 
 /* ============================================================
-   ADMIN VOLUNTEERS
+   ADMIN VOLUNTEER ENDPOINTS (Swagger Section: AdminVolunteer)
    ============================================================ */
 
-// Top endpoint cutoff: POST /api/admin/volunteers or /api/Volunteers
+// Confirmed: GET /api/admin/volunteers
+export async function fetchVolunteers(token: string | null): Promise<Volunteer[]> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const response = await fetch(`${API_URL}/api/admin/volunteers`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Unable to fetch volunteers");
+  }
+
+  const data = await response.json();
+  if (!Array.isArray(data)) return [];
+
+  // Map raw backend keys directly to match your Volunteer interface
+  return data.map((item: any) => {
+    const fn = item.firstName || "";
+    const ln = item.lastName || "";
+    const fullName = `${fn} ${ln}`.trim() || item.email || "Volunteer";
+    const initials = (fn.charAt(0) + ln.charAt(0)).toUpperCase() || "V";
+
+    return {
+      id: String(item.userId ?? item.id ?? item.email),
+      initials,
+      name: fullName,
+      area: item.area || "General",
+      email: item.email || "",
+      phone: item.phoneNumber || item.phone || "—",
+      address: item.address || "—",
+      joinedDate: item.joinedDate || "Recent",
+      weeklyHoursLogged: item.weeklyHours ?? item.weeklyHoursLogged ?? 0,
+      maxWeeklyHours: item.maxWeeklyHours || 40,
+      annualHoursLogged: item.annualHoursLogged || 0,
+      availability: item.availability || [],
+      confirmedShifts: item.confirmedShifts || [],
+      nationality: item.nationality || "—",
+      ageBracket: item.ageBracket || "18-24",
+    };
+  });
+}
+
+// Confirmed: GET /api/admin/volunteers/{id}
+export async function fetchVolunteerById(token: string | null, id: string): Promise<Volunteer> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const response = await fetch(`${API_URL}/api/admin/volunteers/${id}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Unable to fetch volunteer details");
+  }
+
+  const item = await response.json();
+  const fn = item.firstName || "";
+  const ln = item.lastName || "";
+
+  return {
+    id: String(item.userId ?? item.id ?? item.email),
+    initials: (fn.charAt(0) + ln.charAt(0)).toUpperCase() || "V",
+    name: `${fn} ${ln}`.trim() || item.email || "Volunteer",
+    area: item.area || "General",
+    email: item.email || "",
+    phone: item.phoneNumber || item.phone || "—",
+    address: item.address || "—",
+    joinedDate: item.joinedDate || "Recent",
+    weeklyHoursLogged: item.weeklyHours ?? item.weeklyHoursLogged ?? 0,
+    maxWeeklyHours: item.maxWeeklyHours || 40,
+    annualHoursLogged: item.annualHoursLogged || 0,
+    availability: item.availability || [],
+    confirmedShifts: item.confirmedShifts || [],
+    nationality: item.nationality || "—",
+    ageBracket: item.ageBracket || "18-24",
+  };
+}
+
+// Confirmed: POST /api/admin/volunteers
 export async function createVolunteer(
   token: string | null,
   payload: CreateVolunteerPayload
@@ -114,8 +179,8 @@ export async function createVolunteer(
       phoneNumber: payload.phoneNumber.trim(),
       nationality: payload.nationality.trim(),
       ageBracket: payload.ageBracket,
-      availability: payload.availability,
-      maxWeeklyHours: payload.maxWeeklyHours,
+      availability: payload.availability || [],
+      maxWeeklyHours: payload.maxWeeklyHours || 40,
     }),
   });
 
@@ -124,16 +189,62 @@ export async function createVolunteer(
     throw new Error(errorData.message || "Unable to create volunteer");
   }
 
-  return await response.json();
+  const item = await response.json();
+  const fn = item.firstName || payload.firstName;
+  const ln = item.lastName || payload.lastName;
+
+  return {
+    id: String(item.userId ?? item.id ?? item.email),
+    initials: (fn.charAt(0) + ln.charAt(0)).toUpperCase() || "V",
+    name: `${fn} ${ln}`.trim(),
+    area: item.area || "General",
+    email: item.email || payload.email,
+    phone: item.phoneNumber || payload.phoneNumber,
+    address: item.address || "—",
+    joinedDate: item.joinedDate || "Recent",
+    weeklyHoursLogged: item.weeklyHours ?? 0,
+    maxWeeklyHours: payload.maxWeeklyHours || 40,
+    annualHoursLogged: 0,
+    availability: payload.availability || [],
+    confirmedShifts: [],
+    nationality: payload.nationality,
+    ageBracket: payload.ageBracket,
+  };
 }
 
-export async function fetchVolunteers(token: string | null): Promise<Volunteer[]> {
-  // Temporary local state fallback until GET endpoint is scrolled into view
-  return [];
+// Confirmed: PUT /api/admin/volunteers/{id}
+export async function updateVolunteer(
+  token: string | null,
+  id: string,
+  updated: Partial<Volunteer>
+): Promise<Volunteer> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const response = await fetch(`${API_URL}/api/admin/volunteers/${id}`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(updated),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Unable to update volunteer");
+  }
+
+  const item = await response.json();
+  return {
+    ...updated,
+    ...item,
+    id: String(item.userId ?? id),
+  } as Volunteer;
 }
 
 /* ============================================================
-   CHANGE REQUESTS (Mapped from Swagger "ChangeRequests")
+   CHANGE REQUESTS (Swagger Section: ChangeRequests)
    ============================================================ */
 
 // Matches GET /api/change-requests/pending
@@ -150,7 +261,8 @@ export async function fetchShiftRequests(token: string | null): Promise<ShiftReq
     });
 
     if (!response.ok) return [];
-    return await response.json();
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   } catch (err) {
     console.error("Failed to fetch pending change requests", err);
     return [];
@@ -188,69 +300,7 @@ export async function declineShiftRequest(token: string | null, requestId: strin
 }
 
 /* ============================================================
-   SHIFTS (Mapped from Swagger "Shifts" - PascalCase)
-   ============================================================ */
-
-// Matches GET /api/Shifts
-export async function fetchShifts(token: string | null): Promise<Shift[]> {
-  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
-
-  const response = await fetch(`${API_URL}/api/Shifts`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) return [];
-  const data = await response.json();
-  return Array.isArray(data) ? data : [];
-}
-
-// Matches GET /api/Shifts/week?weekStartDate=...
-export async function fetchShiftsForWeek(token: string | null, weekStartDate: string): Promise<Shift[]> {
-  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
-
-  const response = await fetch(
-    `${API_URL}/api/Shifts/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  if (!response.ok) return [];
-  const data = await response.json();
-  return Array.isArray(data) ? data : [];
-}
-
-/* ============================================================
-   VACANCIES (Mapped from Swagger "Vacancies" - PascalCase)
-   ============================================================ */
-
-// Matches GET /api/Vacancies
-export async function fetchVacancies(token: string | null): Promise<Vacancy[]> {
-  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
-
-  const response = await fetch(`${API_URL}/api/Vacancies`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) return [];
-  const data = await response.json();
-  return Array.isArray(data) ? data : [];
-}
-
-/* ============================================================
-   ATTENDANCE (Mapped from Swagger "Attendance")
+   ATTENDANCE (Swagger Section: Attendance)
    ============================================================ */
 
 // Matches GET /api/Attendance/volunteer/{userId}/weekly-hours
@@ -268,64 +318,3 @@ export async function fetchWeeklyHours(token: string | null, userId: string): Pr
   if (!response.ok) return 0;
   return await response.json();
 }
-
-/* ============================================================
-   UTILITY EXPORTS
-   ============================================================ */
-
-// export { API_URL };
-
-  // --- MOCK (remove once USE_REAL_API is permanently true) ---
-//   await new Promise((resolve) => setTimeout(resolve, 600));
-
-//   return [
-//     {
-//       id: "r1",
-//       volunteerInitials: "AD",
-//       volunteerName: "Amahle Dlamini",
-//       currentDate: "2026-08-18",
-//       currentTime: "07:00–13:00",
-//       requestedDate: "2026-08-19",
-//       requestedTime: "13:00–18:00",
-//       requestType: "Change Date/Time",
-//       reason: "Medical appointment...",
-//       status: "Pending",
-//     },
-//     {
-//       id: "r2",
-//       volunteerInitials: "ZM",
-//       volunteerName: "Zanele Mokoena",
-//       currentDate: "2026-08-17",
-//       currentTime: "13:00–18:00",
-//       requestedDate: "2026-08-17",
-//       requestedTime: "07:00–13:00",
-//       requestType: "Change Date/Time",
-//       reason: "Family commitment i...",
-//       status: "Pending",
-//     },
-//     {
-//       id: "r3",
-//       volunteerInitials: "CA",
-//       volunteerName: "Chloe Anderson",
-//       currentDate: "2026-08-20",
-//       currentTime: "07:00–13:00",
-//       requestedDate: "-",
-//       requestedTime: "-",
-//       requestType: "Cancellation",
-//       reason: "Out of town for work",
-//       status: "Approved",
-//     },
-//     {
-//       id: "r4",
-//       volunteerInitials: "PV",
-//       volunteerName: "Pieter van der Merwe",
-//       currentDate: "2026-08-16",
-//       currentTime: "13:00–18:00",
-//       requestedDate: "2026-08-23",
-//       requestedTime: "13:00–18:00",
-//       requestType: "Change Date/Time",
-//       reason: "Conflict with another...",
-//       status: "Declined",
-//     },
-//   ];
-// }
