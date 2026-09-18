@@ -6,6 +6,7 @@ import { ActivityIndicator, ImageBackground, RefreshControl, ScrollView, StyleSh
 import MyShiftCard from "../../../components/MyShiftCard";
 import { GLASS_CARD, GLASS_SHADOW_LG } from "../../../constants/glassCard";
 import { getMyNotifications } from "../../../services/notifications";
+import { getMyProfile } from "../../../services/profile";
 import { getMyShifts, MyShift } from "../../../services/shifts";
 import { COLORS } from "../../../utils/colors";
 import { bucketForDate } from "../../../utils/dateBuckets";
@@ -24,6 +25,10 @@ export default function HomeScreen() {
   const [shifts, setShifts] = useState<MyShift[]>([]);
   const [loadingShifts, setLoadingShifts] = useState(true);
   const [shiftsError, setShiftsError] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+
+  const initials = (`${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "SV");
 
   const thisWeeksShifts = shifts
     .filter((s) => bucketForDate(s.shiftDate) === "Today" || bucketForDate(s.shiftDate) === "This Week")
@@ -39,6 +44,16 @@ export default function HomeScreen() {
     }
   }, []);
 
+  const loadProfile = useCallback(async () => {
+    try {
+      const profile = await getMyProfile();
+      setFirstName(profile.firstName ?? "");
+      setLastName(profile.lastName ?? "");
+    } catch (error) {
+      console.error("Load profile error:", error);
+    }
+  }, []);
+
   const loadShifts = useCallback(async () => {
     setShiftsError(false);
     try {
@@ -49,11 +64,16 @@ export default function HomeScreen() {
     }
   }, []);
 
+  const refetchAll = useCallback(
+    () => Promise.all([loadUnreadCount(), loadShifts(), loadProfile()]),
+    [loadUnreadCount, loadShifts, loadProfile]
+  );
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([loadUnreadCount(), loadShifts()]);
+    await refetchAll();
     setRefreshing(false);
-  }, [loadUnreadCount, loadShifts]);
+  }, [refetchAll]);
 
   const hasLoadedRef = useRef(false);
 
@@ -62,11 +82,12 @@ export default function HomeScreen() {
       if (!hasLoadedRef.current) {
         hasLoadedRef.current = true;
         loadUnreadCount();
+        loadProfile();
         loadShifts().finally(() => setLoadingShifts(false));
       } else {
-        onRefresh();
+        refetchAll();
       }
-    }, [loadUnreadCount, loadShifts, onRefresh])
+    }, [loadUnreadCount, loadShifts, loadProfile, refetchAll])
   );
 
   return (
@@ -89,11 +110,11 @@ export default function HomeScreen() {
       >
         <View style={styles.headerCard}>
           <LinearGradient colors={["#6FD0FF", "#2BA8E0"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.avatar}>
-            <Text style={styles.avatarInitials}>SV</Text>
+            <Text style={styles.avatarInitials}>{initials}</Text>
           </LinearGradient>
           <View style={{ flex: 1 }}>
             <Text style={styles.welcomeLabel}>{getGreeting()}</Text>
-            <Text style={styles.name}>Your Name</Text>
+            <Text style={styles.name}>{firstName || "Your Name"}</Text>
           </View>
 
           <TouchableOpacity style={styles.bellButton} onPress={() => router.push("/(tabs)/home/notifications")}>
