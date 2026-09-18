@@ -30,7 +30,7 @@ export interface ReportsData {
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net/api";
+  "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net";
 
 // The backend doesn't return conservation impact data on this endpoint yet,
 // so this section stays mocked until that's added on the backend side.
@@ -45,7 +45,7 @@ export async function fetchReportsData(
   year: string,
   department: string // kept in the signature for the UI, but not sent — the backend doesn't support a department filter yet
 ): Promise<ReportsData> {
-  const url = `${API_BASE_URL}/admin/reports?year=${encodeURIComponent(year)}`;
+  const url = `${API_BASE_URL}/api/admin/reports?year=${encodeURIComponent(year)}`;
 
   console.log("Fetching reports from:", url);
 
