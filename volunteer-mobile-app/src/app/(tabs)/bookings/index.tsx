@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
 import MyShiftCard from "../../../components/MyShiftCard";
 import { DateBadge, ShiftMeta } from "../../../components/ShiftCardParts";
@@ -123,6 +123,7 @@ function SkeletonCard() {
 
 export default function BookingsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<"mine" | "available">("mine");
   const [myShifts, setMyShifts] = useState<MyShift[]>([]);
   const [availableShifts, setAvailableShifts] = useState<Vacancy[]>([]);
@@ -144,9 +145,9 @@ export default function BookingsScreen() {
   }, [tab, segmentIndicatorWidth, segmentTranslateX]);
 
   const load = useCallback(
-    async (isRefresh = false) => {
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
+    async (mode: "initial" | "manual" | "silent" = "initial") => {
+      if (mode === "manual") setRefreshing(true);
+      else if (mode === "initial") setLoading(true);
       setLoadError(false);
       try {
         if (tab === "mine") {
@@ -167,8 +168,8 @@ export default function BookingsScreen() {
         console.error(`Load ${tab} shifts error:`, error);
         setLoadError(true);
       } finally {
-        if (isRefresh) setRefreshing(false);
-        else setLoading(false);
+        if (mode === "manual") setRefreshing(false);
+        else if (mode === "initial") setLoading(false);
       }
     },
     [tab]
@@ -178,7 +179,7 @@ export default function BookingsScreen() {
     useCallback(() => {
       const alreadyLoadedThisTab = hasLoadedTab.current[tab];
       hasLoadedTab.current[tab] = true;
-      load(alreadyLoadedThisTab);
+      load(alreadyLoadedThisTab ? "silent" : "initial");
     }, [tab, load])
   );
 
@@ -242,14 +243,14 @@ export default function BookingsScreen() {
         locations={[0, 0.42, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <View style={styles.container}>
         <FlatList
           ListHeaderComponent={header}
           data={rows}
           keyExtractor={(row) => row.key}
-          contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: 150, flexGrow: 1 }}
+          contentContainerStyle={{ padding: 20, paddingTop: 8 + insets.top, paddingBottom: 150, flexGrow: 1 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={COLORS.blue} />
+            <RefreshControl refreshing={refreshing} onRefresh={() => load("manual")} tintColor={COLORS.blue} />
           }
           renderItem={({ item: row }) => {
             if (row.type === "header") {
@@ -288,7 +289,7 @@ export default function BookingsScreen() {
             )
           }
         />
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   );
 }
