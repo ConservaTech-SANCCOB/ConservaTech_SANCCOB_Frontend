@@ -29,27 +29,32 @@ export default function ReportsPage() {
   const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const [year, setYear] = useState("2026");
-  const [department, setDepartment] = useState("All Departments");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
       try {
         setIsLoading(true);
         setError("");
-        const result = await fetchReportsData(token, year, department);
-        setData(result);
+        const result = await fetchReportsData(token, year, "");
+        if (!cancelled) setData(result);
       } catch (err) {
-        setError("Couldn't load report data. Please try again.");
+        if (!cancelled) setError("Couldn't load report data. Please try again.");
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
+
     load();
-  }, [token, year, department]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, year]);
 
   const handleReset = () => {
     setYear("2026");
-    setDepartment("All Departments");
   };
 
   const handleExportPDF = () => {
@@ -64,7 +69,7 @@ export default function ReportsPage() {
 
       const summaryRows = [
         ["SANCCOB Reports & Analytics"],
-        [`Year: ${year}`, `Department: ${department}`],
+        [`Year: ${year}`],
         [],
         ["Metric", "Value"],
         ["Total Volunteer Hours", data.totalVolunteerHours],
@@ -126,7 +131,10 @@ export default function ReportsPage() {
   }
 
   const totalMonthlyHours = data.monthlyHours.reduce((sum, m) => sum + m.hours, 0);
-  const maxContributorHours = Math.max(...data.topContributors.map((c) => c.hours));
+  const maxContributorHours =
+    data.topContributors.length > 0
+      ? Math.max(...data.topContributors.map((c) => c.hours))
+      : 1;
 
   return (
     <div className="bg-slate-100/80 p-6 min-h-screen rounded-2xl space-y-6">
@@ -195,19 +203,7 @@ export default function ReportsPage() {
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Department:</span>
-          <select
-            value={department}
-            onChange={(e) => setDepartment(e.target.value)}
-            className="text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          >
-            <option>All Departments</option>
-            <option>Aviary</option>
-            <option>Quarantine</option>
-            <option>Home Pen</option>
-          </select>
-        </div>
+        {/* Department filter removed — /api/admin/reports only supports filtering by year */}
 
         <button
           onClick={handleReset}
@@ -348,13 +344,16 @@ export default function ReportsPage() {
 
         <Card title={`Top Contributors — ${year}`} subtitle="Volunteers with the most logged hours">
           <div className="space-y-3">
+            {data.topContributors.length === 0 && (
+              <p className="text-sm text-slate-400">No contributor data available yet.</p>
+            )}
             {data.topContributors.map((contributor, index) => {
-              const initial = contributor.name.charAt(0).toUpperCase();
+              const initial = contributor.name?.charAt(0)?.toUpperCase() ?? "?";
               const widthPercent = (contributor.hours / maxContributorHours) * 100;
               const isTop = index === 0;
 
               return (
-                <div key={contributor.name} className="flex items-center gap-3">
+                <div key={`${contributor.name}-${index}`} className="flex items-center gap-3">
                   <span className="text-xs font-semibold text-slate-400 w-4">{index + 1}</span>
                   <div className="w-8 h-8 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-semibold shrink-0">
                     {initial}

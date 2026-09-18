@@ -8,11 +8,6 @@ export interface AttendancePoint {
   rate: number;
 }
 
-export interface ShiftFillArea {
-  area: string;
-  fillRate: number;
-}
-
 export interface TopContributor {
   name: string;
   hours: number;
@@ -30,67 +25,61 @@ export interface ReportsData {
     percentReleased: number;
   };
   attendanceByMonth: AttendancePoint[];
-  shiftFillByArea: ShiftFillArea[];
   topContributors: TopContributor[];
 }
 
-// TODO: Replace with a real call once the backend exposes a /reports endpoint.
-// Example shape once available:
-// const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports?year=${year}&department=${department}`, {
-//   headers: { Authorization: `Bearer ${token}` },
-// });
-// return res.json();
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net/api";
 
-const MOCK_REPORTS_DATA: ReportsData = {
-  totalVolunteerHours: 3472,
-  avgAttendanceRate: 91,
-  missedShifts: 23,
-  activeVolunteers: 94,
-  monthlyHours: [
-    { month: "Jan", hours: 360 },
-    { month: "Feb", hours: 400 },
-    { month: "Mar", hours: 420 },
-    { month: "Apr", hours: 380 },
-    { month: "May", hours: 440 },
-    { month: "Jun", hours: 470 },
-    { month: "Jul", hours: 460 },
-    { month: "Aug", hours: 430 },
-  ],
-  conservation: {
-    totalReleased: 782,
-    totalInCare: 205,
-    percentReleased: 79,
-  },
-  attendanceByMonth: [
-    { month: "Jan", rate: 90 },
-    { month: "Feb", rate: 88 },
-    { month: "Mar", rate: 93 },
-    { month: "Apr", rate: 87 },
-    { month: "May", rate: 90 },
-    { month: "Jun", rate: 94 },
-    { month: "Jul", rate: 88 },
-    { month: "Aug", rate: 92 },
-  ],
-  shiftFillByArea: [
-    { area: "Aviary 1", fillRate: 92 },
-    { area: "Quarantine", fillRate: 88 },
-    { area: "Home Pen", fillRate: 76 },
-  ],
-  topContributors: [
-    { name: "Zanele", hours: 207 },
-    { name: "Fatima", hours: 178 },
-    { name: "Emma", hours: 156 },
-    { name: "Amahle", hours: 142 },
-    { name: "Chloe", hours: 124 },
-  ],
+// The backend doesn't return conservation impact data on this endpoint yet,
+// so this section stays mocked until that's added on the backend side.
+const MOCK_CONSERVATION = {
+  totalReleased: 782,
+  totalInCare: 205,
+  percentReleased: 79,
 };
 
 export async function fetchReportsData(
   token: string | null,
   year: string,
-  department: string
+  department: string // kept in the signature for the UI, but not sent — the backend doesn't support a department filter yet
 ): Promise<ReportsData> {
-  // Mock delay so loading states are visible during development
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  return MOCK_REPORTS_DATA;
+  const url = `${API_BASE_URL}/admin/reports?year=${encodeURIComponent(year)}`;
+
+  console.log("Fetching reports from:", url);
+
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!res.ok) {
+    throw new Error(`Reports request failed with status ${res.status}`);
+  }
+
+  const raw = await res.json();
+
+  console.log("REAL API RESPONSE:", raw);
+
+  const mapped: ReportsData = {
+    totalVolunteerHours: raw.totalVolunteerHours ?? 0,
+    avgAttendanceRate: raw.averageAttendanceRate ?? 0,
+    missedShifts: raw.missedShifts ?? 0,
+    activeVolunteers: raw.activeVolunteers ?? 0,
+    monthlyHours: (raw.monthlyHours ?? []).map((m: any) => ({
+      month: m.month,
+      hours: m.hours,
+    })),
+    conservation: MOCK_CONSERVATION,
+    attendanceByMonth: (raw.monthlyAttendanceRate ?? []).map((a: any) => ({
+      month: a.month,
+      rate: a.ratePercent,
+    })),
+    topContributors: (raw.topContributors ?? []).map((c: any) => ({
+      name: c.volunteerName,
+      hours: c.totalHours,
+    })),
+  };
+
+  return mapped;
 }
