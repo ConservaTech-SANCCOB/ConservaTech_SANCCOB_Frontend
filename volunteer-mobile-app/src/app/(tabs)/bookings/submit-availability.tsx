@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIn
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../../../utils/colors";
 import { getTabBarStyle } from "../../../constants/tabBar";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
@@ -120,8 +120,8 @@ export default function SubmitAvailabilityScreen() {
         locations={[0, 0.42, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <SafeAreaView style={styles.container} edges={["top"]}>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: 110 }}>
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8 + insets.top, paddingBottom: 110 }}>
           <View style={styles.topRow}>
             <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="arrow-back" size={22} color={COLORS.navy} />
@@ -171,7 +171,7 @@ export default function SubmitAvailabilityScreen() {
             </View>
           ))}
         </ScrollView>
-      </SafeAreaView>
+      </View>
 
       <LinearGradient
         colors={["rgba(0,46,76,0)", "rgba(0,46,76,0.32)"]}

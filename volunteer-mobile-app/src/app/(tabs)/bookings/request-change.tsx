@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert,
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../../../utils/colors";
 import { GLASS_CARD, GLASS_SHADOW_LG } from "../../../constants/glassCard";
 import { submitChangeRequest } from "../../../services/changeRequests";
@@ -12,6 +12,7 @@ import { formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
 
 export default function RequestChangeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     bookingId?: string;
     shiftDate?: string;
@@ -66,8 +67,8 @@ export default function RequestChangeScreen() {
         locations={[0, 0.42, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <SafeAreaView style={styles.container} edges={["top"]}>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: 40 }}>
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8 + insets.top, paddingBottom: 40 }}>
           <View style={styles.topRow}>
             <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="arrow-back" size={22} color={COLORS.navy} />
@@ -143,7 +144,7 @@ export default function RequestChangeScreen() {
             </>
           )}
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   );
 }
