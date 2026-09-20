@@ -1,11 +1,59 @@
+import { api } from "../utils/api";
 import { Volunteer } from "../types/volunteer";
 import { SkillStatus } from "../types/training";
 import { TRAINING_CATALOG } from "../data/mockTrainingCatalog";
 import { mockVolunteers } from "../data/mockVolunteers";
 
-// TODO: replace with real endpoints (e.g. GET /api/volunteers, GET/POST a per-volunteer
-// training/sign-off endpoint) once the backend exposes Skill / VolunteerSkillProgress
-// data — see the README's "Current Integration Status" note on the progress tab.
+// --- Real Training API (backend now exposes this — see /api/training/*) ---
+
+export interface TrainingVolunteerSummary {
+  userId: number;
+  firstName: string | null;
+  lastName: string | null;
+  completedSkills: number;
+  totalRequiredSkills: number;
+  progressPercentage: number;
+  trainingStatus: string | null;
+}
+
+export function getTrainingVolunteers() {
+  return api.get<TrainingVolunteerSummary[]>("/api/training/volunteers");
+}
+
+export interface TrainingSkillDto {
+  skillId: number;
+  skillName: string | null;
+  category: string | null;
+  isSignedOff: boolean;
+  trainerId: number | null;
+  trainerName: string | null;
+  signedOffAt: string | null;
+}
+
+export interface TrainingVolunteerProfile {
+  userId: number;
+  firstName: string | null;
+  lastName: string | null;
+  completedRequiredSkills: number;
+  totalRequiredSkills: number;
+  progressPercentage: number;
+  trainingStatus: string | null;
+  supportingAreas: TrainingSkillDto[] | null;
+  penRoutines: TrainingSkillDto[] | null;
+  seasonalSkills: TrainingSkillDto[] | null;
+}
+
+export function getTrainingVolunteerProfile(userId: number) {
+  return api.get<TrainingVolunteerProfile>(`/api/training/volunteers/${userId}`);
+}
+
+/** Trainer signs off a volunteer's skill for real. POST-only — the backend has no
+ * revoke/undo endpoint, so a sign-off can't be reversed from this app once sent. */
+export function signOffTrainingSkill(userId: number, skillId: number, trainerId: number) {
+  return api.post<void>(`/api/training/volunteers/${userId}/sign-off`, { skillId, trainerId });
+}
+
+// --- MOCK scaffolding below (dead now that the screens above call the real API) ---
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -16,7 +64,6 @@ export async function getVolunteers(): Promise<Volunteer[]> {
   return mockVolunteers;
 }
 
-// --- MOCK in-memory store (remove once real endpoints exist) ---
 // Keyed by volunteerId -> that volunteer's status for every skill in TRAINING_CATALOG.
 const store = new Map<string, SkillStatus[]>();
 

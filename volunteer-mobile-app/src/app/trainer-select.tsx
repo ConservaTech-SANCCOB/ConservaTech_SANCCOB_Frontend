@@ -1,21 +1,23 @@
-import { useEffect, useRef } from "react";
-import { Animated, View, Text, TouchableOpacity, StyleSheet, FlatList, Image } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, View, Text, TouchableOpacity, StyleSheet, FlatList, Image, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
 import { GLASS_CARD, GLASS_SHADOW_MD } from "../constants/glassCard";
-import { mockTrainers } from "../data/mockTrainers";
-import { Trainer } from "../types/trainer";
+import { getTrainers, Trainer } from "../services/trainers";
 
 function initialsFor(trainer: Trainer) {
-  return `${trainer.firstName[0] ?? ""}${trainer.lastName[0] ?? ""}`.toUpperCase();
+  return `${trainer.firstName?.[0] ?? ""}${trainer.lastName?.[0] ?? ""}`.toUpperCase();
 }
 
 export default function TrainerSelectScreen() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+  const [trainers, setTrainers] = useState<Trainer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -24,13 +26,22 @@ export default function TrainerSelectScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
+  useEffect(() => {
+    getTrainers()
+      .then(setTrainers)
+      .catch((error) => {
+        console.error("Load trainers error:", error);
+        setLoadError(true);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
   const handleSelect = (trainer: Trainer) => {
-    // TODO: real endpoint should issue a token for this specific trainer
     router.push({
       pathname: "/trainer-dashboard",
       params: {
-        trainerId: trainer.id,
-        trainerName: `${trainer.firstName} ${trainer.lastName}`,
+        trainerId: String(trainer.trainerId),
+        trainerName: `${trainer.firstName ?? ""} ${trainer.lastName ?? ""}`.trim(),
       },
     });
   };
@@ -47,9 +58,14 @@ export default function TrainerSelectScreen() {
         </LinearGradient>
 
         <View style={styles.background}>
+          {loading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator color={COLORS.blue} />
+            </View>
+          ) : (
           <FlatList
-            data={mockTrainers}
-            keyExtractor={(item) => item.id}
+            data={trainers}
+            keyExtractor={(item) => String(item.trainerId)}
             contentContainerStyle={{ padding: 20, flexGrow: 1 }}
             renderItem={({ item }) => (
               <TouchableOpacity style={styles.trainerRow} onPress={() => handleSelect(item)}>
@@ -70,11 +86,14 @@ export default function TrainerSelectScreen() {
             )}
             ListEmptyComponent={
               <View style={styles.emptyState}>
-                <Ionicons name="people-outline" size={32} color={COLORS.grey} />
-                <Text style={styles.emptyText}>No trainers available right now.</Text>
+                <Ionicons name={loadError ? "warning-outline" : "people-outline"} size={32} color={COLORS.grey} />
+                <Text style={styles.emptyText}>
+                  {loadError ? "Couldn't load trainers. Pull back and try again." : "No trainers available right now."}
+                </Text>
               </View>
             }
           />
+          )}
         </View>
       </Animated.View>
     </View>
