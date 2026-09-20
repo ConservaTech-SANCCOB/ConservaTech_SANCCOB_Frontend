@@ -9,6 +9,7 @@ import { GLASS_CARD, GLASS_SHADOW_LG } from "../../../constants/glassCard";
 import { submitChangeRequest } from "../../../services/changeRequests";
 import { parseLocalDate } from "../../../utils/dateBuckets";
 import { formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
+import { showErrorToast } from "../../../utils/toast";
 
 export default function RequestChangeScreen() {
   const router = useRouter();
@@ -44,13 +45,13 @@ export default function RequestChangeScreen() {
     try {
       await submitChangeRequest({ rosterAssignmentId, reason: reason.trim() });
       Alert.alert(
-        "Request Submitted",
-        "Your request has been sent for review. Your original assignment stays active until it's reviewed.",
+        "Cancellation Requested",
+        "Your cancellation request has been sent for review. Your original assignment stays active until it's reviewed.",
         [{ text: "OK", onPress: () => router.back() }]
       );
     } catch (error) {
       console.error("Request change error:", error);
-      Alert.alert("Couldn't submit", "Something went wrong, try again.");
+      showErrorToast("Couldn't submit", "Something went wrong. Try again in a moment.");
     } finally {
       setSubmitting(false);
     }
@@ -74,7 +75,7 @@ export default function RequestChangeScreen() {
               <Ionicons name="arrow-back" size={22} color={COLORS.navy} />
             </TouchableOpacity>
             <View style={styles.titleCard}>
-              <Text style={styles.headerTitle}>Request Change</Text>
+              <Text style={styles.headerTitle}>Cancel Shift</Text>
             </View>
           </View>
 
@@ -99,7 +100,7 @@ export default function RequestChangeScreen() {
                 </Text>
               </View>
 
-              <Text style={styles.sectionLabel}>Shift to Change</Text>
+              <Text style={styles.sectionLabel}>Shift to Cancel</Text>
 
               <View style={styles.bookingCard}>
                 <View style={styles.bookingHeaderRow}>
@@ -112,12 +113,12 @@ export default function RequestChangeScreen() {
                   <Text style={styles.bookingLocation}>Location: {params.location}</Text>
                 ) : null}
 
-                <Text style={styles.reasonLabel}>Reason for change request</Text>
+                <Text style={styles.reasonLabel}>Reason for cancellation</Text>
                 <TextInput
                   style={styles.reasonInput}
                   multiline
                   numberOfLines={4}
-                  placeholder="Let us know why you need this changed..."
+                  placeholder="Let us know why you're cancelling this shift..."
                   placeholderTextColor={COLORS.grey}
                   value={reason}
                   onChangeText={setReason}
@@ -125,7 +126,7 @@ export default function RequestChangeScreen() {
 
                 <TouchableOpacity style={styles.submitButtonWrap} onPress={handleSubmit} disabled={submitting}>
                   <LinearGradient
-                    colors={["#6FD0FF", "#2BA8E0"]}
+                    colors={["#FF6B6B", "#C62828"]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 0, y: 1 }}
                     style={styles.submitButton}
@@ -134,8 +135,8 @@ export default function RequestChangeScreen() {
                       <ActivityIndicator size="small" color={COLORS.white} />
                     ) : (
                       <>
-                        <Ionicons name="swap-horizontal-outline" size={16} color={COLORS.white} />
-                        <Text style={styles.submitButtonText}>Submit Request</Text>
+                        <Ionicons name="close-circle-outline" size={16} color={COLORS.white} />
+                        <Text style={styles.submitButtonText}>Cancel Shift</Text>
                       </>
                     )}
                   </LinearGradient>

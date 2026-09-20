@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
 import MyShiftCard from "../../../components/MyShiftCard";
-import { DateBadge, ShiftMeta } from "../../../components/ShiftCardParts";
+import { DateBadge } from "../../../components/ShiftCardParts";
 import { getMyShifts, MyShift } from "../../../services/shifts";
 import { getVacancies, Vacancy } from "../../../services/vacancies";
 import { COLORS } from "../../../utils/colors";
@@ -57,40 +57,66 @@ function AvailableShiftCard({ item }: { item: Vacancy }) {
     Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }).start();
   };
 
+  const showDetails = () =>
+    Alert.alert(
+      `${formatTimeSlotLabel(item.timeSlot)} shift`,
+      `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\n${item.vacanciesAvailable} of ${item.capacity} spots open`
+    );
+
   return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPressIn={pressIn}
-      onPressOut={pressOut}
-      onPress={() =>
-        Alert.alert(
-          `${formatTimeSlotLabel(item.timeSlot)} shift`,
-          `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\n${item.vacanciesAvailable} of ${item.capacity} spots open`
-        )
-      }
-    >
+    <TouchableOpacity activeOpacity={0.9} onPressIn={pressIn} onPressOut={pressOut} onPress={showDetails}>
       <Animated.View style={[styles.shiftCard, { transform: [{ scale }] }]}>
-        <DateBadge dateStr={item.shiftDate} />
-        <View style={styles.shiftCardBody}>
-          <View style={styles.topRow}>
-            <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
-            <Text style={styles.relativeLabel}>{getRelativeLabel(item.shiftDate)}</Text>
-          </View>
-          <ShiftMeta timeSlot={item.timeSlot} location={item.location} />
-          <View style={styles.capacityRow}>
-            <View style={styles.capacityChip}>
-              <Ionicons name="people-outline" size={16} color={COLORS.navy} />
-              <Text style={styles.capacityChipText}>
-                {item.vacanciesAvailable} of {item.capacity} open
-              </Text>
+        <View style={[styles.notch, styles.notchTopRight]} />
+        <View style={[styles.notch, styles.notchBottomLeft]} />
+        <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
+        <View style={styles.badgeRow}>
+          <DateBadge dateStr={item.shiftDate} size={56} />
+          <View style={styles.metaColumn}>
+            <View style={styles.topRow}>
+              <View style={styles.metaRow}>
+                <Ionicons name="time-outline" size={14} color={COLORS.grey} />
+                <Text style={styles.metaText}>{item.timeSlot}</Text>
+              </View>
+              <View style={styles.capacityGroup}>
+                <View style={styles.capacityChip}>
+                  <Ionicons name="people-outline" size={16} color={COLORS.navy} />
+                  <Text style={styles.capacityChipText}>
+                    {item.vacanciesAvailable} of {item.capacity} open
+                  </Text>
+                </View>
+                {limited && (
+                  <View style={styles.limitedTag}>
+                    <Text style={styles.limitedTagText}>Limited</Text>
+                  </View>
+                )}
+              </View>
             </View>
-            {limited && (
-              <View style={styles.limitedTag}>
-                <Text style={styles.limitedTagText}>Limited spots</Text>
+            {item.location && (
+              <View style={styles.metaRow}>
+                <Ionicons name="location-outline" size={14} color={COLORS.grey} />
+                <Text style={styles.metaText} numberOfLines={1} ellipsizeMode="tail">
+                  {item.location}
+                </Text>
               </View>
             )}
+            <View style={styles.metaRow}>
+              <Ionicons name="calendar-outline" size={14} color={COLORS.grey} />
+              <Text style={styles.metaText}>{getRelativeLabel(item.shiftDate)}</Text>
+            </View>
           </View>
         </View>
+        <View style={styles.divider} />
+        <TouchableOpacity style={styles.changeButtonWrap} onPress={showDetails} hitSlop={6}>
+          <LinearGradient
+            colors={["#00567f", "#002e4c"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.changeButton}
+          >
+            <Ionicons name="checkmark-circle-outline" size={13} color={COLORS.white} />
+            <Text style={styles.changeButtonText}>Book</Text>
+          </LinearGradient>
+        </TouchableOpacity>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -112,10 +138,12 @@ function SkeletonCard() {
 
   return (
     <Animated.View style={[styles.shiftCard, { opacity }]}>
-      <View style={styles.skeletonBadge} />
-      <View style={styles.shiftCardBody}>
-        <View style={styles.skeletonLineWide} />
-        <View style={styles.skeletonLineNarrow} />
+      <View style={styles.skeletonLineWide} />
+      <View style={styles.badgeRow}>
+        <View style={styles.skeletonBadge} />
+        <View style={styles.skeletonBody}>
+          <View style={styles.skeletonLineNarrow} />
+        </View>
       </View>
     </Animated.View>
   );
@@ -299,11 +327,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
   headerCard: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
     paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 22,
   },
   title: { fontSize: 20, fontWeight: "800", color: COLORS.navy },
   availabilityButton: {
@@ -366,17 +390,41 @@ const styles = StyleSheet.create({
   shiftCard: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_MD,
-    flexDirection: "row",
-    gap: 20,
-    borderRadius: 20,
-    padding: 22,
-    marginBottom: 18,
+    backgroundColor: COLORS.white,
+    borderColor: COLORS.navy,
+    borderTopColor: COLORS.navy,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 12,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
   },
-  shiftCardBody: { flex: 1, gap: 8 },
+  notch: {
+    position: "absolute",
+    width: 13,
+    height: 13,
+    borderRadius: 6.5,
+    backgroundColor: COLORS.lightGrey,
+    borderWidth: 0.75,
+    borderColor: COLORS.navy,
+  },
+  notchTopRight: { top: 8, right: 8 },
+  notchBottomLeft: { bottom: 8, left: 8 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  shiftTimeLabel: { fontSize: 19, fontWeight: "800", color: COLORS.navy },
-  relativeLabel: { fontSize: 13, fontWeight: "700", color: COLORS.grey },
-  capacityRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 3 },
+  shiftTimeLabel: { fontSize: 17, fontWeight: "800", color: COLORS.navy, marginBottom: 8 },
+  badgeRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  metaColumn: { flex: 1, gap: 3 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  metaText: { flexShrink: 1, fontSize: 13, color: COLORS.grey, fontWeight: "600" },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(0,46,76,0.12)",
+    marginTop: 6,
+    marginLeft: 70,
+  },
+  capacityGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
   capacityChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -390,21 +438,44 @@ const styles = StyleSheet.create({
   limitedTag: {
     backgroundColor: COLORS.amberBg,
     paddingVertical: 5,
-    paddingHorizontal: 13,
+    paddingHorizontal: 10,
     borderRadius: 13,
   },
-  limitedTagText: { fontSize: 13, fontWeight: "800", color: "#9A7B00" },
+  limitedTagText: { fontSize: 11, fontWeight: "800", color: "#9A7B00" },
+  changeButtonWrap: {
+    alignSelf: "flex-end",
+    marginTop: 10,
+    borderRadius: 14,
+    borderWidth: 0.75,
+    borderColor: "rgba(255,255,255,0.5)",
+    shadowColor: "#002e4c",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  changeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 13.5,
+  },
+  changeButtonText: { fontSize: 11, fontWeight: "800", color: COLORS.white },
   skeletonBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 14,
     backgroundColor: "rgba(0,46,76,0.12)",
   },
+  skeletonBody: { flex: 1, gap: 8 },
   skeletonLineWide: {
     height: 18,
     borderRadius: 9,
     width: "70%",
     backgroundColor: "rgba(0,46,76,0.12)",
+    marginBottom: 8,
   },
   skeletonLineNarrow: {
     height: 15,
