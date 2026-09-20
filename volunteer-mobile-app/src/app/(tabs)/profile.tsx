@@ -8,6 +8,7 @@ import { GLASS_CARD, GLASS_SHADOW_LG } from "../../constants/glassCard";
 import { clearToken } from "../../utils/api";
 import { COLORS } from "../../utils/colors";
 import { getMyProfile, updateMyProfile } from "../../services/profile";
+import { showErrorToast } from "../../utils/toast";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export default function ProfileScreen() {
       Alert.alert("Saved", "Your profile has been updated.");
     } catch (error) {
       console.error("Save profile error:", error);
-      Alert.alert("Couldn't save", "Something went wrong, try again.");
+      showErrorToast("Couldn't save", "Something went wrong. Try again in a moment.");
     } finally {
       setSaving(false);
     }

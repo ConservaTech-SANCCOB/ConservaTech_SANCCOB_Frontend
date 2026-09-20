@@ -5,6 +5,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
 import { forgotPassword, resetPassword } from "../services/auth";
+import { getErrorStatus } from "../utils/api";
+import { showErrorToast } from "../utils/toast";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -28,7 +30,7 @@ export default function ForgotPasswordScreen() {
       ]);
     } catch (error) {
       console.error("Forgot password error:", error);
-      Alert.alert("Couldn't send reset code", "Something went wrong, try again.");
+      showErrorToast("Couldn't send reset code", "Something went wrong. Try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -45,7 +47,11 @@ export default function ForgotPasswordScreen() {
       router.replace("/(tabs)/home");
     } catch (error) {
       console.error("Reset password error:", error);
-      Alert.alert("Couldn't reset password", "Check the reset code and try again.");
+      const status = getErrorStatus(error);
+      showErrorToast(
+        "Couldn't reset password",
+        status === 401 ? "Incorrect or expired reset code" : "Something went wrong. Try again in a moment."
+      );
     } finally {
       setLoading(false);
     }

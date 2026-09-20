@@ -3,6 +3,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import AnimatedSplash from "../components/AnimatedSplash";
 import { getToken } from "../utils/api";
 import { COLORS } from "../utils/colors";
@@ -49,6 +50,7 @@ export default function RootLayout() {
           <ActivityIndicator color={COLORS.blue} />
         </View>
         {showCustomSplash && <AnimatedSplash onFinish={() => setShowCustomSplash(false)} />}
+        <Toast />
       </SafeAreaProvider>
     );
   }
@@ -67,6 +69,7 @@ export default function RootLayout() {
         <Stack.Screen name="trainer-volunteer/[volunteerId]" />
       </Stack>
       {showCustomSplash && <AnimatedSplash onFinish={() => setShowCustomSplash(false)} />}
+      <Toast />
     </SafeAreaProvider>
   );
 }
