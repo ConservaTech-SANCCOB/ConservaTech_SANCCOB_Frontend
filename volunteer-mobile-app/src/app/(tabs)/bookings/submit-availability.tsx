@@ -9,6 +9,7 @@ import { getTabBarStyle } from "../../../constants/tabBar";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
 import { TIME_SLOT_LABELS } from "../../../utils/timeSlot";
 import { getMyAvailability, updateMyAvailability, AvailabilitySlot, TimeBlock } from "../../../services/availability";
+import { showErrorToast } from "../../../utils/toast";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const SLOTS: TimeBlock[] = ["08:00-13:00", "14:00-17:00", "08:00-17:00"];
@@ -34,7 +35,7 @@ export default function SubmitAvailabilityScreen() {
       })
       .catch((error) => {
         console.error("Load availability error:", error);
-        Alert.alert("Couldn't load availability", "Starting from a blank grid instead.");
+        showErrorToast("Couldn't load availability", "Starting from a blank grid instead.");
       })
       .finally(() => setLoading(false));
   }, []);
@@ -80,7 +81,7 @@ export default function SubmitAvailabilityScreen() {
       ]);
     } catch (error) {
       console.error("Save availability error:", error);
-      Alert.alert("Couldn't save", "Something went wrong, try again.");
+      showErrorToast("Couldn't save", "Something went wrong. Try again in a moment.");
     } finally {
       setSaving(false);
     }

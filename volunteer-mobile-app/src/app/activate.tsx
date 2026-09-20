@@ -5,6 +5,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
 import { activate } from "../services/auth";
+import { getErrorStatus } from "../utils/api";
+import { showErrorToast } from "../utils/toast";
 
 export default function ActivateScreen() {
   const router = useRouter();
@@ -29,7 +31,8 @@ export default function ActivateScreen() {
       router.replace("/(tabs)/home");
     } catch (error) {
       console.error("Activation error:", error);
-      Alert.alert("Activation failed", "Check your email and PIN and try again.");
+      const status = getErrorStatus(error);
+      showErrorToast("Activation failed", status === 401 ? "Incorrect or expired code" : "Couldn't activate your account. Try again in a moment.");
     } finally {
       setLoading(false);
     }

@@ -58,6 +58,15 @@ export const api = {
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
 };
 
+/** Extracts the HTTP status from an Error thrown by request() above, so callers
+ * can map known status codes (e.g. 401) to a specific human-readable message
+ * instead of showing the raw "API error 401: <body>" text to the user. */
+export function getErrorStatus(error: unknown): number | null {
+  if (!(error instanceof Error)) return null;
+  const match = error.message.match(/^API error (\d+):/);
+  return match ? Number(match[1]) : null;
+}
+
 export async function saveToken(token: string) {
   await SecureStore.setItemAsync(TOKEN_KEY, token);
 }
