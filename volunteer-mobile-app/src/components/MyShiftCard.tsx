@@ -54,40 +54,44 @@ export default function MyShiftCard({ item }: { item: MyShift }) {
       }
     >
       <Animated.View style={[styles.shiftCard, { transform: [{ scale }] }]}>
-        <DateBadge dateStr={item.shiftDate} />
-        <View style={styles.shiftCardBody}>
-          <View style={styles.topRow}>
-            <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
-            <Text style={styles.relativeLabel}>{getRelativeLabel(item.shiftDate)}</Text>
-          </View>
+        <View style={[styles.notch, styles.notchTopRight]} />
+        <View style={[styles.notch, styles.notchBottomLeft]} />
+        <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
+        <View style={styles.badgeRow}>
+          <DateBadge dateStr={item.shiftDate} size={56} />
           <View style={styles.metaColumn}>
             <View style={styles.metaRow}>
-              <Ionicons name="time-outline" size={16} color={COLORS.grey} />
+              <Ionicons name="time-outline" size={14} color={COLORS.grey} />
               <Text style={styles.metaText}>{item.timeSlot}</Text>
             </View>
             {item.location && (
               <View style={styles.metaRow}>
-                <Ionicons name="location-outline" size={16} color={COLORS.grey} />
+                <Ionicons name="location-outline" size={14} color={COLORS.grey} />
                 <Text style={styles.metaText} numberOfLines={1} ellipsizeMode="tail">
                   {item.location}
                 </Text>
               </View>
             )}
+            <View style={styles.metaRow}>
+              <Ionicons name="calendar-outline" size={14} color={COLORS.grey} />
+              <Text style={styles.metaText}>{getRelativeLabel(item.shiftDate)}</Text>
+            </View>
           </View>
-          {!ended && (
-            <TouchableOpacity style={styles.changeButtonWrap} onPress={requestChange} hitSlop={6}>
-              <LinearGradient
-                colors={["#6FD0FF", "#2BA8E0"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.changeButton}
-              >
-                <Ionicons name="swap-horizontal-outline" size={13} color={COLORS.white} />
-                <Text style={styles.changeButtonText}>Request Change</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
         </View>
+        {!ended && <View style={styles.divider} />}
+        {!ended && (
+          <TouchableOpacity style={styles.changeButtonWrap} onPress={requestChange} hitSlop={6}>
+            <LinearGradient
+              colors={["#FF6B6B", "#C62828"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.changeButton}
+            >
+              <Ionicons name="close-circle-outline" size={13} color={COLORS.white} />
+              <Text style={styles.changeButtonText}>Cancel</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </Animated.View>
     </TouchableOpacity>
   );
@@ -97,22 +101,42 @@ const styles = StyleSheet.create({
   shiftCard: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_MD,
-    flexDirection: "row",
-    gap: 20,
-    borderRadius: 20,
-    padding: 22,
-    marginBottom: 18,
+    backgroundColor: COLORS.white,
+    borderColor: COLORS.navy,
+    borderTopColor: COLORS.navy,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 12,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
   },
-  shiftCardBody: { flex: 1, gap: 8 },
-  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  shiftTimeLabel: { fontSize: 19, fontWeight: "800", color: COLORS.navy },
-  relativeLabel: { fontSize: 13, fontWeight: "700", color: COLORS.grey },
-  metaColumn: { gap: 4 },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  metaText: { flexShrink: 1, fontSize: 14, color: COLORS.grey, fontWeight: "600" },
+  notch: {
+    position: "absolute",
+    width: 13,
+    height: 13,
+    borderRadius: 6.5,
+    backgroundColor: COLORS.lightGrey,
+    borderWidth: 0.75,
+    borderColor: COLORS.navy,
+  },
+  notchTopRight: { top: 8, right: 8 },
+  notchBottomLeft: { bottom: 8, left: 8 },
+  shiftTimeLabel: { fontSize: 17, fontWeight: "800", color: COLORS.navy, marginBottom: 8 },
+  badgeRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  metaColumn: { flex: 1, gap: 3 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  metaText: { flexShrink: 1, fontSize: 13, color: COLORS.grey, fontWeight: "600" },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(0,46,76,0.12)",
+    marginTop: 6,
+    marginLeft: 70,
+  },
   changeButtonWrap: {
-    alignSelf: "flex-start",
-    marginTop: 4,
+    alignSelf: "flex-end",
+    marginTop: 10,
     borderRadius: 14,
     borderWidth: 0.75,
     borderColor: "rgba(255,255,255,0.5)",
@@ -125,10 +149,10 @@ const styles = StyleSheet.create({
   changeButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    gap: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
     borderRadius: 13.5,
   },
-  changeButtonText: { fontSize: 12, fontWeight: "800", color: COLORS.white },
+  changeButtonText: { fontSize: 11, fontWeight: "800", color: COLORS.white },
 });
