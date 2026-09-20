@@ -3,6 +3,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { loginRequest, LoginResponse } from "./api/auth";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface AuthContextType {
   token: string | null;
   role: string | null;
@@ -31,7 +33,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string, keepSignedIn: boolean = false) => {
-    const data: LoginResponse = await loginRequest(email, password);
+     
+  const data: LoginResponse = await loginRequest(email, password);
+
+if (!data.token) {
+  throw new Error("Login failed. Please try again.");
+}
+  
     
     setToken(data.token);
     setRole(data.role);
@@ -52,6 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+      const currentToken = token; // Capture the current token for the API call
+
     setToken(null);
     setRole(null);
     if (typeof window !== "undefined") {
@@ -60,6 +70,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.removeItem("auth_token");
       sessionStorage.removeItem("user_role");
     }
+
+     if (API_URL && currentToken) {
+    fetch(`${API_URL}/api/Auth/logout`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${currentToken}` },
+    }).catch(() => {});
+   }
   };
 
   return (
