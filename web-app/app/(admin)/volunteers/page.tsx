@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/auth-context";
+import { isUnauthorized } from "../../lib/api/https";
 import {
   fetchVolunteers,
+  fetchVolunteerById,
   fetchShiftRequests,
   approveShiftRequest,
   declineShiftRequest,
@@ -12,111 +14,95 @@ import {
   Volunteer,
   ShiftRequest,
   CreateVolunteerPayload,
+  UpdateVolunteerPayload,
   AGE_BRACKETS,
-  type AgeBracket,
 } from "../../lib/api/volunteers";
 
-const ALL_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const ANNUAL_HOURS_TARGET = 1920;
-
-// Returns the Monday of a given week, formatted as YYYY-MM-DD
-function getStartOfWeek(d: Date = new Date()): string {
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(date.setDate(diff));
-  return monday.toISOString().split("T")[0];
+// "2026-09-22" -> "Tue, 22 Sept 2026"
+function formatShiftDate(value: string): string {
+  if (!value) return "—";
+  const date = new Date(`${value.slice(0, 10)}T00:00:00`);
+  if (isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
-// e.g. getStartOfWeek + offset 2 -> "Sep 15"
-function formatDateLabel(startDateStr: string, dayOffset: number): string {
-  const start = new Date(startDateStr);
-  const targetDate = new Date(start);
-  targetDate.setDate(start.getDate() + dayOffset);
-  return targetDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-// Safely calculates half-day & full-day shifts in 12-hour or 24-hour formats
-function parseShiftHours(time: string): number {
-  if (!time || (!time.includes("–") && !time.includes("-"))) return 0;
-
-  const parts = time.split(/[–-]/).map((t) => t.trim());
-  if (parts.length !== 2) return 0;
-
-  const toMinutes = (t: string) => {
-    const raw = t.toLowerCase();
-    const isPM = raw.includes("pm");
-    const isAM = raw.includes("am");
-    
-    // Extract numbers for hours and optional minutes
-    const clean = raw.replace(/[^0-9:]/g, "");
-    const [hStr, mStr] = clean.split(":");
-    let hours = parseInt(hStr, 10);
-    const minutes = mStr ? parseInt(mStr, 10) : 0;
-
-    if (isNaN(hours)) return 0;
-
-    // Convert 12-hour AM/PM to 24-hour minutes
-    if (isPM && hours < 12) hours += 12;
-    if (isAM && hours === 12) hours = 0;
-
-    return hours * 60 + (isNaN(minutes) ? 0 : minutes);
-  };
-
-  const startMinutes = toMinutes(parts[0]);
-  const endMinutes = toMinutes(parts[1]);
-
-  const openingTime = 8 * 60;   // 8:00 AM (480 mins)
-  const closingTime = 17 * 60;  // 5:00 PM (1020 mins)
-
-  // Clamp shift window strictly within 8:00 AM – 5:00 PM
-  const validStart = Math.max(startMinutes, openingTime);
-  const validEnd = Math.min(endMinutes, closingTime);
-
-  const diff = validEnd - validStart;
-  return diff > 0 ? diff / 60 : 0;
-}
-
-// A volunteer's weekly hours = sum of hours for availability slots the admin has confirmed.
-function getWeeklyHours(volunteer: Volunteer): number {
-  if (!volunteer.availability) return 0;
-  return volunteer.availability
-    .filter((slot) => volunteer.confirmedShifts?.includes(slot.day))
-    .reduce((total, slot) => total + parseShiftHours(slot.time), 0);
+// NOTE: assumes the backend sends attendanceRate as a percentage (0-100).
+// If a real response shows 0-1 instead, multiply by 100 here.
+function toPercent(rate: number): number {
+  return Math.max(0, Math.min(100, Math.round(rate)));
 }
 
 export default function VolunteersPage() {
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<"management" | "requests" | "create">("management");
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [requests, setRequests] = useState<ShiftRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [openingId, setOpeningId] = useState<string | null>(null);
 
   const [viewingVolunteer, setViewingVolunteer] = useState<Volunteer | null>(null);
   const [editingVolunteer, setEditingVolunteer] = useState<Volunteer | null>(null);
-  const [schedulingVolunteer, setSchedulingVolunteer] = useState<Volunteer | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
     id: string;
     type: "Approved" | "Declined";
     volunteerName: string;
   } | null>(null);
 
-  const loadData = async () => {
-    if (!token) return;
-    try {
-      setIsLoading(true);
-      const [vData, rData] = await Promise.all([
-        fetchVolunteers(token),
-        fetchShiftRequests(token),
-      ]);
-      setVolunteers(vData);
-      setRequests(rData);
-    } catch (err) {
-      console.error("Failed to load volunteer data from API", err);
-    } finally {
-      setIsLoading(false);
+  // A 401 means the token is missing/expired: log out (the layout guard then
+  // redirects to login). Anything else is shown to the admin.
+  const reportError = (err: unknown, fallback: string) => {
+    if (isUnauthorized(err)) {
+      logout();
+      return;
     }
+    console.error(fallback, err);
+    alert(err instanceof Error ? err.message : fallback);
+  };
+
+  const loadData = async (showSpinner = true) => {
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (showSpinner) setIsLoading(true);
+    setLoadError("");
+
+    const [vRes, rRes] = await Promise.allSettled([
+      fetchVolunteers(token),
+      fetchShiftRequests(token),
+    ]);
+
+    if (vRes.status === "fulfilled") setVolunteers(vRes.value);
+    if (rRes.status === "fulfilled") setRequests(rRes.value);
+
+    const failures: string[] = [];
+    for (const [label, res] of [
+      ["Volunteers", vRes],
+      ["Change requests", rRes],
+    ] as const) {
+      if (res.status === "rejected") {
+        if (isUnauthorized(res.reason)) {
+          setIsLoading(false);
+          logout();
+          return;
+        }
+        console.error(`Failed to load ${label.toLowerCase()}`, res.reason);
+        failures.push(
+          `${label}: ${res.reason instanceof Error ? res.reason.message : "request failed"}`
+        );
+      }
+    }
+
+    if (failures.length > 0) setLoadError(failures.join(" · "));
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -124,6 +110,21 @@ export default function VolunteersPage() {
   }, [token]);
 
   const pendingCount = requests.filter((r) => r.status === "Pending").length;
+
+  // The list endpoint doesn't include nationality / age / emergency contact,
+  // so view & edit load the full detail record first.
+  const openDetail = async (v: Volunteer, mode: "view" | "edit") => {
+    setOpeningId(v.id);
+    try {
+      const detail = await fetchVolunteerById(token, v.id);
+      if (mode === "view") setViewingVolunteer(detail);
+      else setEditingVolunteer(detail);
+    } catch (err) {
+      reportError(err, "Unable to load volunteer details.");
+    } finally {
+      setOpeningId(null);
+    }
+  };
 
   const handleAction = async (id: string, newStatus: "Approved" | "Declined") => {
     try {
@@ -136,59 +137,37 @@ export default function VolunteersPage() {
         prev.map((req) => (req.id === id ? { ...req, status: newStatus } : req))
       );
     } catch (err) {
-      console.error(`Failed to ${newStatus.toLowerCase()} shift request`, err);
-      alert(`Unable to ${newStatus.toLowerCase()} request. Please try again.`);
+      reportError(err, `Unable to ${newStatus.toLowerCase()} request. Please try again.`);
     }
   };
 
-  const handleSaveEdit = async (updated: Volunteer) => {
-  try {
-    const savedVolunteer = await updateVolunteer(token, updated.id, updated);
-    setVolunteers((prev) => prev.map((v) => (v.id === savedVolunteer.id ? savedVolunteer : v)));
-    setEditingVolunteer(null);
-  } catch (err) {
-    console.error("Failed to save volunteer updates", err);
-    alert(err instanceof Error ? err.message : "Failed to update volunteer.");
-  }
-};
-
-  const handleToggleShift = (volunteerId: string, day: string) => {
-    setVolunteers((prev) =>
-      prev.map((v) => {
-        if (v.id !== volunteerId) return v;
-        const confirmed = v.confirmedShifts || [];
-        const isConfirmed = confirmed.includes(day);
-        return {
-          ...v,
-          confirmedShifts: isConfirmed
-            ? confirmed.filter((d) => d !== day)
-            : [...confirmed, day],
-        };
-      })
-    );
-    setSchedulingVolunteer((prev) => {
-      if (!prev || prev.id !== volunteerId) return prev;
-      const confirmed = prev.confirmedShifts || [];
-      const isConfirmed = confirmed.includes(day);
-      return {
-        ...prev,
-        confirmedShifts: isConfirmed
-          ? confirmed.filter((d) => d !== day)
-          : [...confirmed, day],
-      };
-    });
+  const handleSaveEdit = async (id: string, payload: UpdateVolunteerPayload) => {
+    try {
+      await updateVolunteer(token, id, payload);
+      setEditingVolunteer(null);
+      await loadData(false);
+    } catch (err) {
+      reportError(err, "Failed to update volunteer.");
+    }
   };
 
-  const handleCreate = async (newVolunteer: CreateVolunteerPayload) => {
-    const created = await createVolunteer(token, newVolunteer);
-    setVolunteers((prev) => [...prev, created]);
+  // Throws on failure so the form can show the message.
+  const handleCreate = async (payload: CreateVolunteerPayload) => {
+    try {
+      await createVolunteer(token, payload);
+    } catch (err) {
+      if (isUnauthorized(err)) logout();
+      throw err;
+    }
+    // The create response has no userId, so re-fetch the real list.
+    await loadData(false);
     setActiveTab("management");
   };
 
   const filteredVolunteers = volunteers.filter(
     (v) =>
-      (v.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (v.email || "").toLowerCase().includes(searchQuery.toLowerCase()) 
+      v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -242,9 +221,24 @@ export default function VolunteersPage() {
 
       {/* Main Container Card */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-5">
+        {loadError && (
+          <div
+            role="alert"
+            className="flex items-center justify-between gap-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-600"
+          >
+            <span>{loadError}</span>
+            <button
+              onClick={() => loadData()}
+              className="shrink-0 px-3 py-1 rounded-lg bg-white border border-red-200 hover:bg-red-100 transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="py-16 text-center text-slate-400 text-sm font-medium">
-            Loading volunteer data from API…
+            Loading volunteer data…
           </div>
         ) : activeTab === "management" ? (
           /* TAB 1: VOLUNTEER MANAGEMENT */
@@ -261,8 +255,13 @@ export default function VolunteersPage() {
                   />
                   <SearchIcon className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 </div>
-                <button className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100 rounded-xl text-xs font-semibold text-slate-600 transition-colors">
-                  <FilterIcon className="w-3.5 h-3.5 text-slate-500" />
+                {/* Filters (FE-A10) not built yet */}
+                <button
+                  disabled
+                  title="Filters coming soon"
+                  className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200/80 bg-slate-50/80 rounded-xl text-xs font-semibold text-slate-400 cursor-not-allowed"
+                >
+                  <FilterIcon className="w-3.5 h-3.5" />
                   Filter
                 </button>
               </div>
@@ -279,7 +278,7 @@ export default function VolunteersPage() {
                     <th className="pb-3 px-4">Volunteer Name</th>
                     <th className="pb-3 px-4">Contact Information</th>
                     <th className="pb-3 px-4">Weekly Hours</th>
-                    <th className="pb-3 px-4">Attendance</th>
+                    <th className="pb-3 px-4">Attendance Rate</th>
                     <th className="pb-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -291,197 +290,63 @@ export default function VolunteersPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredVolunteers.map((v, index) => {
-                      const weeklyHours = v.weeklyHoursLogged || 0;
-                      const maxHours = v.maxWeeklyHours || 40;
-                      const progressPercentage = (weeklyHours / maxHours) * 100;
-                      const confirmedCount = v.confirmedShifts?.length || 0;
-                      const totalSlots = v.availability?.length || 0;
-
-                      // Robust key prevents "unique key prop" console warning
-                      const rowKey = v.id || v.email || `volunteer-${index}`;
+                    filteredVolunteers.map((v) => {
+                      const attendance = toPercent(v.attendanceRate);
+                      const isOpening = openingId === v.id;
 
                       return (
-    <tr key={rowKey} className="hover:bg-slate-50/70 transition-colors group">
-      {/* Profile Avatar */}
-      <td className="py-4 px-4">
-        <div className="w-9 h-9 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shadow-sm">
-          {v.initials}
-        </div>
-      </td>
-
-      {/* Volunteer Name */}
-      <td className="py-4 px-4">
-        <p className="font-medium text-slate-800 text-sm group-hover:text-blue-600 transition-colors">
-          {v.name}
-        </p>
-      </td>
-
-      {/* Contact Info */}
-      <td className="py-4 px-4 space-y-1">
-        <p className="text-slate-600 text-[11px]">{v.email}</p>
-        <p className="text-slate-400 text-[11px]">{v.phone}</p>
-      </td>
-
-      {/* Weekly Hours Progress */}
-      <td className="py-4 px-4">
-        <div className="flex items-baseline gap-1">
-          <span className="font-bold text-slate-900">
-            {weeklyHours}/{maxHours}
-          </span>
-          <span className="text-[10px] text-slate-400">hrs</span>
-        </div>
-        <div className="w-28 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
-          <div
-            className="h-full bg-blue-600 rounded-full"
-            style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-          />
-        </div>
-      </td>
-
-      {/* Attendance Button */}
-      <td className="py-4 px-4">
-        <button
-          onClick={() => setSchedulingVolunteer(v)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-slate-600 hover:text-blue-700 transition-colors"
-        >
-          <CalendarCheckIcon />
-          <span className="text-xs font-semibold">View Attendance</span>
-          {totalSlots > 0 && (
-            <span className="text-[10px] text-slate-400 group-hover:text-blue-500">
-              {confirmedCount}/{totalSlots}
-            </span>
-          )}
-        </button>
-      </td>
-
-      {/* Actions */}
-      <td className="py-4 px-4 text-right space-x-1">
-        <button
-          onClick={() => setViewingVolunteer(v)}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-          aria-label="View volunteer"
-        >
-          <EyeIcon />
-        </button>
-        <button
-          onClick={() => setEditingVolunteer(v)}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-          aria-label="Edit volunteer"
-        >
-          <EditNoteIcon />
-        </button>
-      </td>
-    </tr>
-  );
- })
-)}
-     </tbody>
-      </table>
-       </div>
-          </>
-        ) : activeTab === "requests" ? (
-          /* TAB 2: SHIFT CHANGE REQUESTS */
-          <div className="space-y-4">
-            <div>
-              <h2 className="font-bold text-slate-900 text-sm">Pending & Recent Requests</h2>
-              <p className="text-xs text-slate-400 mt-0.5">{pendingCount} pending approval</p>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600">
-                <thead className="text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
-                  <tr>
-                    <th className="pb-3 px-4">Volunteer</th>
-                    <th className="pb-3 px-4">Current Date</th>
-                    <th className="pb-3 px-4">Current Time</th>
-                    <th className="pb-3 px-4">Requested Date</th>
-                    <th className="pb-3 px-4">Requested Time</th>
-                    <th className="pb-3 px-4">Request Type</th>
-                    <th className="pb-3 px-4">Reason</th>
-                    <th className="pb-3 px-4">Status</th>
-                    <th className="pb-3 px-4 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100/80">
-                  {requests.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="py-8 text-center text-slate-400 font-medium">
-                        No shift requests submitted yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    requests.map((r, index) => {
-                      const reqKey = r.id || `${r.volunteerName}-${index}`;
-
-                      return (
-                        <tr key={reqKey} className="hover:bg-slate-50/70 transition-colors">
+                        <tr key={v.id} className="hover:bg-slate-50/70 transition-colors group">
                           <td className="py-4 px-4">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shrink-0">
-                                {r.volunteerInitials}
-                              </div>
-                              <span className="font-medium text-slate-800 text-xs">
-                                {r.volunteerName}
-                              </span>
+                            <div className="w-9 h-9 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                              {v.initials}
                             </div>
                           </td>
-                          <td className="py-4 px-4 font-medium text-slate-700">{r.currentDate}</td>
-                          <td className="py-4 px-4 font-medium text-slate-700">{r.currentTime}</td>
-                          <td className="py-4 px-4 font-medium text-slate-700">{r.requestedDate}</td>
-                          <td className="py-4 px-4 font-medium text-slate-700">{r.requestedTime}</td>
+
                           <td className="py-4 px-4">
-                            <span
-                              className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
-                                r.requestType === "Cancellation"
-                                  ? "bg-red-50 text-red-600 border border-red-100"
-                                  : "bg-blue-50 text-blue-600 border border-blue-100"
-                              }`}
-                            >
-                              {r.requestType}
-                            </span>
+                            <p className="font-medium text-slate-800 text-sm group-hover:text-blue-600 transition-colors">
+                              {v.name}
+                            </p>
                           </td>
-                          <td className="py-4 px-4 max-w-[160px] truncate text-slate-400 font-medium">
-                            {r.reason}
+
+                          <td className="py-4 px-4 space-y-1">
+                            <p className="text-slate-600 text-[11px]">{v.email}</p>
+                            <p className="text-slate-400 text-[11px]">{v.phone || "—"}</p>
                           </td>
+
                           <td className="py-4 px-4">
-                            <span
-                              className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
-                                r.status === "Approved"
-                                  ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                  : r.status === "Declined"
-                                  ? "bg-red-50 text-red-600 border border-red-100"
-                                  : "bg-amber-50 text-amber-600 border border-amber-100"
-                              }`}
-                            >
-                              {r.status}
-                            </span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="font-bold text-slate-900">{v.weeklyHours}</span>
+                              <span className="text-[10px] text-slate-400">hrs this week</span>
+                            </div>
                           </td>
-                          <td className="py-4 px-4 text-center">
-                            {r.status === "Pending" ? (
-                              <div className="flex items-center justify-center gap-1.5">
-                                <button
-                                  onClick={() =>
-                                    setConfirmAction({ id: r.id, type: "Approved", volunteerName: r.volunteerName })
-                                  }
-                                  className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
-                                  title="Approve"
-                                >
-                                  ✓
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    setConfirmAction({ id: r.id, type: "Declined", volunteerName: r.volunteerName })
-                                  }
-                                  className="w-7 h-7 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
-                                  title="Decline"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-slate-300 font-bold">-</span>
-                            )}
+
+                          <td className="py-4 px-4">
+                            <span className="font-bold text-slate-900">{attendance}%</span>
+                            <div className="w-28 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                              <div
+                                className="h-full bg-blue-600 rounded-full"
+                                style={{ width: `${attendance}%` }}
+                              />
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-4 text-right space-x-1">
+                            <button
+                              onClick={() => openDetail(v, "view")}
+                              disabled={isOpening}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all disabled:opacity-50"
+                              aria-label="View volunteer"
+                            >
+                              <EyeIcon />
+                            </button>
+                            <button
+                              onClick={() => openDetail(v, "edit")}
+                              disabled={isOpening}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all disabled:opacity-50"
+                              aria-label="Edit volunteer"
+                            >
+                              <EditNoteIcon />
+                            </button>
                           </td>
                         </tr>
                       );
@@ -490,10 +355,119 @@ export default function VolunteersPage() {
                 </tbody>
               </table>
             </div>
+          </>
+        ) : activeTab === "requests" ? (
+          /* TAB 2: SHIFT CHANGE REQUESTS */
+          <div className="space-y-4">
+            <div>
+              <h2 className="font-bold text-slate-900 text-sm">Pending Requests</h2>
+              <p className="text-xs text-slate-400 mt-0.5">{pendingCount} pending approval</p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-600">
+                <thead className="text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
+                  <tr>
+                    <th className="pb-3 px-4">Volunteer</th>
+                    <th className="pb-3 px-4">Shift Date</th>
+                    <th className="pb-3 px-4">Time</th>
+                    <th className="pb-3 px-4">Reason</th>
+                    <th className="pb-3 px-4">Status</th>
+                    <th className="pb-3 px-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80">
+                  {requests.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                        No pending shift requests.
+                      </td>
+                    </tr>
+                  ) : (
+                    requests.map((r) => (
+                      <tr key={r.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shrink-0">
+                              {r.volunteerInitials}
+                            </div>
+                            <span className="font-medium text-slate-800 text-xs">
+                              {r.volunteerName}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 font-medium text-slate-700">
+                          {formatShiftDate(r.shiftDate)}
+                        </td>
+                        <td className="py-4 px-4 font-medium text-slate-700">
+                          {r.timeSlot || "—"}
+                        </td>
+                        <td
+                          className="py-4 px-4 max-w-[240px] text-slate-500 font-medium"
+                          title={r.reason}
+                        >
+                          <span className="line-clamp-2">{r.reason || "—"}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
+                              r.status === "Approved"
+                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                : r.status === "Declined"
+                                ? "bg-red-50 text-red-600 border border-red-100"
+                                : "bg-amber-50 text-amber-600 border border-amber-100"
+                            }`}
+                          >
+                            {r.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          {r.status === "Pending" ? (
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() =>
+                                  setConfirmAction({
+                                    id: r.id,
+                                    type: "Approved",
+                                    volunteerName: r.volunteerName,
+                                  })
+                                }
+                                className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
+                                title="Approve"
+                              >
+                                ✓
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setConfirmAction({
+                                    id: r.id,
+                                    type: "Declined",
+                                    volunteerName: r.volunteerName,
+                                  })
+                                }
+                                className="w-7 h-7 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
+                                title="Decline"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-300 font-bold">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           /* TAB 3: CREATE VOLUNTEER */
-          <CreateVolunteerForm onCreate={handleCreate} onCancel={() => setActiveTab("management")} />
+          <CreateVolunteerForm
+            onCreate={handleCreate}
+            onCancel={() => setActiveTab("management")}
+          />
         )}
       </div>
 
@@ -514,15 +488,6 @@ export default function VolunteersPage() {
         />
       )}
 
-      {/* SCHEDULE / ATTENDANCE MODAL */}
-      {schedulingVolunteer && (
-        <ScheduleModal
-          volunteer={schedulingVolunteer}
-          onClose={() => setSchedulingVolunteer(null)}
-          onToggleShift={(day) => handleToggleShift(schedulingVolunteer.id, day)}
-        />
-      )}
-
       {/* CONFIRM APPROVE/DECLINE MODAL */}
       {confirmAction && (
         <ConfirmActionModal
@@ -539,113 +504,13 @@ export default function VolunteersPage() {
   );
 }
 
-// ---- Schedule / Attendance Modal ----
-
-function ScheduleModal({
-  volunteer,
-  onClose,
-  onToggleShift,
-}: {
-  volunteer: Volunteer;
-  onClose: () => void;
-  onToggleShift: (day: string) => void;
-}) {
-  const weeklyHours = getWeeklyHours(volunteer);
-  const [selectedWeekStart, setSelectedWeekStart] = useState<string>(() => getStartOfWeek());
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.value) return;
-    const selected = new Date(e.target.value);
-    setSelectedWeekStart(getStartOfWeek(selected));
-  };
-
-  const availabilitySlots = volunteer.availability || [];
-  const confirmedShifts = volunteer.confirmedShifts || [];
-
-  return (
-    <ModalOverlay onClose={onClose}>
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="text-lg font-bold text-slate-900">{volunteer.name}&apos;s Schedule</h2>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-          <CloseIcon />
-        </button>
-      </div>
-      <p className="text-sm text-slate-500 mb-4">
-        Confirm which shifts the volunteer actually showed up for this week.
-      </p>
-
-      {/* Week Selector */}
-      <div className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 mb-5">
-        <div className="flex items-center gap-2">
-          <CalendarCheckIcon />
-          <span className="text-xs font-semibold text-slate-700">Week of:</span>
-        </div>
-        <input
-          type="date"
-          value={selectedWeekStart}
-          onChange={handleDateChange}
-          className="bg-white border border-slate-200 text-xs font-semibold text-slate-800 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
-        />
-      </div>
-
-      {availabilitySlots.length === 0 ? (
-        <p className="text-sm text-slate-400 py-6 text-center">No availability set yet.</p>
-      ) : (
-        <div className="space-y-2 mb-5">
-          {availabilitySlots.map((slot) => {
-            const dayIndex = ALL_DAYS.indexOf(slot.day);
-            const dateLabel = dayIndex !== -1 ? formatDateLabel(selectedWeekStart, dayIndex) : "";
-            const isConfirmed = confirmedShifts.includes(slot.day);
-
-            return (
-              <button
-                key={slot.day}
-                onClick={() => onToggleShift(slot.day)}
-                className={`w-full flex items-center justify-between rounded-xl px-4 py-3 border transition-colors text-left ${
-                  isConfirmed
-                    ? "bg-emerald-50 border-emerald-200"
-                    : "bg-slate-50 border-slate-200 hover:bg-slate-100"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
-                      isConfirmed ? "bg-emerald-600 text-white" : "bg-white border border-slate-300"
-                    }`}
-                  >
-                    {isConfirmed && <CheckIcon />}
-                  </div>
-                  <div>
-                    <span className="text-sm font-semibold text-slate-800">{slot.day}</span>
-                    {dateLabel && (
-                      <span className="text-xs text-slate-400 ml-2">({dateLabel})</span>
-                    )}
-                  </div>
-                </div>
-                <span className="text-sm text-slate-500">{slot.time}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="bg-slate-50 rounded-xl px-4 py-3 flex justify-between items-center">
-        <span className="text-sm font-medium text-slate-600">Confirmed hours this week</span>
-        <span className="text-sm font-bold text-slate-900">
-          {weeklyHours} / {volunteer.maxWeeklyHours || 40} hrs
-        </span>
-      </div>
-    </ModalOverlay>
-  );
-}
-
 // ---- Create Volunteer Form (Tab) ----
 
 function CreateVolunteerForm({
   onCreate,
   onCancel,
 }: {
-  onCreate: (v: CreateVolunteerPayload) => void;
+  onCreate: (v: CreateVolunteerPayload) => Promise<void>;
   onCancel: () => void;
 }) {
   const [firstName, setFirstName] = useState("");
@@ -653,27 +518,22 @@ function CreateVolunteerForm({
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [nationality, setNationality] = useState("");
-  const [ageBracket, setAgeBracket] = useState<AgeBracket | "">("");
+  const [ageBracket, setAgeBracket] = useState("");
+  const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!ageBracket) return;
 
+    setError("");
     setIsSubmitting(true);
 
     try {
-      await onCreate({
-        firstName,
-        lastName,
-        email,
-        phoneNumber,
-        nationality,
-        ageBracket, 
-      });
+      await onCreate({ firstName, lastName, email, phoneNumber, nationality, ageBracket });
     } catch (err) {
       console.error("Failed to create volunteer", err);
+      setError(err instanceof Error ? err.message : "Unable to create volunteer.");
     } finally {
       setIsSubmitting(false);
     }
@@ -682,74 +542,26 @@ function CreateVolunteerForm({
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
       <div>
-        <h2 className="font-bold text-slate-900 text-sm">
-          Create Volunteer Profile
-        </h2>
-
-        <p className="text-xs text-slate-400 mt-0.5">
-          Add a new volunteer to the system
-        </p>
+        <h2 className="font-bold text-slate-900 text-sm">Create Volunteer Profile</h2>
+        <p className="text-xs text-slate-400 mt-0.5">Add a new volunteer to the system</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          label="First Name"
-          value={firstName}
-          onChange={setFirstName}
-          required
-        />
-
-        <FormField
-          label="Last Name"
-          value={lastName}
-          onChange={setLastName}
-          required
-        />
-
-        <FormField
-          label="Email"
-          value={email}
-          onChange={setEmail}
-          type="email"
-          required
-        />
-
-        <FormField
-          label="Phone Number"
-          value={phoneNumber}
-          onChange={setPhoneNumber}
-          required
-        />
-
-        <FormField
-          label="Nationality"
-          value={nationality}
-          onChange={setNationality}
-          required
-        />
-
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-            Age Bracket
-          </label>
-
-          <select
-            value={ageBracket}
-            onChange={(e) => setAgeBracket(e.target.value as AgeBracket)}
-            required
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 cursor-pointer"
-          >
-            <option value="" disabled>
-              Select age bracket
-            </option>
-
-            {AGE_BRACKETS.map((bracket) => (
-              <option key={bracket} value={bracket}>
-                {bracket}
-              </option>
-            ))}
-          </select>
+      {error && (
+        <div
+          role="alert"
+          className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-600"
+        >
+          {error}
         </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormField label="First Name" value={firstName} onChange={setFirstName} required />
+        <FormField label="Last Name" value={lastName} onChange={setLastName} required />
+        <FormField label="Email" value={email} onChange={setEmail} type="email" required />
+        <FormField label="Phone Number" value={phoneNumber} onChange={setPhoneNumber} required />
+        <FormField label="Nationality" value={nationality} onChange={setNationality} required />
+        <AgeBracketSelect value={ageBracket} onChange={setAgeBracket} required />
       </div>
 
       <div className="flex items-center gap-3 pt-2">
@@ -760,7 +572,6 @@ function CreateVolunteerForm({
         >
           Cancel
         </button>
-
         <button
           type="submit"
           disabled={isSubmitting}
@@ -800,18 +611,58 @@ function FormField({
   );
 }
 
+function AgeBracketSelect({
+  value,
+  onChange,
+  required = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+}) {
+  // If the backend holds a value that isn't in our list, keep it selectable.
+  const known = (AGE_BRACKETS as readonly string[]).includes(value);
+
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Age Bracket</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 cursor-pointer"
+      >
+        <option value="" disabled={required}>
+          {required ? "Select age bracket" : "Not specified"}
+        </option>
+        {!known && value && <option value={value}>{value}</option>}
+        {AGE_BRACKETS.map((bracket) => (
+          <option key={bracket} value={bracket}>
+            {bracket}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 // ---- View Modal ----
 
-function ViewVolunteerModal({ volunteer, onClose }: { volunteer: Volunteer; onClose: () => void }) {
-  const logged = volunteer.annualHoursLogged || 0;
-  const annualProgress = Math.min((logged / ANNUAL_HOURS_TARGET) * 100, 100);
-  const slots = volunteer.availability || [];
+function ViewVolunteerModal({
+  volunteer,
+  onClose,
+}: {
+  volunteer: Volunteer;
+  onClose: () => void;
+}) {
+  const attendance = toPercent(volunteer.attendanceRate);
+  const details = [volunteer.nationality, volunteer.ageBracket].filter(Boolean).join(" · ");
 
   return (
     <ModalOverlay onClose={onClose}>
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-lg font-bold text-slate-900">Volunteer Profile</h2>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close">
           <CloseIcon />
         </button>
       </div>
@@ -822,53 +673,52 @@ function ViewVolunteerModal({ volunteer, onClose }: { volunteer: Volunteer; onCl
         </div>
         <div>
           <p className="font-bold text-slate-900">{volunteer.name}</p>
-          <p className="text-sm text-slate-500">
-            {volunteer.nationality || "—"} · {volunteer.ageBracket || "—"}
-          </p>
-          <p className="text-xs text-slate-400">Joined {volunteer.joinedDate}</p>
+          <p className="text-sm text-slate-500">{details || "No details provided"}</p>
         </div>
       </div>
 
       <div className="space-y-3 mb-5">
-        <ContactRow icon={<MailIcon />} label="Email" value={volunteer.email} />
-        <ContactRow icon={<PhoneIcon />} label="Phone" value={volunteer.phone} />
+        <ContactRow icon={<MailIcon />} label="Email" value={volunteer.email || "—"} />
+        <ContactRow icon={<PhoneIcon />} label="Phone" value={volunteer.phone || "—"} />
+        <ContactRow
+          icon={<PhoneIcon />}
+          label="Emergency contact"
+          value={
+            [volunteer.emergencyContactName, volunteer.emergencyContactPhone]
+              .filter(Boolean)
+              .join(" · ") || "—"
+          }
+        />
       </div>
 
-      <div className="bg-slate-50 rounded-xl p-4 mb-5">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-slate-600">Hours Logged</span>
-          <span className="text-sm font-bold text-slate-900">
-            {logged} / {ANNUAL_HOURS_TARGET} hrs
-          </span>
+      <div className="bg-slate-50 rounded-xl p-4 space-y-3">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium text-slate-600">Hours this week</span>
+          <span className="text-sm font-bold text-slate-900">{volunteer.weeklyHours} hrs</span>
         </div>
-        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-          <div className="h-full bg-blue-600 rounded-full" style={{ width: `${annualProgress}%` }} />
-        </div>
-      </div>
-
-      <div>
-        <p className="text-sm font-medium text-slate-600 mb-2">Availability</p>
-        {slots.length > 0 ? (
-          <div className="space-y-2">
-            {slots.map((slot) => (
-              <div
-                key={slot.day}
-                className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2"
-              >
-                <span className="text-sm font-semibold text-slate-800">{slot.day}</span>
-                <span className="text-sm text-slate-500">{slot.time}</span>
-              </div>
-            ))}
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-slate-600">Attendance rate</span>
+            <span className="text-sm font-bold text-slate-900">{attendance}%</span>
           </div>
-        ) : (
-          <p className="text-sm text-slate-400">No availability set yet.</p>
-        )}
+          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-600 rounded-full" style={{ width: `${attendance}%` }} />
+          </div>
+        </div>
       </div>
     </ModalOverlay>
   );
 }
 
-function ContactRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function ContactRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="flex items-center gap-3">
       <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -891,109 +741,86 @@ function EditVolunteerModal({
 }: {
   volunteer: Volunteer;
   onCancel: () => void;
-  onSave: (updated: Volunteer) => void;
+  onSave: (id: string, payload: UpdateVolunteerPayload) => Promise<void>;
 }) {
-  const [name, setName] = useState(volunteer.name);
+  const [firstName, setFirstName] = useState(volunteer.firstName);
+  const [lastName, setLastName] = useState(volunteer.lastName);
   const [email, setEmail] = useState(volunteer.email);
-  const [phone, setPhone] = useState(volunteer.phone);
-  const [nationality, setNationality] = useState(
-    volunteer.nationality || ""
-  );
-  const [ageBracket, setAgeBracket] = useState(
-    volunteer.ageBracket || ""
-  );
+  const [phoneNumber, setPhoneNumber] = useState(volunteer.phone);
+  const [nationality, setNationality] = useState(volunteer.nationality);
+  const [ageBracket, setAgeBracket] = useState(volunteer.ageBracket);
+  const [emergencyContactName, setEmergencyContactName] = useState(volunteer.emergencyContactName);
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState(volunteer.emergencyContactPhone);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    onSave({
-      ...volunteer,
-      name,
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    await onSave(volunteer.id, {
+      firstName,
+      lastName,
       email,
-      phone,
+      phoneNumber,
       nationality,
       ageBracket,
+      emergencyContactName,
+      emergencyContactPhone,
     });
+    setIsSaving(false);
   };
 
   return (
     <ModalOverlay onClose={onCancel}>
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-slate-900">
-          Edit Volunteer
-        </h2>
-
-        <button
-          onClick={onCancel}
-          className="text-slate-400 hover:text-slate-600"
-        >
-          <CloseIcon />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <FormField
-          label="Full Name"
-          value={name}
-          onChange={setName}
-        />
-
-        <FormField
-          label="Email"
-          value={email}
-          onChange={setEmail}
-          type="email"
-        />
-
-        <FormField
-          label="Phone"
-          value={phone}
-          onChange={setPhone}
-        />
-
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-            Age Bracket
-          </label>
-
-          <select
-            value={ageBracket}
-            onChange={(e) => setAgeBracket(e.target.value as AgeBracket)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 cursor-pointer"
+      <form onSubmit={handleSubmit}>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-slate-900">Edit Volunteer</h2>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-slate-400 hover:text-slate-600"
+            aria-label="Close"
           >
-            <option value="" disabled>
-              Select age bracket
-            </option>
-
-            {AGE_BRACKETS.map((bracket) => (
-              <option key={bracket} value={bracket}>
-                {bracket}
-              </option>
-            ))}
-          </select>
+            <CloseIcon />
+          </button>
         </div>
 
-        <FormField
-          label="Nationality"
-          value={nationality}
-          onChange={setNationality}
-        />
-      </div>
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <FormField label="First Name" value={firstName} onChange={setFirstName} required />
+          <FormField label="Last Name" value={lastName} onChange={setLastName} required />
+          <FormField label="Email" value={email} onChange={setEmail} type="email" required />
+          <FormField label="Phone" value={phoneNumber} onChange={setPhoneNumber} />
+          <FormField label="Nationality" value={nationality} onChange={setNationality} />
+          <AgeBracketSelect value={ageBracket} onChange={setAgeBracket} />
+          <FormField
+            label="Emergency Contact Name"
+            value={emergencyContactName}
+            onChange={setEmergencyContactName}
+          />
+          <FormField
+            label="Emergency Contact Phone"
+            value={emergencyContactPhone}
+            onChange={setEmergencyContactPhone}
+          />
+        </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-        >
-          Cancel
-        </button>
-
-        <button
-          onClick={handleSave}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 transition-colors"
-        >
-          <CheckIcon />
-          Save Changes
-        </button>
-      </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 transition-colors disabled:opacity-60"
+          >
+            <CheckIcon />
+            {isSaving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </form>
     </ModalOverlay>
   );
 }
@@ -1019,8 +846,8 @@ function ConfirmActionModal({
         {isApprove ? "Approve Request" : "Decline Request"}
       </h2>
       <p className="text-sm text-slate-500 mt-2 mb-6">
-        Are you sure you want to {isApprove ? "approve" : "decline"} this change request?
-        The volunteer <span className="font-semibold text-slate-700">{volunteerName}</span> will be notified.
+        Are you sure you want to {isApprove ? "approve" : "decline"} the change request from{" "}
+        <span className="font-semibold text-slate-700">{volunteerName}</span>?
       </p>
       <div className="flex items-center justify-end gap-3">
         <button
@@ -1044,7 +871,13 @@ function ConfirmActionModal({
 
 // ---- Shared modal shell ----
 
-function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+function ModalOverlay({
+  children,
+  onClose,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
   return (
     <div
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
@@ -1092,16 +925,6 @@ function EditNoteIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M14 4h-8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
       <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" />
-    </svg>
-  );
-}
-
-function CalendarCheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="3" y="4" width="18" height="17" rx="2" />
-      <path d="M3 9h18M8 3v3M16 3v3" />
-      <path d="m9 15 2 2 4-4" />
     </svg>
   );
 }

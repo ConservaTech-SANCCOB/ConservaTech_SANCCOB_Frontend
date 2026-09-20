@@ -22,7 +22,7 @@ export async function loginRequest(
     },
     body: JSON.stringify({
       email: email.trim(),
-      password: password.trim(),
+      password: password,
     }),
   });
 
@@ -33,9 +33,6 @@ export async function loginRequest(
 
   const data: LoginResponse = await response.json();
   
-  console.log("[Auth API Response]", data);
-
   return data;
 }
-
 
