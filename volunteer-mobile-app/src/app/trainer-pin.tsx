@@ -4,6 +4,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
+import { verifyTrainerPin } from "../services/trainers";
+import { getErrorStatus } from "../utils/api";
+import { showErrorToast } from "../utils/toast";
+
+const PIN_PATTERN = /^\d{7}$/;
+// Errors thrown by request() in utils/api.ts always start with this — used to tell
+// a still-raw/unparsed error apart from a clean message already extracted from the
+// backend's JSON body (see verifyTrainerPin in services/trainers.ts).
+const RAW_ERROR_FORMAT = /^API error \d+:/;
 
 export default function TrainerPinScreen() {
   const router = useRouter();
@@ -11,18 +20,27 @@ export default function TrainerPinScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (pin.length < 4) {
-      Alert.alert("Invalid PIN", "Enter the shared trainer PIN.");
+    if (!PIN_PATTERN.test(pin)) {
+      Alert.alert("Invalid PIN", "Enter the 7-digit trainer PIN.");
       return;
     }
     setLoading(true);
     try {
-      // TODO: replace with a real check once a trainer PIN endpoint exists
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await verifyTrainerPin(pin);
       router.push("/trainer-select");
     } catch (error) {
       console.error("Trainer PIN error:", error);
-      Alert.alert("Incorrect PIN", "Check the PIN and try again.");
+      const status = getErrorStatus(error);
+      const isRawFormat = error instanceof Error && RAW_ERROR_FORMAT.test(error.message);
+      let message = "Couldn't verify PIN. Try again in a moment.";
+      if (status === 401) {
+        message = "Incorrect PIN.";
+      } else if (error instanceof Error && !isRawFormat && error.message) {
+        // A clean message already extracted from the backend's JSON body
+        // (e.g. "Trainer access PIN has not been configured.") — safe to show as-is.
+        message = error.message;
+      }
+      showErrorToast("Couldn't sign in", message);
     } finally {
       setLoading(false);
     }
@@ -49,12 +67,12 @@ export default function TrainerPinScreen() {
               onChangeText={setPin}
               keyboardType="number-pad"
               secureTextEntry
-              maxLength={6}
+              maxLength={7}
             />
           </View>
           <TouchableOpacity style={styles.submitButtonWrap} onPress={handleSubmit} disabled={loading}>
             <LinearGradient
-              colors={["#6FD0FF", "#2BA8E0"]}
+              colors={["#00567f", "#002e4c"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.submitButton}

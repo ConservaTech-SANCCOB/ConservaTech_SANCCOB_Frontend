@@ -1,83 +1,94 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../utils/colors";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../constants/glassCard";
-import { getVolunteers, getVolunteerTraining, signOffSkill, revokeSignOff } from "../../services/training";
-import { TRAINING_CATALOG } from "../../data/mockTrainingCatalog";
-import { TrainingCategory, TrainingSkill, SkillStatus } from "../../types/training";
-import { Volunteer } from "../../types/volunteer";
+import {
+  getTrainingVolunteerProfile,
+  signOffTrainingSkill,
+  TrainingSkillDto,
+  TrainingVolunteerProfile,
+} from "../../services/training";
+import { showErrorToast } from "../../utils/toast";
 
-const CATEGORY_ORDER: TrainingCategory[] = ["Supporting Areas", "Pen Routines"];
+type SkillGroup = { title: string; skills: TrainingSkillDto[] };
 
-function groupByCategory(skills: TrainingSkill[]) {
-  return CATEGORY_ORDER.map((category) => ({
-    category,
-    skills: skills.filter((s) => s.category === category),
-  })).filter((g) => g.skills.length > 0);
+function groupsFor(profile: TrainingVolunteerProfile | null): SkillGroup[] {
+  if (!profile) return [];
+  return [
+    { title: "Supporting Areas", skills: profile.supportingAreas ?? [] },
+    { title: "Pen Routines", skills: profile.penRoutines ?? [] },
+    { title: "Seasonal Skills", skills: profile.seasonalSkills ?? [] },
+  ].filter((group) => group.skills.length > 0);
 }
 
 export default function TrainerVolunteerScreen() {
   const router = useRouter();
-  const { volunteerId, trainerName } = useLocalSearchParams<{ volunteerId: string; trainerName?: string }>();
-  const [volunteer, setVolunteer] = useState<Volunteer | null>(null);
-  const [statuses, setStatuses] = useState<SkillStatus[]>([]);
+  const { volunteerId, trainerId, trainerName } = useLocalSearchParams<{
+    volunteerId: string;
+    trainerId?: string;
+    trainerName?: string;
+  }>();
+  const userId = Number(volunteerId);
+  const numericTrainerId = trainerId ? Number(trainerId) : NaN;
+
+  const [profile, setProfile] = useState<TrainingVolunteerProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [signingOffId, setSigningOffId] = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    if (!Number.isFinite(userId)) return;
+    setProfile(await getTrainingVolunteerProfile(userId));
+  }, [userId]);
 
   useEffect(() => {
-    async function load() {
-      if (!volunteerId) return;
+    (async () => {
       try {
         setIsLoading(true);
-        const [volunteers, statusList] = await Promise.all([
-          getVolunteers(),
-          getVolunteerTraining(volunteerId),
-        ]);
-        setVolunteer(volunteers.find((v) => v.id === volunteerId) ?? null);
-        setStatuses(statusList);
+        await load();
       } finally {
         setIsLoading(false);
       }
+    })();
+  }, [load]);
+
+  const groups = useMemo(() => groupsFor(profile), [profile]);
+  const completedCount = profile?.completedRequiredSkills ?? 0;
+  const totalCount = profile?.totalRequiredSkills ?? 0;
+  const percent = profile ? Math.round(profile.progressPercentage) : 0;
+  const volunteerLabel = profile ? `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() : "Volunteer";
+
+  const applySignOff = async (skill: TrainingSkillDto) => {
+    if (!Number.isFinite(numericTrainerId)) {
+      showErrorToast("Missing trainer ID", "Sign in again from the trainer PIN screen, then retry.");
+      return;
     }
-    load();
-  }, [volunteerId]);
-
-  const statusBySkillId = useMemo(() => new Map(statuses.map((s) => [s.skillId, s])), [statuses]);
-  const groups = useMemo(() => groupByCategory(TRAINING_CATALOG), []);
-  const completedCount = statuses.filter((s) => s.completed).length;
-  const totalCount = TRAINING_CATALOG.length;
-  const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-  const applySignOff = async (skillId: string) => {
-    const updated = await signOffSkill(volunteerId, skillId, trainerName || "Trainer");
-    setStatuses((prev) => prev.map((s) => (s.skillId === skillId ? updated : s)));
+    setSigningOffId(skill.skillId);
+    try {
+      await signOffTrainingSkill(userId, skill.skillId, numericTrainerId);
+      // Re-fetch rather than trust the optimistic response — confirms the sign-off
+      // actually persisted server-side and not just in local state.
+      await load();
+    } catch (error) {
+      console.error("Sign off skill error:", error);
+      showErrorToast("Couldn't sign off", "Something went wrong. Try again in a moment.");
+    } finally {
+      setSigningOffId(null);
+    }
   };
 
-  const applyUndo = async (skillId: string) => {
-    const updated = await revokeSignOff(volunteerId, skillId);
-    setStatuses((prev) => prev.map((s) => (s.skillId === skillId ? updated : s)));
-  };
-
-  const confirmSignOff = (skill: TrainingSkill) => {
-    const volunteerLabel = volunteer ? `${volunteer.firstName} ${volunteer.lastName}` : "this volunteer";
+  const confirmSignOff = (skill: TrainingSkillDto) => {
     const attribution = trainerName ? `, ${trainerName}` : "";
     Alert.alert(
       "Confirm Sign-Off",
-      `Confirm that ${volunteerLabel} has completed "${skill.name}"? This is recorded under your name${attribution}.`,
+      `Confirm that ${volunteerLabel} has completed "${skill.skillName}"? This is recorded under your name${attribution} and can't be undone from this app.`,
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Confirm", onPress: () => applySignOff(skill.id) },
+        { text: "Confirm", onPress: () => applySignOff(skill) },
       ]
     );
-  };
-
-  const confirmUndo = (skill: TrainingSkill) => {
-    Alert.alert("Undo Sign-Off", `Remove the sign-off recorded for "${skill.name}"?`, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Undo", style: "destructive", onPress: () => applyUndo(skill.id) },
-    ]);
   };
 
   if (isLoading) {
@@ -94,8 +105,7 @@ export default function TrainerVolunteerScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={22} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.title}>{volunteer ? `${volunteer.firstName} ${volunteer.lastName}` : "Volunteer"}</Text>
-        {!!volunteer && <Text style={styles.subtitle}>{volunteer.area}</Text>}
+        <Text style={styles.title}>{volunteerLabel}</Text>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20 }}>
@@ -115,48 +125,50 @@ export default function TrainerVolunteerScreen() {
         </View>
 
         {groups.map((group) => (
-          <View key={group.category} style={{ marginBottom: 24 }}>
-            <Text style={styles.sectionTitle}>{group.category}</Text>
-            {group.skills.map((skill) => {
-              const status = statusBySkillId.get(skill.id);
-              const isCompleted = status?.completed ?? false;
-              return (
-                <View key={skill.id} style={styles.skillRow}>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      <Text style={styles.skillName}>{skill.name}</Text>
-                      {skill.seasonal && (
-                        <View style={styles.seasonalTag}>
-                          <Text style={styles.seasonalText}>Seasonal</Text>
-                        </View>
-                      )}
-                    </View>
-                    {isCompleted && (
-                      <Text style={styles.signOffMeta}>{`${status?.signedOffBy} · ${status?.signedOffDate}`}</Text>
-                    )}
-                  </View>
-
-                  {isCompleted ? (
-                    <TouchableOpacity onPress={() => confirmUndo(skill)} style={styles.undoButton}>
-                      <Ionicons name="checkmark-circle" size={18} color={COLORS.green} />
-                      <Text style={styles.undoText}>Undo</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity onPress={() => confirmSignOff(skill)} style={styles.signOffButtonWrap}>
-                      <LinearGradient
-                        colors={["#6FD0FF", "#2BA8E0"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 0, y: 1 }}
-                        style={styles.signOffButton}
-                      >
-                        <Ionicons name="checkmark" size={16} color={COLORS.white} />
-                        <Text style={styles.signOffText}>Sign Off</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
+          <View key={group.title} style={{ marginBottom: 24 }}>
+            <Text style={styles.sectionTitle}>{group.title}</Text>
+            {group.skills.map((skill) => (
+              <View key={skill.skillId} style={styles.skillRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.skillName}>{skill.skillName}</Text>
+                  {skill.isSignedOff && (
+                    <Text style={styles.signOffMeta}>
+                      {skill.trainerName ? `${skill.trainerName} · ` : ""}
+                      {skill.signedOffAt ? new Date(skill.signedOffAt).toLocaleDateString() : ""}
+                    </Text>
                   )}
                 </View>
-              );
-            })}
+
+                {skill.isSignedOff ? (
+                  <View style={styles.signedOffTag}>
+                    <Ionicons name="checkmark-circle" size={18} color={COLORS.green} />
+                    <Text style={styles.signedOffText}>Signed Off</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => confirmSignOff(skill)}
+                    style={styles.signOffButtonWrap}
+                    disabled={signingOffId === skill.skillId}
+                  >
+                    <LinearGradient
+                      colors={["#6FD0FF", "#2BA8E0"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={styles.signOffButton}
+                    >
+                      {signingOffId === skill.skillId ? (
+                        <ActivityIndicator size="small" color={COLORS.white} />
+                      ) : (
+                        <>
+                          <Ionicons name="checkmark" size={16} color={COLORS.white} />
+                          <Text style={styles.signOffText}>Sign Off</Text>
+                        </>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
           </View>
         ))}
       </ScrollView>
@@ -170,7 +182,6 @@ const styles = StyleSheet.create({
   header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
   backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center", marginBottom: 8 },
   title: { fontSize: 20, fontWeight: "800", color: COLORS.white },
-  subtitle: { fontSize: 12, color: COLORS.sky, marginTop: 2 },
   summaryCard: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
@@ -196,8 +207,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   skillName: { fontSize: 14, color: COLORS.black, fontWeight: "600" },
-  seasonalTag: { backgroundColor: COLORS.amberBg, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  seasonalText: { fontSize: 10, color: "#B8860B", fontWeight: "800" },
   signOffMeta: { fontSize: 11, color: COLORS.grey, marginTop: 4 },
   signOffButtonWrap: {
     borderRadius: 8,
@@ -216,6 +225,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   signOffText: { color: COLORS.white, fontWeight: "700", fontSize: 12 },
-  undoButton: { flexDirection: "row", alignItems: "center", gap: 4 },
-  undoText: { color: COLORS.grey, fontWeight: "700", fontSize: 12 },
+  signedOffTag: { flexDirection: "row", alignItems: "center", gap: 4 },
+  signedOffText: { color: COLORS.green, fontWeight: "700", fontSize: 12 },
 });
