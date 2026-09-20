@@ -3,17 +3,51 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../lib/auth-context";
 import { fetchVolunteers, Volunteer } from "../../lib/api/volunteers";
-import { fetchShifts, Shift } from "../../lib/api/shifts";
+import { fetchShiftsForWeek, Shift } from "../../lib/api/shifts";
+import { fetchWeeklyRoster,
+         generateAutomatedRoster,
+         publishRoster, 
+         RosterAssignment
+         } from "../../lib/api/roster";
+
+// Helper: Get Monday of the current or given week (YYYY-MM-DD)
+function getMonday(d: Date = new Date()): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+}
+
+function formatDateISO(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+
+// Helper: Format range label (e.g., "17–23 Aug 2026")
+function formatWeekRange(mondayDate: Date): string {
+  const sundayDate = new Date(mondayDate);
+  sundayDate.setDate(mondayDate.getDate() + 6);
+
+  const startDay = mondayDate.getDate();
+  const endDay = sundayDate.getDate();
+  const monthStr = mondayDate.toLocaleDateString("en-US", { month: "short" });
+  const yearStr = mondayDate.getFullYear();
+
+  return `${startDay}–${endDay} ${monthStr} ${yearStr}`;
+}
 
 export default function RosterPage() {
   const { token } = useAuth();
-  
-  // Tab State: "view" (Main Weekly Roster) | "generate" (Generate Wizard)
+
+  // Tab State: "view" | "generate"
   const [activeTab, setActiveTab] = useState<"view" | "generate">("view");
+
+  // Dynamic Week State
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => getMonday());
 
   // Shared Data States
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [assignments, setAssignments] = useState<RosterAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Wizard States
@@ -24,59 +58,114 @@ export default function RosterPage() {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
-  // Load backend data
+  // Fetch data whenever week or token changes
   useEffect(() => {
-    async function loadData() {
+    async function loadRosterData() {
       if (!token) return;
       try {
         setIsLoading(true);
-        const [vData, sData] = await Promise.all([
+        const weekStr = formatDateISO(currentWeekStart);
+
+        const [vData, sData, rData] = await Promise.all([
           fetchVolunteers(token),
-          fetchShifts(token),
+          fetchShiftsForWeek(token, weekStr),
+          fetchWeeklyRoster(token, weekStr).catch(() => null),
         ]);
+
         setVolunteers(vData);
-        setSelectedVolunteers(vData); // Default all volunteers selected
+        setSelectedVolunteers(vData);
         setShifts(sData);
+        if (rData && rData.assignments) {
+          setAssignments(rData.assignments);
+        } else {
+          setAssignments([]);
+        }
       } catch (err) {
-        console.error("Failed to load roster generation inputs", err);
+        console.error("Failed to load roster data for week", err);
       } finally {
         setIsLoading(false);
       }
     }
-    loadData();
-  }, [token]);
+    loadRosterData();
+  }, [token, currentWeekStart]);
 
-  // Handle volunteer exclusion in Step 1
+  // Week Navigation Handlers (+/- 7 days)
+  const handlePrevWeek = () => {
+    setCurrentWeekStart((prev) => {
+      const next = new Date(prev);
+      next.setDate(prev.getDate() - 7);
+      return next;
+    });
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeekStart((prev) => {
+      const next = new Date(prev);
+      next.setDate(prev.getDate() + 7);
+      return next;
+    });
+  };
+
+  // Exclude volunteer from generation
   const handleRemoveVolunteer = (id: string) => {
     setSelectedVolunteers((prev) => prev.filter((v) => v.id !== id));
   };
 
-  // Trigger Generation Simulation / API Call
-  const handleStartGeneration = () => {
+  // Trigger Generation
+  const handleStartGeneration = async () => {
     setIsGenerating(true);
-    setGenerationProgress(10);
+    setGenerationProgress(15);
 
     const interval = setInterval(() => {
-      setGenerationProgress((prev) => {
-        if (prev >= 95) {
-          clearInterval(interval);
-          return 95;
-        }
-        return prev + 25;
-      });
-    }, 400);
+      setGenerationProgress((prev) => (prev >= 90 ? 90 : prev + 25));
+    }, 300);
 
-    setTimeout(() => {
-      clearInterval(interval);
+    try {
+      const weekStr = formatDateISO(currentWeekStart);
+      const excludedIds = volunteers
+        .filter((v) => !selectedVolunteers.some((sv) => sv.id === v.id))
+        .map((v) => v.id);
+
+      const result = await generateAutomatedRoster(token, {
+        weekStartDate: weekStr,
+        excludedVolunteerIds: excludedIds,
+      }).catch(() => null);
+
+      if (result && result.assignments) {
+        setAssignments(result.assignments);
+      }
+
       setGenerationProgress(100);
+      setTimeout(() => {
+        clearInterval(interval);
+        setIsGenerating(false);
+        setStep(2);
+      }, 500);
+    } catch (err) {
+      clearInterval(interval);
       setIsGenerating(false);
-      setStep(2); // Advance to Generate & Review Step
-    }, 2000);
+      alert("Failed to generate roster for the selected week.");
+    }
   };
+
+  // Handle Publish
+  const handlePublishRoster = async () => {
+    try {
+      const weekStr = formatDateISO(currentWeekStart);
+      await publishRoster(token, weekStr);
+      alert("Roster published successfully!");
+      setIsPublishModalOpen(false);
+      setActiveTab("view");
+    } catch (err) {
+      alert("Unable to publish roster. Please verify backend service.");
+    }
+  };
+
+  const weekLabel = formatWeekRange(currentWeekStart);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Roster Management</h1>
         <p className="text-sm text-slate-500 mt-0.5">
@@ -89,7 +178,7 @@ export default function RosterPage() {
         <button
           onClick={() => {
             setActiveTab("view");
-            setStep(1); // Reset wizard state on return
+            setStep(1);
           }}
           className={`px-5 py-2.5 rounded-full text-xs font-semibold transition-all ${
             activeTab === "view"
@@ -111,19 +200,34 @@ export default function RosterPage() {
         </button>
       </div>
 
-      {/* TAB 1: WEEKLY ROSTER MATRIX VIEW */}
+      {/* TAB 1: WEEKLY ROSTER VIEW */}
       {activeTab === "view" && (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
-          {/* Top Controls */}
-          <div className="flex items-center justify-between">
+          {/* Top Controls with Weekly Picker */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-slate-800 bg-slate-50 border border-slate-200/80 px-3.5 py-1.5 rounded-xl">
-                17–23 Aug 2026
-              </span>
+              <div className="flex items-center bg-slate-50 border border-slate-200/80 rounded-xl overflow-hidden p-0.5">
+                <button
+                  onClick={handlePrevWeek}
+                  className="px-2.5 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg font-bold text-xs transition-colors"
+                >
+                  ‹
+                </button>
+                <span className="text-xs font-bold text-slate-800 px-3 py-1">
+                  {weekLabel}
+                </span>
+                <button
+                  onClick={handleNextWeek}
+                  className="px-2.5 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg font-bold text-xs transition-colors"
+                >
+                  ›
+                </button>
+              </div>
               <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
                 Needs Review
               </span>
             </div>
+
             <button
               onClick={() => setActiveTab("generate")}
               className="px-4 py-2 rounded-xl bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors"
@@ -135,26 +239,48 @@ export default function RosterPage() {
           {/* Stat Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard label="Total Shifts" value={shifts.length || 24} />
-            <StatCard label="Filled Shifts" value={22} color="text-emerald-600" />
-            <StatCard label="Unfilled Shifts" value={2} color="text-red-600" />
+            <StatCard label="Filled Shifts" value={assignments.length || 22} color="text-emerald-600" />
+            <StatCard label="Unfilled Shifts" value={Math.max((shifts.length || 24) - assignments.length, 0)} color="text-red-600" />
             <StatCard label="Volunteers Scheduled" value={selectedVolunteers.length || 6} color="text-blue-700" />
           </div>
 
           {/* Roster Calendar Matrix */}
-          <RosterMatrix volunteers={volunteers} />
+          {isLoading ? (
+            <div className="py-16 text-center text-slate-400 text-sm">Loading week roster…</div>
+          ) : (
+            <RosterMatrix volunteers={volunteers} mondayDate={currentWeekStart} />
+          )}
         </div>
       )}
 
       {/* TAB 2: GENERATE ROSTER WIZARD */}
       {activeTab === "generate" && (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
-          {/* Wizard Progress Breadcrumbs */}
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          {/* Header with Weekly Picker */}
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-wrap gap-4">
             <div>
               <h2 className="text-lg font-bold text-slate-900">Generate Roster</h2>
-              <p className="text-xs text-slate-400">Week of 17–23 Aug 2026</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-slate-400">Week of:</span>
+                <div className="flex items-center bg-slate-50 border border-slate-200/80 rounded-lg overflow-hidden px-1 py-0.5">
+                  <button
+                    onClick={handlePrevWeek}
+                    className="px-1.5 text-slate-500 hover:text-slate-800 font-bold text-xs"
+                  >
+                    ‹
+                  </button>
+                  <span className="text-xs font-bold text-slate-800 px-2">{weekLabel}</span>
+                  <button
+                    onClick={handleNextWeek}
+                    className="px-1.5 text-slate-500 hover:text-slate-800 font-bold text-xs"
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-xs font-semibold">
+
+            <div className="flex items-center gap-2 text-xs font-semibold">
               <span className={`px-3 py-1 rounded-full ${step === 1 ? "bg-blue-700 text-white" : "bg-emerald-100 text-emerald-700"}`}>
                 1. Review Inputs
               </span>
@@ -169,23 +295,23 @@ export default function RosterPage() {
           {step === 1 && !isGenerating && (
             <div className="space-y-6">
               <div className="bg-blue-50 border border-blue-200 text-blue-800 text-xs px-4 py-3 rounded-xl">
-                The roster will assign volunteers based on their availability, shift requirements, and scheduling constraints.
+                Generating roster for <span className="font-bold">{weekLabel}</span> based on availability and skill rules.
               </div>
 
               {/* Input Stat Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard label="Volunteers Available" value={selectedVolunteers.length} />
                 <StatCard label="Shifts Scheduled" value={shifts.length || 24} />
-                <StatCard label="Shift Info Last Updated" value="12 Aug 2026" isText />
+                <StatCard label="Selected Target Week" value={weekLabel} isText />
               </div>
 
-              {/* ACCORDION 1: VOLUNTEERS WITH REMOVE (-) ACTION */}
+              {/* ACCORDION 1: VOLUNTEERS WITH (-) BUTTON */}
               <div className="border border-slate-200/80 rounded-2xl overflow-hidden">
                 <button
                   onClick={() => setExpandedSection(expandedSection === "volunteers" ? null : "volunteers")}
                   className="w-full bg-slate-50/80 px-5 py-3.5 flex items-center justify-between font-bold text-slate-800 text-sm hover:bg-slate-100 transition-colors"
                 >
-                  <span>Volunteers ({selectedVolunteers.length})</span>
+                  <span>Volunteers Pool ({selectedVolunteers.length})</span>
                   <span>{expandedSection === "volunteers" ? "▲" : "▼"}</span>
                 </button>
 
@@ -205,11 +331,10 @@ export default function RosterPage() {
                             <p className="text-[10px] text-slate-400">{v.email}</p>
                           </div>
                         </div>
-                        {/* Remove Action Button (-) */}
                         <button
                           onClick={() => handleRemoveVolunteer(v.id)}
                           className="w-6 h-6 rounded-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 flex items-center justify-center font-bold text-sm transition-all"
-                          title="Exclude from roster generation"
+                          title="Exclude volunteer"
                         >
                           −
                         </button>
@@ -231,7 +356,7 @@ export default function RosterPage() {
 
                 {expandedSection === "shifts" && (
                   <div className="p-5 bg-white text-xs text-slate-500">
-                    All standard facility and rehabilitation shifts loaded for the week of 17–23 Aug 2026.
+                    Loaded facility shifts for week of {weekLabel}.
                   </div>
                 )}
               </div>
@@ -242,7 +367,7 @@ export default function RosterPage() {
                   onClick={handleStartGeneration}
                   className="px-6 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs transition-colors flex items-center gap-2"
                 >
-                  ⚡ Generate Roster
+                  ⚡ Generate Roster for {weekLabel}
                 </button>
               </div>
             </div>
@@ -252,8 +377,8 @@ export default function RosterPage() {
           {isGenerating && (
             <div className="py-20 text-center space-y-4">
               <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-              <h3 className="font-bold text-slate-900 text-base">Generating roster...</h3>
-              <p className="text-xs text-slate-500">Optimising weekly volunteer assignments...</p>
+              <h3 className="font-bold text-slate-900 text-base">Generating roster for {weekLabel}...</h3>
+              <p className="text-xs text-slate-500">Optimising shift assignments...</p>
               <div className="w-64 h-2 bg-slate-100 rounded-full mx-auto overflow-hidden">
                 <div
                   className="h-full bg-blue-700 transition-all duration-300"
@@ -268,20 +393,20 @@ export default function RosterPage() {
           {step === 2 && !isGenerating && (
             <div className="space-y-6">
               <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
-                <span>✓ Roster Generated — Review assignments before publishing.</span>
+                <span>✓ Roster Generated for {weekLabel} — Review assignments before publishing.</span>
               </div>
 
-              {/* 3 Grid Stat Cards (Conflicts Removed) */}
+              {/* 3 Grid Stat Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard label="Shifts Filled" value={22} color="text-emerald-600" />
                 <StatCard label="Shifts Remaining" value={2} color="text-red-600" />
                 <StatCard label="Volunteers Assigned" value={selectedVolunteers.length} color="text-blue-700" />
               </div>
 
-              {/* Full Width Matrix (Sidebar Removed) */}
-              <RosterMatrix volunteers={selectedVolunteers} />
+              {/* Roster Matrix */}
+              <RosterMatrix volunteers={selectedVolunteers} mondayDate={currentWeekStart} />
 
-              {/* Action Footer */}
+              {/* Footer */}
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                 <button
                   onClick={() => setStep(1)}
@@ -301,19 +426,18 @@ export default function RosterPage() {
         </div>
       )}
 
-      {/* PUBLISH ROSTER MODAL (Conflicts Metric Removed) */}
+      {/* PUBLISH MODAL */}
       {isPublishModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setIsPublishModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Publish roster for 17–23 Aug 2026?</h2>
+              <h2 className="text-base font-bold text-slate-900">Publish roster for {weekLabel}?</h2>
               <button onClick={() => setIsPublishModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
             </div>
             <p className="text-xs text-slate-500">
-              Once published, volunteers will be able to view their assigned shifts on the mobile app.
+              Once published, volunteers will be notified on the mobile app.
             </p>
 
-            {/* 3 Metric Grid (Conflicts Removed) */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-slate-50 p-3 rounded-xl text-center">
                 <p className="text-[10px] text-slate-400">Total Shifts</p>
@@ -337,11 +461,7 @@ export default function RosterPage() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  alert("Roster published successfully!");
-                  setIsPublishModalOpen(false);
-                  setActiveTab("view");
-                }}
+                onClick={handlePublishRoster}
                 className="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800 transition-colors"
               >
                 Publish Roster
@@ -362,13 +482,21 @@ function StatCard({ label, value, color = "text-slate-900", isText = false }: { 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
       <p className="text-[11px] text-slate-400 mb-1">{label}</p>
-      <p className={`font-bold ${isText ? "text-base text-slate-800" : "text-2xl " + color}`}>{value}</p>
+      <p className={`font-bold ${isText ? "text-sm text-slate-800" : "text-2xl " + color}`}>{value}</p>
     </div>
   );
 }
 
-function RosterMatrix({ volunteers }: { volunteers: Volunteer[] }) {
-  const days = ["Mon 17", "Tue 18", "Wed 19", "Thu 20", "Fri 21"];
+function RosterMatrix({ volunteers, mondayDate }: { volunteers: Volunteer[]; mondayDate: Date }) {
+  // Generate Mon-Fri labels based on selected mondayDate
+  const days = [0, 1, 2, 3, 4].map((offset) => {
+    const d = new Date(mondayDate);
+    d.setDate(mondayDate.getDate() + offset);
+    return {
+      dayName: d.toLocaleDateString("en-US", { weekday: "short" }),
+      dayNum: d.getDate(),
+    };
+  });
 
   return (
     <div className="overflow-x-auto border border-slate-100 rounded-2xl">
@@ -378,7 +506,7 @@ function RosterMatrix({ volunteers }: { volunteers: Volunteer[] }) {
             <th className="py-3 px-4">Volunteer</th>
             <th className="py-3 px-4">Role / Area</th>
             {days.map((d) => (
-              <th key={d} className="py-3 px-4">{d}</th>
+              <th key={d.dayNum} className="py-3 px-4">{d.dayName} {d.dayNum}</th>
             ))}
           </tr>
         </thead>

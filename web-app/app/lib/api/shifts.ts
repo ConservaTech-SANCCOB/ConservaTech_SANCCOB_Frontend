@@ -63,6 +63,30 @@ export async function fetchShifts(token: string | null): Promise<Shift[]> {
   return Array.isArray(data) ? data : [];
 }
 
+// GET /api/Shifts/week?weekStartDate=...
+export async function fetchShiftsForWeek(
+  token: string | null,
+  weekStartDate: string
+): Promise<Shift[]> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
+
+  const response = await fetch(
+    `${API_URL}/api/Shifts/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) return [];
+
+  const data: Shift[] = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
 // POST /api/Shifts
 export async function createShift(token: string | null, payload: ShiftPayload): Promise<Shift> {
   if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
