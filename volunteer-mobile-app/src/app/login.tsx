@@ -5,6 +5,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
 import { login } from "../services/auth";
+import { getErrorStatus } from "../utils/api";
+import { showErrorToast } from "../utils/toast";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -24,7 +26,8 @@ export default function LoginScreen() {
       router.replace("/(tabs)/home");
     } catch (error) {
       console.error("Login error:", error);
-      Alert.alert("Login failed", "Check your email and password and try again.");
+      const status = getErrorStatus(error);
+      showErrorToast("Login failed", status === 401 ? "Incorrect email or password" : "Couldn't log in. Try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -70,7 +73,7 @@ export default function LoginScreen() {
           </View>
           <TouchableOpacity style={styles.loginButtonWrap} onPress={handleLogin} disabled={loading}>
             <LinearGradient
-              colors={["#6FD0FF", "#2BA8E0"]}
+              colors={["#00567f", "#002e4c"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.loginButton}

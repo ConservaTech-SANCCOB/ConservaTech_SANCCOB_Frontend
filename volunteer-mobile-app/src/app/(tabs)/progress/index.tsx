@@ -24,7 +24,7 @@ function ProgressRing({ percent, size = 92, strokeWidth = 10 }: { percent: numbe
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={COLORS.sky}
+          stroke={COLORS.green}
           strokeWidth={strokeWidth}
           strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={strokeDashoffset}
@@ -94,7 +94,7 @@ function SectionHeader({
 function SkillRow({ skill }: { skill: Skill }) {
   return (
     <TouchableOpacity
-      style={styles.skillRow}
+      style={[styles.skillRow, skill.completed && styles.skillRowCompleted]}
       activeOpacity={0.7}
       onPress={() =>
         Alert.alert(skill.name, skill.completed ? "You've completed this skill." : "Not started yet.")
@@ -152,7 +152,7 @@ export default function TrainingScreen() {
         <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8 + insets.top, paddingBottom: 150 }}>
           <View style={styles.headerRow}>
             <View style={styles.headerCard}>
-              <Text style={styles.headerTitle}>Training</Text>
+              <Text style={styles.headerTitle}>Training Progress</Text>
             </View>
             <TouchableOpacity style={styles.hoursButton} onPress={() => router.push("/(tabs)/progress/hours")}>
               <Ionicons name="bar-chart-outline" size={16} color={COLORS.navy} />
@@ -208,11 +208,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   headerCard: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
     paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 22,
   },
   headerTitle: { fontSize: 20, fontWeight: "800", color: COLORS.navy },
   hoursButton: {
@@ -269,6 +265,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
+  },
+  skillRowCompleted: {
+    borderColor: COLORS.green,
+    borderTopColor: COLORS.green,
   },
   skillName: { fontSize: 14, color: COLORS.black, flexShrink: 1 },
   seasonalTag: { backgroundColor: COLORS.amberBg, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
