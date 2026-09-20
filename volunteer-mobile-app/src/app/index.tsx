@@ -29,40 +29,70 @@ export default function WelcomeScreen() {
         </LinearGradient>
 
         <View style={styles.options}>
+          <View style={styles.introGroup}>
+            <Text style={styles.welcomeLabel}>WELCOME!</Text>
+            <Text style={styles.sectionLabel}>Select your account type to proceed:</Text>
+          </View>
+
           <View style={styles.buttonGroup}>
-            <TouchableOpacity style={styles.primaryButtonWrap} onPress={() => router.push("/login")}>
+            <TouchableOpacity style={styles.optionRowWrap} onPress={() => router.push("/login")}>
               <LinearGradient
-                colors={["#6FD0FF", "#2BA8E0"]}
+                colors={["#00567f", "#002e4c"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
-                style={styles.primaryButton}
+                style={styles.optionRow}
               >
-                <Ionicons name="log-in-outline" size={20} color={COLORS.white} />
-                <Text style={styles.primaryButtonText}>Login as Volunteer</Text>
+                <Image
+                  source={require("../../assets/images/volunteer-icon.png")}
+                  style={[styles.iconImage, { width: 39 }]}
+                  resizeMode="contain"
+                />
+                <View style={styles.optionTextCol}>
+                  <Text style={styles.optionTitle}>Login as Volunteer</Text>
+                  <Text style={styles.optionSubtitle}>Access your tracking dashboard</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={22} color={COLORS.white} />
               </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.tertiaryButtonWrap} onPress={() => router.push("/trainer-pin")}>
+            <TouchableOpacity style={styles.optionRowWrap} onPress={() => router.push("/trainer-pin")}>
               <LinearGradient
-                colors={["#6FD0FF", "#2BA8E0"]}
+                colors={["#00567f", "#002e4c"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
-                style={styles.tertiaryButton}
+                style={styles.optionRow}
               >
-                <Ionicons name="school-outline" size={20} color={COLORS.white} />
-                <Text style={styles.tertiaryButtonText}>Login as Trainer</Text>
+                <Image
+                  source={require("../../assets/images/trainer-icon.png")}
+                  style={[styles.iconImage, { width: 34 }]}
+                  resizeMode="contain"
+                />
+                <View style={styles.optionTextCol}>
+                  <Text style={styles.optionTitle}>Login as Trainer</Text>
+                  <Text style={styles.optionSubtitle}>Manage operations and teams</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={22} color={COLORS.white} />
               </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.secondaryButtonWrap} onPress={() => router.push("/activate")}>
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity style={styles.activateButtonWrap} onPress={() => router.push("/activate")}>
               <LinearGradient
                 colors={["#6FD0FF", "#2BA8E0"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
-                style={styles.secondaryButton}
+                style={styles.activateButton}
               >
-                <Ionicons name="key-outline" size={20} color={COLORS.white} />
-                <Text style={styles.secondaryButtonText}>Activate New Account</Text>
+                <View style={styles.activateIconSpacer} />
+                <View style={styles.optionTextCol}>
+                  <Text style={styles.activateButtonText}>Activate New Account</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={22} color={COLORS.white} />
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -111,11 +141,27 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  buttonGroup: { flex: 1, justifyContent: "center", gap: 16 },
+  buttonGroup: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16 },
+  introGroup: { alignItems: "center" },
+  welcomeLabel: {
+    fontSize: 13,
+    color: COLORS.navy,
+    fontWeight: "bold",
+    letterSpacing: 1,
+    textAlign: "center",
+  },
+  sectionLabel: {
+    fontSize: 13,
+    color: COLORS.navy,
+    fontWeight: "bold",
+    letterSpacing: 1,
+    textAlign: "center",
+    marginTop: 4,
+  },
   footerText: { textAlign: "center", color: COLORS.grey, fontSize: 12, marginTop: 16 },
-  primaryButtonWrap: {
-    marginTop: 16,
-    borderRadius: 16,
+  optionRowWrap: {
+    width: "94%",
+    borderRadius: 20,
     borderWidth: 0.75,
     borderColor: "rgba(255,255,255,0.5)",
     shadowColor: "#002e4c",
@@ -124,17 +170,27 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 10,
   },
-  primaryButton: {
+  optionRow: {
     flexDirection: "row",
-    borderRadius: 16,
-    paddingVertical: 14,
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    gap: 18,
+    borderRadius: 19.25,
+    padding: 22,
   },
-  primaryButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
-  secondaryButtonWrap: {
-    borderRadius: 16,
+  iconImage: { height: 40, tintColor: COLORS.blue },
+  optionTextCol: { flex: 1 },
+  optionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.white },
+  optionSubtitle: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 3,
+  },
+  dividerRow: { width: "94%", flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 2 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: "rgba(0,46,76,0.15)" },
+  dividerText: { fontSize: 12, fontWeight: "700", color: COLORS.grey },
+  activateButtonWrap: {
+    width: "94%",
+    borderRadius: 20,
     borderWidth: 0.75,
     borderColor: "rgba(255,255,255,0.5)",
     shadowColor: "#002e4c",
@@ -143,32 +199,13 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 10,
   },
-  secondaryButton: {
+  activateButton: {
     flexDirection: "row",
-    borderRadius: 16,
-    paddingVertical: 14,
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    gap: 18,
+    borderRadius: 19.25,
+    padding: 22,
   },
-  secondaryButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
-  tertiaryButtonWrap: {
-    borderRadius: 16,
-    borderWidth: 0.75,
-    borderColor: "rgba(255,255,255,0.5)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 10,
-  },
-  tertiaryButton: {
-    flexDirection: "row",
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  tertiaryButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
+  activateIconSpacer: { width: 37 },
+  activateButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
 });
