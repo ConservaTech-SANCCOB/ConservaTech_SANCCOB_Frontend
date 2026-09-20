@@ -2,7 +2,7 @@ export interface MonthlyHours {
   month: string;
   hours: number;
 }
-
+//pusj test
 export interface AttendancePoint {
   month: string;
   rate: number;
