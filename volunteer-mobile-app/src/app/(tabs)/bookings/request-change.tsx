@@ -37,7 +37,7 @@ export default function RequestChangeScreen() {
 
   const handleSubmit = async () => {
     if (!reason.trim()) {
-      Alert.alert("Reason required", "Please tell us why you'd like to change this booking.");
+      Alert.alert("Reason required", "Please tell us why you'd like to cancel this shift.");
       return;
     }
     if (!hasShift || ended) return;
@@ -45,8 +45,8 @@ export default function RequestChangeScreen() {
     try {
       await submitChangeRequest({ rosterAssignmentId, reason: reason.trim() });
       Alert.alert(
-        "Cancellation Requested",
-        "Your cancellation request has been sent for review. Your original assignment stays active until it's reviewed.",
+        "Request Submitted",
+        "Your cancellation request has been submitted and is pending review. You're still assigned to this shift until it's approved.",
         [{ text: "OK", onPress: () => router.back() }]
       );
     } catch (error) {
@@ -75,7 +75,7 @@ export default function RequestChangeScreen() {
               <Ionicons name="arrow-back" size={22} color={COLORS.navy} />
             </TouchableOpacity>
             <View style={styles.titleCard}>
-              <Text style={styles.headerTitle}>Cancel Shift</Text>
+              <Text style={styles.headerTitle}>Request Cancellation</Text>
             </View>
           </View>
 
@@ -89,14 +89,14 @@ export default function RequestChangeScreen() {
             <View style={styles.emptyStateCard}>
               <Ionicons name="time-outline" size={32} color={COLORS.grey} />
               <Text style={styles.emptyTitle}>This shift has already ended</Text>
-              <Text style={styles.emptyText}>It can no longer be changed.</Text>
+              <Text style={styles.emptyText}>It can no longer be cancelled.</Text>
             </View>
           ) : (
             <>
               <View style={styles.warningBanner}>
                 <Ionicons name="alarm-outline" size={20} color={COLORS.amber} />
                 <Text style={styles.warningText}>
-                  Your original shift stays active until your request is reviewed.
+                  This sends a cancellation request for review — it doesn&apos;t remove you from the shift right away. You stay assigned until it&apos;s approved.
                 </Text>
               </View>
 
@@ -118,7 +118,7 @@ export default function RequestChangeScreen() {
                   style={styles.reasonInput}
                   multiline
                   numberOfLines={4}
-                  placeholder="Let us know why you're cancelling this shift..."
+                  placeholder="Let us know why you need to cancel this shift..."
                   placeholderTextColor={COLORS.grey}
                   value={reason}
                   onChangeText={setReason}
@@ -136,7 +136,7 @@ export default function RequestChangeScreen() {
                     ) : (
                       <>
                         <Ionicons name="close-circle-outline" size={16} color={COLORS.white} />
-                        <Text style={styles.submitButtonText}>Cancel Shift</Text>
+                        <Text style={styles.submitButtonText}>Request Cancellation</Text>
                       </>
                     )}
                   </LinearGradient>

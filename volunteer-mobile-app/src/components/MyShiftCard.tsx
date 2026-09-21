@@ -10,7 +10,14 @@ import { getRelativeLabel } from "../utils/dateBuckets";
 import { formatTimeSlotLabel, hasShiftEnded } from "../utils/timeSlot";
 import { DateBadge } from "./ShiftCardParts";
 
-export default function MyShiftCard({ item }: { item: MyShift }) {
+export default function MyShiftCard({
+  item,
+  cancellationPending = false,
+}: {
+  item: MyShift;
+  /** A pending cancellation request already exists for this shift — hides the cancel action. */
+  cancellationPending?: boolean;
+}) {
   const router = useRouter();
   const ended = hasShiftEnded(item.shiftDate, item.timeSlot);
   const scale = useRef(new Animated.Value(1)).current;
@@ -43,12 +50,14 @@ export default function MyShiftCard({ item }: { item: MyShift }) {
       onPress={() =>
         Alert.alert(
           `${formatTimeSlotLabel(item.timeSlot)} shift`,
-          `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\nStatus: ${item.status}`,
-          ended
+          `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\nStatus: ${item.status}${
+            cancellationPending ? "\nCancellation request pending review" : ""
+          }`,
+          ended || cancellationPending
             ? [{ text: "Close", style: "cancel" }]
             : [
                 { text: "Close", style: "cancel" },
-                { text: "Request Change", onPress: requestChange },
+                { text: "Request to Cancel", onPress: requestChange },
               ]
         )
       }
@@ -56,7 +65,12 @@ export default function MyShiftCard({ item }: { item: MyShift }) {
       <Animated.View style={[styles.shiftCard, { transform: [{ scale }] }]}>
         <View style={[styles.notch, styles.notchTopRight]} />
         <View style={[styles.notch, styles.notchBottomLeft]} />
-        <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
+          {!ended && cancellationPending && (
+            <View style={styles.pendingDot} accessible accessibilityLabel="Cancellation pending" />
+          )}
+        </View>
         <View style={styles.badgeRow}>
           <DateBadge dateStr={item.shiftDate} size={56} />
           <View style={styles.metaColumn}>
@@ -79,7 +93,7 @@ export default function MyShiftCard({ item }: { item: MyShift }) {
           </View>
         </View>
         {!ended && <View style={styles.divider} />}
-        {!ended && (
+        {!ended && !cancellationPending && (
           <TouchableOpacity style={styles.changeButtonWrap} onPress={requestChange} hitSlop={6}>
             <LinearGradient
               colors={["#FF6B6B", "#C62828"]}
@@ -88,7 +102,7 @@ export default function MyShiftCard({ item }: { item: MyShift }) {
               style={styles.changeButton}
             >
               <Ionicons name="close-circle-outline" size={13} color={COLORS.white} />
-              <Text style={styles.changeButtonText}>Cancel</Text>
+              <Text style={styles.changeButtonText}>Request to Cancel</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -123,7 +137,7 @@ const styles = StyleSheet.create({
   },
   notchTopRight: { top: 8, right: 8 },
   notchBottomLeft: { bottom: 8, left: 8 },
-  shiftTimeLabel: { fontSize: 17, fontWeight: "800", color: COLORS.navy, marginBottom: 8 },
+  shiftTimeLabel: { fontSize: 17, fontWeight: "800", color: COLORS.navy },
   badgeRow: { flexDirection: "row", alignItems: "center", gap: 14 },
   metaColumn: { flex: 1, gap: 3 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 5 },
@@ -155,4 +169,7 @@ const styles = StyleSheet.create({
     borderRadius: 13.5,
   },
   changeButtonText: { fontSize: 11, fontWeight: "800", color: COLORS.white },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  // Same 8px round dot as the unread indicator in notifications.tsx, in amber for "pending".
+  pendingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.amber },
 });

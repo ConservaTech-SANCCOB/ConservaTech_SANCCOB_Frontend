@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, ImageBackground, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import MyShiftCard from "../../../components/MyShiftCard";
 import { GLASS_CARD, GLASS_SHADOW_LG } from "../../../constants/glassCard";
+import { getPendingCancellationIds } from "../../../services/changeRequests";
 import { getMyNotifications } from "../../../services/notifications";
 import { getMyProfile } from "../../../services/profile";
 import { getMyShifts, MyShift } from "../../../services/shifts";
@@ -23,6 +24,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [shifts, setShifts] = useState<MyShift[]>([]);
+  const [pendingCancellationIds, setPendingCancellationIds] = useState<Set<number>>(new Set());
   const [loadingShifts, setLoadingShifts] = useState(true);
   const [shiftsError, setShiftsError] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -57,7 +59,16 @@ export default function HomeScreen() {
   const loadShifts = useCallback(async () => {
     setShiftsError(false);
     try {
-      setShifts(await getMyShifts());
+      const [myShifts, pending] = await Promise.all([
+        getMyShifts(),
+        // A failure here must not break the shifts list — keep the last known pending set.
+        getPendingCancellationIds().catch((error) => {
+          console.error("Load pending cancellations error:", error);
+          return null;
+        }),
+      ]);
+      setShifts(myShifts);
+      if (pending) setPendingCancellationIds(pending);
     } catch (error) {
       console.error("Load shifts error:", error);
       setShiftsError(true);
@@ -146,7 +157,13 @@ export default function HomeScreen() {
             <Text style={styles.emptyText}>Pull down to try again in a moment.</Text>
           </View>
         ) : upcoming.length > 0 ? (
-          upcoming.map((shift) => <MyShiftCard key={shift.rosterAssignmentId} item={shift} />)
+          upcoming.map((shift) => (
+            <MyShiftCard
+              key={shift.rosterAssignmentId}
+              item={shift}
+              cancellationPending={pendingCancellationIds.has(shift.rosterAssignmentId)}
+            />
+          ))
         ) : (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No shifts yet</Text>

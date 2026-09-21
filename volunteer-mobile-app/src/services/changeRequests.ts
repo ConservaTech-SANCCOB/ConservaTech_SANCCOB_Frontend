@@ -22,3 +22,20 @@ export interface ChangeRequest {
 export function getMyChangeRequests() {
   return api.get<ChangeRequest[]>("/api/change-requests/me");
 }
+
+/** The only status values the backend uses (confirmed). */
+export type ChangeRequestStatus = "pending" | "approved" | "declined";
+
+/** Exact, case-insensitive match against the three real values; null for anything else. */
+export function parseChangeRequestStatus(status: string | null): ChangeRequestStatus | null {
+  const s = status?.trim().toLowerCase();
+  return s === "pending" || s === "approved" || s === "declined" ? s : null;
+}
+
+/** rosterAssignmentIds that currently have a pending cancellation request against them. */
+export async function getPendingCancellationIds(): Promise<Set<number>> {
+  const requests = await getMyChangeRequests();
+  return new Set(
+    requests.filter((r) => parseChangeRequestStatus(r.status) === "pending").map((r) => r.rosterAssignmentId)
+  );
+}

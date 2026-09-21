@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
 import MyShiftCard from "../../../components/MyShiftCard";
 import { DateBadge } from "../../../components/ShiftCardParts";
+import { getPendingCancellationIds } from "../../../services/changeRequests";
 import { getMyShifts, MyShift } from "../../../services/shifts";
 import { bookVacancy, BookingRejectedError, getVacancies, Vacancy } from "../../../services/vacancies";
 import { SessionExpiredError } from "../../../utils/api";
@@ -198,6 +199,7 @@ export default function BookingsScreen() {
   const [tab, setTab] = useState<"mine" | "available">("mine");
   const [myShifts, setMyShifts] = useState<MyShift[]>([]);
   const [availableShifts, setAvailableShifts] = useState<Vacancy[]>([]);
+  const [pendingCancellationIds, setPendingCancellationIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -222,7 +224,16 @@ export default function BookingsScreen() {
       setLoadError(false);
       try {
         if (tab === "mine") {
-          setMyShifts(await getMyShifts());
+          const [shifts, pending] = await Promise.all([
+            getMyShifts(),
+            // A failure here must not break My Shifts — keep the last known pending set.
+            getPendingCancellationIds().catch((error) => {
+              console.error("Load pending cancellations error:", error);
+              return null;
+            }),
+          ]);
+          setMyShifts(shifts);
+          if (pending) setPendingCancellationIds(pending);
         } else {
           const [vacancies, myShiftsForExclusion] = await Promise.all([getVacancies(), getMyShifts()]);
           // Already fetched for the exclusion below, so keep My Shifts in sync for free
@@ -331,7 +342,12 @@ export default function BookingsScreen() {
               return <Text style={styles.sectionHeader}>{row.title}</Text>;
             }
             if (row.type === "mine") {
-              return <MyShiftCard item={row.item} />;
+              return (
+                <MyShiftCard
+                  item={row.item}
+                  cancellationPending={pendingCancellationIds.has(row.item.rosterAssignmentId)}
+                />
+              );
             }
             return <AvailableShiftCard item={row.item} onChanged={() => load("silent")} />;
           }}
