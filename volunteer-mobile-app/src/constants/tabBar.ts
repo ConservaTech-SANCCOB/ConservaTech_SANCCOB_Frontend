@@ -14,6 +14,10 @@ export function getTabBarStyle(bottomInset: number): ViewStyle {
     paddingTop: 8,
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
     // Local override: keep the nav bar's original translucency even though
     // GLASS_CARD's default opacity was bumped up for card readability elsewhere.
     backgroundColor: "rgba(255,255,255,0.55)",

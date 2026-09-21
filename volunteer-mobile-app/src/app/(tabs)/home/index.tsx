@@ -120,7 +120,7 @@ export default function HomeScreen() {
         }
       >
         <View style={styles.headerCard}>
-          <LinearGradient colors={["#6FD0FF", "#2BA8E0"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.avatar}>
+          <LinearGradient colors={["#00567f", "#002e4c"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.avatar}>
             <Text style={styles.avatarInitials}>{initials}</Text>
           </LinearGradient>
           <View style={{ flex: 1 }}>
@@ -140,7 +140,11 @@ export default function HomeScreen() {
               THIS WEEK&apos;S SHIFTS{thisWeeksShifts.length > 0 ? ` (${thisWeeksShifts.length})` : ""}
             </Text>
           </View>
-          <TouchableOpacity style={styles.viewAllButton} onPress={() => router.push("/(tabs)/bookings")}>
+          <TouchableOpacity
+            style={styles.viewAllButton}
+            onPress={() => router.push("/(tabs)/bookings")}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text style={styles.viewAllText}>View All</Text>
             <Ionicons name="chevron-forward" size={14} color="#00567f" />
           </TouchableOpacity>
@@ -194,6 +198,10 @@ const styles = StyleSheet.create({
   headerCard: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
     flexDirection: "row",
     alignItems: "center",
     gap: 13,
@@ -250,25 +258,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   viewAllButton: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
-    borderRadius: 11,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    gap: 3,
   },
-  viewAllText: { fontSize: 12, fontWeight: "800", color: "#00567f" },
+  viewAllText: { fontSize: 13, fontWeight: "800", color: "#00567f" },
   sectionChip: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
     alignSelf: "flex-start",
-    borderRadius: 11,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
   },
-  sectionChipText: { fontSize: 11, fontWeight: "800", letterSpacing: 1.1, color: "#00567f" },
+  sectionChipText: { fontSize: 13, fontWeight: "800", color: "#00567f" },
   emptyCard: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
