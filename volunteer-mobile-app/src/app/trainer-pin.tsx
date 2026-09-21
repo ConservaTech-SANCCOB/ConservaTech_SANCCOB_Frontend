@@ -8,7 +8,7 @@ import { verifyTrainerPin } from "../services/trainers";
 import { getErrorStatus } from "../utils/api";
 import { showErrorToast } from "../utils/toast";
 
-const PIN_PATTERN = /^\d{7}$/;
+const PIN_PATTERN = /^\d{6}$/;
 // Errors thrown by request() in utils/api.ts always start with this — used to tell
 // a still-raw/unparsed error apart from a clean message already extracted from the
 // backend's JSON body (see verifyTrainerPin in services/trainers.ts).
@@ -21,7 +21,7 @@ export default function TrainerPinScreen() {
 
   const handleSubmit = async () => {
     if (!PIN_PATTERN.test(pin)) {
-      Alert.alert("Invalid PIN", "Enter the 7-digit trainer PIN.");
+      Alert.alert("Invalid PIN", "Enter the 6-digit trainer PIN.");
       return;
     }
     setLoading(true);
@@ -67,7 +67,7 @@ export default function TrainerPinScreen() {
               onChangeText={setPin}
               keyboardType="number-pad"
               secureTextEntry
-              maxLength={7}
+              maxLength={6}
             />
           </View>
           <TouchableOpacity style={styles.submitButtonWrap} onPress={handleSubmit} disabled={loading}>
