@@ -136,7 +136,7 @@ export default function SubmitAvailabilityScreen() {
           <View style={styles.infoBanner}>
             <Ionicons name="information-circle-outline" size={20} color={COLORS.navy} />
             <Text style={styles.infoText}>
-              The system automatically assigns you a day, time slot, and task based on your availability and completed skills, you cannot choose a specific booking directly.
+              Your availability and completed skills drive automatic shift assignment. You can also book an open shift directly from the Available Shifts tab.
             </Text>
           </View>
 

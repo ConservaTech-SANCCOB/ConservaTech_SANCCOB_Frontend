@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   FlatList,
@@ -18,10 +19,12 @@ import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants
 import MyShiftCard from "../../../components/MyShiftCard";
 import { DateBadge } from "../../../components/ShiftCardParts";
 import { getMyShifts, MyShift } from "../../../services/shifts";
-import { getVacancies, Vacancy } from "../../../services/vacancies";
+import { bookVacancy, BookingRejectedError, getVacancies, Vacancy } from "../../../services/vacancies";
+import { SessionExpiredError } from "../../../utils/api";
 import { COLORS } from "../../../utils/colors";
 import { bucketForDate, DateBucket, getRelativeLabel } from "../../../utils/dateBuckets";
 import { formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
+import { showErrorToast } from "../../../utils/toast";
 
 type ListRow =
   | { type: "header"; key: string; title: string }
@@ -46,9 +49,10 @@ function groupMyShifts(shifts: MyShift[]): ListRow[] {
   return rows;
 }
 
-function AvailableShiftCard({ item }: { item: Vacancy }) {
+function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () => Promise<void> }) {
   const limited = item.vacanciesAvailable === 1;
   const scale = useRef(new Animated.Value(1)).current;
+  const [booking, setBooking] = useState(false);
 
   const pressIn = () => {
     Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
@@ -57,14 +61,47 @@ function AvailableShiftCard({ item }: { item: Vacancy }) {
     Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }).start();
   };
 
-  const showDetails = () =>
+  const book = async () => {
+    setBooking(true);
+    try {
+      await bookVacancy(item.shiftId);
+      // The response has no updated vacancy count or shift details, so re-fetch: the
+      // shift drops out of Available (now assigned to this volunteer, or full) and the
+      // refreshed My Shifts data picks it up.
+      await onChanged();
+      Alert.alert("Shift booked", "It's now in your My Shifts.");
+    } catch (error) {
+      if (error instanceof SessionExpiredError) return; // api.ts already redirected to /login
+      console.error("Book shift error:", error);
+      if (error instanceof BookingRejectedError) {
+        showErrorToast(
+          "Couldn't book this shift",
+          error.backendMessage ?? "It may have just filled up or is no longer available."
+        );
+        // The list is stale (that's the likely cause), so refresh to drop the card.
+        await onChanged();
+      } else {
+        showErrorToast("Couldn't book this shift", "Something went wrong. Try again in a moment.");
+      }
+    } finally {
+      setBooking(false);
+    }
+  };
+
+  const confirmBook = () => {
+    if (booking) return;
     Alert.alert(
-      `${formatTimeSlotLabel(item.timeSlot)} shift`,
-      `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\n${item.vacanciesAvailable} of ${item.capacity} spots open`
+      "Book this shift?",
+      `${formatTimeSlotLabel(item.timeSlot)} · ${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\n${item.vacanciesAvailable} of ${item.capacity} spots open`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Book", onPress: book },
+      ]
     );
+  };
 
   return (
-    <TouchableOpacity activeOpacity={0.9} onPressIn={pressIn} onPressOut={pressOut} onPress={showDetails}>
+    <TouchableOpacity activeOpacity={0.9} onPressIn={pressIn} onPressOut={pressOut} onPress={confirmBook}>
       <Animated.View style={[styles.shiftCard, { transform: [{ scale }] }]}>
         <View style={[styles.notch, styles.notchTopRight]} />
         <View style={[styles.notch, styles.notchBottomLeft]} />
@@ -106,15 +143,21 @@ function AvailableShiftCard({ item }: { item: Vacancy }) {
           </View>
         </View>
         <View style={styles.divider} />
-        <TouchableOpacity style={styles.changeButtonWrap} onPress={showDetails} hitSlop={6}>
+        <TouchableOpacity style={styles.changeButtonWrap} onPress={confirmBook} disabled={booking} hitSlop={6}>
           <LinearGradient
             colors={["#00567f", "#002e4c"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={styles.changeButton}
           >
-            <Ionicons name="checkmark-circle-outline" size={13} color={COLORS.white} />
-            <Text style={styles.changeButtonText}>Book</Text>
+            {booking ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle-outline" size={13} color={COLORS.white} />
+                <Text style={styles.changeButtonText}>Book</Text>
+              </>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
@@ -182,6 +225,9 @@ export default function BookingsScreen() {
           setMyShifts(await getMyShifts());
         } else {
           const [vacancies, myShiftsForExclusion] = await Promise.all([getVacancies(), getMyShifts()]);
+          // Already fetched for the exclusion below, so keep My Shifts in sync for free
+          // (otherwise it stays stale until the tab is switched back to).
+          setMyShifts(myShiftsForExclusion);
           const assignedShiftIds = new Set(myShiftsForExclusion.map((s) => s.shiftId));
           setAvailableShifts(
             vacancies.filter(
@@ -287,7 +333,7 @@ export default function BookingsScreen() {
             if (row.type === "mine") {
               return <MyShiftCard item={row.item} />;
             }
-            return <AvailableShiftCard item={row.item} />;
+            return <AvailableShiftCard item={row.item} onChanged={() => load("silent")} />;
           }}
           ListEmptyComponent={
             loading ? (
