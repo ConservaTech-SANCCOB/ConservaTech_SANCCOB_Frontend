@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../lib/auth-context";
 import { fetchVolunteers, Volunteer } from "../../lib/api/volunteers";
 import { fetchShiftsForWeek, Shift } from "../../lib/api/shifts";
-import { fetchWeeklyRoster,
-         generateAutomatedRoster,
-         publishRoster, 
-         RosterAssignment
-         } from "../../lib/api/roster";
+import {
+  fetchWeeklyRoster,
+  generateAutomatedRoster,
+  publishRoster,
+  Roster,
+  RosterAssignment,
+} from "../../lib/api/roster";
 
 // Helper: Get Monday of the current or given week (YYYY-MM-DD)
 function getMonday(d: Date = new Date()): Date {
@@ -47,8 +49,11 @@ export default function RosterPage() {
   // Shared Data States
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
-  const [assignments, setAssignments] = useState<RosterAssignment[]>([]);
+  // Full roster object (not just assignments) so we always have rosterId for publish.
+  const [roster, setRoster] = useState<Roster | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const assignments: RosterAssignment[] = roster?.assignments ?? [];
 
   // Wizard States
   const [step, setStep] = useState<1 | 2>(1);
@@ -57,6 +62,7 @@ export default function RosterPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   // Fetch data whenever week or token changes
   useEffect(() => {
@@ -69,17 +75,15 @@ export default function RosterPage() {
         const [vData, sData, rData] = await Promise.all([
           fetchVolunteers(token),
           fetchShiftsForWeek(token, weekStr),
+          // No roster exists yet for this week -> backend 404s. That's expected,
+          // not an error, so we swallow it and just show an empty roster.
           fetchWeeklyRoster(token, weekStr).catch(() => null),
         ]);
 
         setVolunteers(vData);
         setSelectedVolunteers(vData);
         setShifts(sData);
-        if (rData && rData.assignments) {
-          setAssignments(rData.assignments);
-        } else {
-          setAssignments([]);
-        }
+        setRoster(rData);
       } catch (err) {
         console.error("Failed to load roster data for week", err);
       } finally {
@@ -107,12 +111,16 @@ export default function RosterPage() {
   };
 
   // Exclude volunteer from generation
+  // NOTE: this only affects the on-screen "pool" list. The real
+  // POST /api/Rosters/generate endpoint has no field to exclude volunteers,
+  // so this exclusion is NOT sent to the backend yet (see roster.ts).
   const handleRemoveVolunteer = (id: string) => {
     setSelectedVolunteers((prev) => prev.filter((v) => v.id !== id));
   };
 
   // Trigger Generation
   const handleStartGeneration = async () => {
+    if (!token) return;
     setIsGenerating(true);
     setGenerationProgress(15);
 
@@ -120,21 +128,18 @@ export default function RosterPage() {
       setGenerationProgress((prev) => (prev >= 90 ? 90 : prev + 25));
     }, 300);
 
+    if (selectedVolunteers.length < volunteers.length) {
+      console.warn(
+        "[roster] Excluded volunteers were selected in the UI, but POST /api/Rosters/generate " +
+          "does not support excluding volunteers yet — generation will consider the full pool."
+      );
+    }
+
     try {
       const weekStr = formatDateISO(currentWeekStart);
-      const excludedIds = volunteers
-        .filter((v) => !selectedVolunteers.some((sv) => sv.id === v.id))
-        .map((v) => v.id);
+      const result = await generateAutomatedRoster(token, { weekStartDate: weekStr });
 
-      const result = await generateAutomatedRoster(token, {
-        weekStartDate: weekStr,
-        excludedVolunteerIds: excludedIds,
-      }).catch(() => null);
-
-      if (result && result.assignments) {
-        setAssignments(result.assignments);
-      }
-
+      setRoster(result);
       setGenerationProgress(100);
       setTimeout(() => {
         clearInterval(interval);
@@ -144,24 +149,38 @@ export default function RosterPage() {
     } catch (err) {
       clearInterval(interval);
       setIsGenerating(false);
+      console.error("Failed to generate roster", err);
       alert("Failed to generate roster for the selected week.");
     }
   };
 
   // Handle Publish
   const handlePublishRoster = async () => {
+    if (!token) return;
+    if (!roster?.rosterId) {
+      setPublishError("No roster has been generated for this week yet — nothing to publish.");
+      return;
+    }
     try {
-      const weekStr = formatDateISO(currentWeekStart);
-      await publishRoster(token, weekStr);
+      setPublishError(null);
+      const published = await publishRoster(token, roster.rosterId);
+      setRoster(published);
       alert("Roster published successfully!");
       setIsPublishModalOpen(false);
       setActiveTab("view");
     } catch (err) {
-      alert("Unable to publish roster. Please verify backend service.");
+      console.error("Failed to publish roster", err);
+      setPublishError("Unable to publish roster. Please verify the backend service.");
     }
   };
 
   const weekLabel = formatWeekRange(currentWeekStart);
+
+  const filledCount = assignments.length;
+  const totalShiftCount = shifts.length;
+  const unfilledCount = Math.max(totalShiftCount - filledCount, 0);
+  // Distinct volunteers actually on this week's roster (not just the pool).
+  const scheduledVolunteerCount = new Set(assignments.map((a) => a.userId)).size;
 
   return (
     <div className="space-y-6">
@@ -223,9 +242,19 @@ export default function RosterPage() {
                   ›
                 </button>
               </div>
-              <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-                Needs Review
-              </span>
+              {!isLoading && (
+                <span
+                  className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                    roster
+                      ? roster.status === "Published"
+                        ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                        : "text-amber-700 bg-amber-50 border-amber-200"
+                      : "text-slate-500 bg-slate-50 border-slate-200"
+                  }`}
+                >
+                  {roster ? roster.status ?? "Needs Review" : "No Roster Generated"}
+                </span>
+              )}
             </div>
 
             <button
@@ -238,17 +267,21 @@ export default function RosterPage() {
 
           {/* Stat Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="Total Shifts" value={shifts.length || 24} />
-            <StatCard label="Filled Shifts" value={assignments.length || 22} color="text-emerald-600" />
-            <StatCard label="Unfilled Shifts" value={Math.max((shifts.length || 24) - assignments.length, 0)} color="text-red-600" />
-            <StatCard label="Volunteers Scheduled" value={selectedVolunteers.length || 6} color="text-blue-700" />
+            <StatCard label="Total Shifts" value={totalShiftCount} />
+            <StatCard label="Filled Shifts" value={filledCount} color="text-emerald-600" />
+            <StatCard label="Unfilled Shifts" value={unfilledCount} color="text-red-600" />
+            <StatCard label="Volunteers Scheduled" value={scheduledVolunteerCount} color="text-blue-700" />
           </div>
 
           {/* Roster Calendar Matrix */}
           {isLoading ? (
             <div className="py-16 text-center text-slate-400 text-sm">Loading week roster…</div>
+          ) : !roster ? (
+            <div className="py-16 text-center text-slate-400 text-sm">
+              No roster has been generated for {weekLabel} yet.
+            </div>
           ) : (
-            <RosterMatrix volunteers={volunteers} mondayDate={currentWeekStart} />
+            <RosterMatrix volunteers={volunteers} assignments={assignments} mondayDate={currentWeekStart} />
           )}
         </div>
       )}
@@ -298,10 +331,18 @@ export default function RosterPage() {
                 Generating roster for <span className="font-bold">{weekLabel}</span> based on availability and skill rules.
               </div>
 
+              {selectedVolunteers.length < volunteers.length && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-4 py-3 rounded-xl">
+                  Heads up: excluding volunteers here is not yet supported by the backend
+                  (<code>POST /api/Rosters/generate</code> only accepts a week). Generation will
+                  still consider every volunteer in the pool.
+                </div>
+              )}
+
               {/* Input Stat Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard label="Volunteers Available" value={selectedVolunteers.length} />
-                <StatCard label="Shifts Scheduled" value={shifts.length || 24} />
+                <StatCard label="Shifts Scheduled" value={shifts.length} />
                 <StatCard label="Selected Target Week" value={weekLabel} isText />
               </div>
 
@@ -350,13 +391,13 @@ export default function RosterPage() {
                   onClick={() => setExpandedSection(expandedSection === "shifts" ? null : "shifts")}
                   className="w-full bg-slate-50/80 px-5 py-3.5 flex items-center justify-between font-bold text-slate-800 text-sm hover:bg-slate-100 transition-colors"
                 >
-                  <span>Shifts Scheduled ({shifts.length || 24})</span>
+                  <span>Shifts Scheduled ({shifts.length})</span>
                   <span>{expandedSection === "shifts" ? "▲" : "▼"}</span>
                 </button>
 
                 {expandedSection === "shifts" && (
                   <div className="p-5 bg-white text-xs text-slate-500">
-                    Loaded facility shifts for week of {weekLabel}.
+                    Loaded {shifts.length} facility shift{shifts.length === 1 ? "" : "s"} for week of {weekLabel}.
                   </div>
                 )}
               </div>
@@ -398,13 +439,13 @@ export default function RosterPage() {
 
               {/* 3 Grid Stat Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard label="Shifts Filled" value={22} color="text-emerald-600" />
-                <StatCard label="Shifts Remaining" value={2} color="text-red-600" />
-                <StatCard label="Volunteers Assigned" value={selectedVolunteers.length} color="text-blue-700" />
+                <StatCard label="Shifts Filled" value={filledCount} color="text-emerald-600" />
+                <StatCard label="Shifts Remaining" value={unfilledCount} color="text-red-600" />
+                <StatCard label="Volunteers Assigned" value={scheduledVolunteerCount} color="text-blue-700" />
               </div>
 
               {/* Roster Matrix */}
-              <RosterMatrix volunteers={selectedVolunteers} mondayDate={currentWeekStart} />
+              <RosterMatrix volunteers={selectedVolunteers} assignments={assignments} mondayDate={currentWeekStart} />
 
               {/* Footer */}
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
@@ -438,18 +479,24 @@ export default function RosterPage() {
               Once published, volunteers will be notified on the mobile app.
             </p>
 
+            {publishError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-lg">
+                {publishError}
+              </div>
+            )}
+
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-slate-50 p-3 rounded-xl text-center">
                 <p className="text-[10px] text-slate-400">Total Shifts</p>
-                <p className="text-lg font-bold text-slate-800">{shifts.length || 24}</p>
+                <p className="text-lg font-bold text-slate-800">{totalShiftCount}</p>
               </div>
               <div className="bg-emerald-50 p-3 rounded-xl text-center">
                 <p className="text-[10px] text-emerald-600">Filled</p>
-                <p className="text-lg font-bold text-emerald-700">22</p>
+                <p className="text-lg font-bold text-emerald-700">{filledCount}</p>
               </div>
               <div className="bg-red-50 p-3 rounded-xl text-center">
                 <p className="text-[10px] text-red-600">Unfilled</p>
-                <p className="text-lg font-bold text-red-700">2</p>
+                <p className="text-lg font-bold text-red-700">{unfilledCount}</p>
               </div>
             </div>
 
@@ -487,16 +534,37 @@ function StatCard({ label, value, color = "text-slate-900", isText = false }: { 
   );
 }
 
-function RosterMatrix({ volunteers, mondayDate }: { volunteers: Volunteer[]; mondayDate: Date }) {
-  // Generate Mon-Fri labels based on selected mondayDate
+function RosterMatrix({
+  volunteers,
+  assignments,
+  mondayDate,
+}: {
+  volunteers: Volunteer[];
+  assignments: RosterAssignment[];
+  mondayDate: Date;
+}) {
+  // Generate Mon-Fri labels + ISO date keys based on selected mondayDate
   const days = [0, 1, 2, 3, 4].map((offset) => {
     const d = new Date(mondayDate);
     d.setDate(mondayDate.getDate() + offset);
     return {
       dayName: d.toLocaleDateString("en-US", { weekday: "short" }),
       dayNum: d.getDate(),
+      iso: formatDateISO(d),
     };
   });
+
+  // Only show volunteers who actually have at least one assignment this week,
+  // so the table reflects the real roster rather than every volunteer in the pool.
+  // NOTE: comparing as strings since Volunteer.id's exact type wasn't visible
+  // when this was written — confirm it matches RosterAssignment.userId (number)
+  // and simplify this comparison once verified.
+  const assignedUserIds = new Set(assignments.map((a) => String(a.userId)));
+  const rosteredVolunteers = volunteers.filter((v) => assignedUserIds.has(String(v.id)));
+
+  function findAssignment(volunteerId: Volunteer["id"], iso: string): RosterAssignment | undefined {
+    return assignments.find((a) => String(a.userId) === String(volunteerId) && a.shiftDate === iso);
+  }
 
   return (
     <div className="overflow-x-auto border border-slate-100 rounded-2xl">
@@ -504,46 +572,48 @@ function RosterMatrix({ volunteers, mondayDate }: { volunteers: Volunteer[]; mon
         <thead className="bg-slate-50/80 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
           <tr>
             <th className="py-3 px-4">Volunteer</th>
-            <th className="py-3 px-4">Role / Area</th>
             {days.map((d) => (
-              <th key={d.dayNum} className="py-3 px-4">{d.dayName} {d.dayNum}</th>
+              <th key={d.iso} className="py-3 px-4">{d.dayName} {d.dayNum}</th>
             ))}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {volunteers.slice(0, 5).map((v, idx) => (
-            <tr key={v.id || idx} className="hover:bg-slate-50/50 transition-colors">
-              <td className="py-3.5 px-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-[#0B2447] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
-                    {v.initials}
-                  </div>
-                  <span className="font-semibold text-slate-800">{v.name}</span>
-                </div>
-              </td>
-              <td className="py-3.5 px-4 text-slate-500 font-medium">Penguin Rehabilitation</td>
-              <td className="py-3.5 px-4">
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-2 rounded-xl text-[11px] font-semibold space-y-0.5">
-                  <p className="text-[10px] text-emerald-600">08:00–13:00</p>
-                  <p>Penguin Care ✓</p>
-                </div>
-              </td>
-              <td className="py-3.5 px-4 text-slate-300">—</td>
-              <td className="py-3.5 px-4">
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-2 rounded-xl text-[11px] font-semibold space-y-0.5">
-                  <p className="text-[10px] text-emerald-600">08:00–13:00</p>
-                  <p>Penguin Care ✓</p>
-                </div>
-              </td>
-              <td className="py-3.5 px-4 text-slate-300">—</td>
-              <td className="py-3.5 px-4">
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-2 rounded-xl text-[11px] font-semibold space-y-0.5">
-                  <p className="text-[10px] text-emerald-600">08:00–13:00</p>
-                  <p>Penguin Care ✓</p>
-                </div>
+          {rosteredVolunteers.length === 0 ? (
+            <tr>
+              <td colSpan={days.length + 1} className="py-8 px-4 text-center text-slate-400">
+                No volunteers assigned this week.
               </td>
             </tr>
-          ))}
+          ) : (
+            rosteredVolunteers.map((v) => (
+              <tr key={v.id} className="hover:bg-slate-50/50 transition-colors">
+                <td className="py-3.5 px-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-[#0B2447] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {v.initials}
+                    </div>
+                    <span className="font-semibold text-slate-800">{v.name}</span>
+                  </div>
+                </td>
+                {days.map((d) => {
+                  const a = findAssignment(v.id, d.iso);
+                  return (
+                    <td key={d.iso} className="py-3.5 px-4">
+                      {a ? (
+                        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-2 rounded-xl text-[11px] font-semibold space-y-0.5">
+                          <p className="text-[10px] text-emerald-600">{a.timeSlot}</p>
+                          <p>{a.location ?? "—"}</p>
+                          {a.status && <p className="text-[10px] font-normal text-emerald-600">{a.status}</p>}
+                        </div>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

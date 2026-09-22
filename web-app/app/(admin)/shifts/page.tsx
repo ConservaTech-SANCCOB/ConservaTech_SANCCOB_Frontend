@@ -9,10 +9,7 @@ import {
   createShift,
   updateShift,
   deleteShift,
-  calculateCapacity,
-  isQuarantineLocation,
   maxBirdsForLocation,
-  VALID_TIME_SLOTS,
   Shift,
   Vacancy,
   ShiftPayload,
@@ -120,7 +117,12 @@ export default function ShiftSchedulingPage() {
   const weeks = getMonthGrid(currentMonth);
 
   function getStatus(shift: Shift): { label: string; color: string; assigned: number } {
-    const assigned = vacancyMap.get(shift.shiftId)?.assignedVolunteers ?? 0;
+    const vacancy = vacancyMap.get(shift.shiftId);
+    // IMPORTANT: /api/Vacancies never returns a shift once it has 0 remaining
+    // capacity (confirmed in the Swagger notes). So a missing entry here means
+    // the shift is FULLY STAFFED, not that 0 volunteers are assigned — falling
+    // back to 0 would show every full shift as "Critical".
+    const assigned = vacancy ? vacancy.assignedVolunteers : shift.capacity;
     const capacity = shift.capacity;
 
     if (capacity === 0 || assigned === capacity) {
@@ -137,13 +139,33 @@ export default function ShiftSchedulingPage() {
   }
 
   async function handleSaveShift(payload: ShiftPayload) {
+    let saved: Shift;
     if (modalState?.mode === "edit" && modalState.shift) {
-      const updated = await updateShift(token, modalState.shift.shiftId, payload);
-      setShifts((prev) => prev.map((s) => (s.shiftId === updated.shiftId ? updated : s)));
+      saved = await updateShift(token, modalState.shift.shiftId, payload);
+      setShifts((prev) => prev.map((s) => (s.shiftId === saved.shiftId ? saved : s)));
     } else {
-      const created = await createShift(token, payload);
-      setShifts((prev) => [...prev, created]);
+      saved = await createShift(token, payload);
+      setShifts((prev) => [...prev, saved]);
     }
+
+    // Non-bird shifts send an explicit `capacity` override (see shifts.ts).
+    // This isn't confirmed to be respected by the backend yet, so check the
+    // saved response against what we sent and surface it clearly if it was
+    // silently ignored — a shift that looks saved but has capacity 0 is
+    // exactly the "can't add volunteers" bug this was meant to fix.
+    if (payload.capacity !== undefined && saved.capacity !== payload.capacity) {
+      console.warn(
+        `[shifts] Sent capacity ${payload.capacity} for a non-bird shift, but the ` +
+          `backend returned capacity ${saved.capacity}. The capacity override is not ` +
+          `being respected — flag this to the backend team.`
+      );
+      setErrorMessage(
+        `Heads up: this shift was saved, but the backend did not apply the volunteer ` +
+          `count you set (sent ${payload.capacity}, saved as ${saved.capacity}). Non-bird ` +
+          `location capacity overrides aren't supported by the backend yet.`
+      );
+    }
+
     await loadData(); // refresh vacancy counts too
     setModalState(null);
   }
@@ -372,6 +394,7 @@ function ShiftDetailPanel({
   const barColor =
     status.color === "green" ? "bg-emerald-500" : status.color === "amber" ? "bg-amber-500" : "bg-red-500";
   const percent = shift.capacity > 0 ? Math.min((status.assigned / shift.capacity) * 100, 100) : 0;
+  const birdCap = maxBirdsForLocation(shift.location);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -416,7 +439,7 @@ function ShiftDetailPanel({
             </p>
           ) : (
             <p className="text-2xl font-bold text-slate-900">
-              {shift.birdCount} <span className="text-sm font-normal text-slate-400">/ 30 Birds</span>
+              {shift.birdCount} <span className="text-sm font-normal text-slate-400">/ {birdCap} Birds</span>
             </p>
           )}
           <div className="w-full h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
@@ -478,7 +501,6 @@ function LegendRow({ color, label }: { color: string; label: string }) {
     </div>
   );
 }
-
 // ---- Create / Edit Modal ----
 
 // function ShiftFormModal({
