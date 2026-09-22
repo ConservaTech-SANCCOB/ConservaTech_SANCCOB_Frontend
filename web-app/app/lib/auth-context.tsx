@@ -5,6 +5,18 @@ import { loginRequest, LoginResponse } from "./api/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+// Decodes a JWT's payload without verifying the signature (fine client-side —
+// we're just checking expiry, the backend still verifies on every request).
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!payload.exp) return false; // no exp claim -> treat as non-expiring
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true; // malformed token -> treat as invalid
+  }
+}
+
 interface AuthContextType {
   token: string | null;
   role: string | null;
@@ -20,14 +32,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Restore session on refresh (checks both localStorage and sessionStorage)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedToken = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
       const savedRole = localStorage.getItem("user_role") || sessionStorage.getItem("user_role");
 
-      if (savedToken && savedToken !== "undefined") setToken(savedToken);
-      if (savedRole && savedRole !== "undefined") setRole(savedRole);
+      if (savedToken && savedToken !== "undefined" && !isTokenExpired(savedToken)) {
+        setToken(savedToken);
+        if (savedRole && savedRole !== "undefined") setRole(savedRole);
+      } else if (savedToken) {
+        // stale/expired token sitting in storage -> clear it out
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_role");
+        sessionStorage.removeItem("auth_token");
+        sessionStorage.removeItem("user_role");
+      }
     }
     setIsLoading(false);
   }, []);

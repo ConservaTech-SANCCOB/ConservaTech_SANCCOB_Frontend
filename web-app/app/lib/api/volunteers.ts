@@ -1,4 +1,4 @@
-import { apiFetch } from "./https";
+import { apiFetch } from "./http";
 
 /* ============================================================
    TYPES  (matched to the backend Swagger schemas)

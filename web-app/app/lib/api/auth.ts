@@ -26,11 +26,15 @@ export async function loginRequest(
     }),
   });
 
-  if (!response.ok) {
+    if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Invalid email or password");
-  }
+    console.error(`[Login] ${response.status}`, errorData);
 
+    if (response.status === 401 || response.status === 400) {
+      throw new Error(errorData.message || "Invalid email or password");
+    }
+    throw new Error(errorData.message || `Login failed (${response.status})`);
+  }
   const data: LoginResponse = await response.json();
   
   return data;
