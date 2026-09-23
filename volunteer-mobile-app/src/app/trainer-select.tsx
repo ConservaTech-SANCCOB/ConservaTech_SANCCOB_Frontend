@@ -69,14 +69,9 @@ export default function TrainerSelectScreen() {
             contentContainerStyle={{ padding: 20, flexGrow: 1 }}
             renderItem={({ item }) => (
               <TouchableOpacity style={styles.trainerRow} onPress={() => handleSelect(item)}>
-                <LinearGradient
-                  colors={["#6FD0FF", "#2BA8E0"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={styles.avatar}
-                >
+                <View style={styles.avatar}>
                   <Text style={styles.avatarInitials}>{initialsFor(item)}</Text>
-                </LinearGradient>
+                </View>
                 <View style={styles.trainerInfo}>
                   <Text style={styles.trainerName}>{item.firstName} {item.lastName}</Text>
                   <Text style={styles.trainerRole}>SANCCOB Trainer</Text>
@@ -116,7 +111,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(83, 199, 255, 0.6)",
   },
   logoImage: { width: 60, height: 60, resizeMode: "cover" },
-  title: { fontSize: 22, fontWeight: "800", color: COLORS.white },
+  title: { fontSize: 22, fontWeight: "600", color: COLORS.white },
   subtitle: { fontSize: 13, color: COLORS.sky, marginTop: 4 },
   background: {
     flex: 1,
@@ -146,11 +141,12 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#0284c7",
     shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 2,
   },
   avatarInitials: { color: COLORS.white, fontSize: 15, fontWeight: "800" },
   trainerInfo: { flex: 1, gap: 2 },
