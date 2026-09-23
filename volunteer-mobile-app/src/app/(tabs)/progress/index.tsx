@@ -1,13 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
-import { Alert, Animated, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Alert, Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg";
 import { penRoutines, supportingAreas } from "../../../data/mockSkills";
 import { Skill } from "../../../types/skill";
-import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
 import { COLORS } from "../../../utils/colors";
 
 function ProgressRing({ percent, size = 92, strokeWidth = 10 }: { percent: number; size?: number; strokeWidth?: number }) {
@@ -19,7 +18,7 @@ function ProgressRing({ percent, size = 92, strokeWidth = 10 }: { percent: numbe
   return (
     <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
       <Svg width={size} height={size}>
-        <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(0,46,76,0.12)" strokeWidth={strokeWidth} fill="none" />
+        <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(63,201,32,0.15)" strokeWidth={strokeWidth} fill="none" />
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -36,89 +35,79 @@ function ProgressRing({ percent, size = 92, strokeWidth = 10 }: { percent: numbe
       </Svg>
       <View style={StyleSheet.absoluteFill}>
         <View style={styles.ringLabelWrap}>
-          <Text style={styles.ringPercent}>{clamped}%</Text>
+          <Text style={[styles.ringPercent, { fontSize: size * 0.19 }]}>{clamped}%</Text>
         </View>
       </View>
     </View>
   );
 }
 
-function SectionHeader({
-  title,
-  subtitle,
-  expanded,
-  locked,
-  onPress,
-}: {
-  title: string;
-  subtitle: string;
-  expanded: boolean;
-  locked?: boolean;
-  onPress: () => void;
-}) {
-  const rotation = useRef(new Animated.Value(expanded ? 1 : 0)).current;
-
-  const toggle = () => {
-    Animated.timing(rotation, {
-      toValue: expanded ? 0 : 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-    onPress();
-  };
-
-  const spin = rotation.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"] });
-
+function SectionHeader({ title, subtitle, locked }: { title: string; subtitle: string; locked?: boolean }) {
   return (
-    <TouchableOpacity
-      style={[styles.sectionHeader, locked && styles.sectionHeaderLocked]}
-      onPress={toggle}
-      disabled={locked}
-      activeOpacity={locked ? 1 : 0.7}
-    >
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.sectionTitle, locked && styles.sectionTitleLocked]}>{title}</Text>
-        <Text style={styles.sectionSubtitle}>{subtitle}</Text>
-      </View>
-      {locked ? (
-        <Ionicons name="lock-closed" size={18} color={COLORS.grey} />
-      ) : (
-        <Animated.View style={{ transform: [{ rotate: spin }] }}>
-          <Ionicons name="chevron-down" size={20} color={COLORS.navy} />
-        </Animated.View>
-      )}
-    </TouchableOpacity>
+    <View style={styles.sectionHeader}>
+      <Text style={[styles.sectionTitle, locked && styles.sectionTitleLocked]}>{title}</Text>
+      <Text style={[styles.sectionSubtitle, locked && styles.sectionSubtitleLocked]}>{subtitle}</Text>
+    </View>
   );
 }
 
-function SkillRow({ skill }: { skill: Skill }) {
+function SkillRow({
+  skill,
+  index,
+  skills,
+  locked,
+}: {
+  skill: Skill;
+  index: number;
+  skills: Skill[];
+  locked?: boolean;
+}) {
+  const isFirst = index === 0;
+  const isLast = index === skills.length - 1;
+  const isCurrent = !locked && !skill.completed && skills.slice(0, index).every((s) => s.completed);
+
   return (
     <TouchableOpacity
-      style={[styles.skillRow, skill.completed && styles.skillRowCompleted]}
-      activeOpacity={0.7}
+      style={styles.pathRow}
+      activeOpacity={0.6}
       onPress={() =>
         Alert.alert(skill.name, skill.completed ? "You've completed this skill." : "Not started yet.")
       }
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
-        <Text style={styles.skillName}>{skill.name}</Text>
-        {skill.seasonal && (
-          <View style={styles.seasonalTag}>
-            <Text style={styles.seasonalText}>Seasonal</Text>
-          </View>
+      <View style={styles.pathTrack}>
+        {!isFirst && (
+          <View style={[styles.trackSeg, styles.trackSegTop, skills[index - 1].completed && styles.trackSegDone]} />
         )}
+        {!isLast && (
+          <View style={[styles.trackSeg, styles.trackSegBottom, skill.completed && styles.trackSegDone]} />
+        )}
+
+        <View style={[styles.node, skill.completed && styles.nodeDone, isCurrent && styles.nodeCurrent]}>
+          {skill.completed ? (
+            <Ionicons name="checkmark" size={15} color={COLORS.white} />
+          ) : isCurrent ? (
+            <View style={styles.nodeDot} />
+          ) : null}
+        </View>
       </View>
-      {skill.completed ? (
-        <View style={styles.statusRow}>
-          <Text style={styles.completedText}>Completed</Text>
-          <Ionicons name="checkmark-circle" size={20} color={COLORS.green} />
+
+      <View style={styles.pathBody}>
+        <View style={styles.skillNameWrap}>
+          <Text
+            style={[styles.pathName, skill.completed && styles.pathNameDone, isCurrent && styles.pathNameCurrent]}
+            numberOfLines={1}
+          >
+            {skill.name}
+          </Text>
+          {skill.seasonal && (
+            <View style={styles.seasonalTag}>
+              <Text style={styles.seasonalText}>Seasonal</Text>
+            </View>
+          )}
         </View>
-      ) : (
-        <View style={styles.statusRow}>
-          <Text style={styles.incompleteText}>Not Started</Text>
-          <Ionicons name="ellipse-outline" size={20} color={COLORS.grey} />
-        </View>
-      )}
+        {skill.completed && <Text style={styles.pathStatusDone}>Completed</Text>}
+        {isCurrent && <Text style={styles.pathStatusNext}>Up next</Text>}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -126,8 +115,26 @@ function SkillRow({ skill }: { skill: Skill }) {
 export default function TrainingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [supportingExpanded, setSupportingExpanded] = useState(true);
-  const [penExpanded, setPenExpanded] = useState(false);
+  const headerFade = useRef(new Animated.Value(0)).current;
+  const headerSlide = useRef(new Animated.Value(14)).current;
+  const summaryFade = useRef(new Animated.Value(0)).current;
+  const summarySlide = useRef(new Animated.Value(18)).current;
+  const sectionsFade = useRef(new Animated.Value(0)).current;
+  const sectionsSlide = useRef(new Animated.Value(18)).current;
+
+  useEffect(() => {
+    const stagger = (fade: Animated.Value, slide: Animated.Value) =>
+      Animated.parallel([
+        Animated.timing(fade, { toValue: 1, duration: 420, useNativeDriver: true }),
+        Animated.timing(slide, { toValue: 0, duration: 420, useNativeDriver: true }),
+      ]);
+
+    Animated.stagger(90, [
+      stagger(headerFade, headerSlide),
+      stagger(summaryFade, summarySlide),
+      stagger(sectionsFade, sectionsSlide),
+    ]).start();
+  }, [headerFade, headerSlide, summaryFade, summarySlide, sectionsFade, sectionsSlide]);
 
   const allSupportingAreasComplete = supportingAreas.length > 0 && supportingAreas.every((s) => s.completed);
   const ringSkills = allSupportingAreasComplete ? [...supportingAreas, ...penRoutines] : supportingAreas;
@@ -138,142 +145,245 @@ export default function TrainingScreen() {
   const penLocked = !allSupportingAreasComplete;
 
   return (
-    <ImageBackground
-      source={require("../../../../assets/images/bg_kelpGull.jpg.jpeg")}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <LinearGradient
-        colors={["rgba(255,255,255,0.86)", "rgba(255,255,255,0.76)", "rgba(255,255,255,0.84)"]}
-        locations={[0, 0.42, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.container}>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8 + insets.top, paddingBottom: 150 }}>
-          <View style={styles.headerRow}>
-            <View style={styles.headerCard}>
-              <Text style={styles.headerTitle}>Training Progress</Text>
-            </View>
-            <TouchableOpacity style={styles.hoursButton} onPress={() => router.push("/(tabs)/progress/hours")}>
-              <Ionicons name="bar-chart-outline" size={16} color={COLORS.navy} />
-              <Text style={styles.hoursButtonText}>Stats</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryTopRow}>
-              <ProgressRing percent={percent} />
-              <View style={styles.summaryTextCol}>
-                <Text style={styles.summaryText}>{completedCount} of {totalCount}</Text>
-                <Text style={styles.summarySubtext}>skills completed</Text>
-              </View>
-            </View>
-          </View>
-
-          <SectionHeader
-            title="Supporting Areas"
-            subtitle="Must be completed before moving to Pen Routines"
-            expanded={supportingExpanded}
-            onPress={() => setSupportingExpanded(!supportingExpanded)}
+    <View style={styles.container}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 150 + insets.bottom }}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <LinearGradient colors={[COLORS.greenLight, COLORS.greenDark]} style={[styles.banner, { paddingTop: 24 + insets.top }]}>
+          <LinearGradient
+            colors={["rgba(255,255,255,0.08)", "transparent"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
           />
-          {supportingExpanded && supportingAreas.map((skill) => <SkillRow key={skill.id} skill={skill} />)}
 
-          <View style={{ marginTop: 20 }}>
-            <SectionHeader
-              title="Pen Routines"
-              subtitle={
-                penLocked
-                  ? "Complete Supporting Areas to unlock these skills"
-                  : `${penCompletedCount} of ${penRoutines.length} completed`
-              }
-              expanded={penExpanded}
-              locked={penLocked}
-              onPress={() => setPenExpanded(!penExpanded)}
-            />
-          </View>
-          {!penLocked && penExpanded && penRoutines.map((skill) => <SkillRow key={skill.id} skill={skill} />)}
-        </ScrollView>
-      </View>
-    </ImageBackground>
+          <Svg style={StyleSheet.absoluteFill} viewBox="0 0 400 260" preserveAspectRatio="none" pointerEvents="none">
+            <Path d="M-20,26 C40,16 90,32 140,24 C190,16 240,30 290,22 C330,16 380,26 420,18 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.03} />
+            <Path d="M-20,46 C40,38 90,52 140,44 C190,36 240,50 290,42 C330,36 380,46 420,40 L420,260 L-20,260 Z" fill={COLORS.greenAccentLight} opacity={0.04} />
+            <Path d="M-20,68 C40,58 90,74 140,64 C190,54 240,70 290,60 C330,54 380,66 420,58 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.05} />
+            <Path d="M-20,90 C40,82 90,96 140,86 C190,76 240,92 290,82 C330,76 380,88 420,80 L420,260 L-20,260 Z" fill={COLORS.greenAccentLight} opacity={0.07} />
+            <Path d="M-20,112 C40,102 90,118 140,108 C190,98 240,114 290,104 C330,98 380,110 420,102 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.08} />
+            <Path d="M-20,134 C40,126 90,140 140,130 C190,120 240,136 290,126 C330,120 380,132 420,124 L420,260 L-20,260 Z" fill={COLORS.greenAccentLight} opacity={0.09} />
+            <Path d="M-20,156 C40,146 90,162 140,152 C190,142 240,158 290,148 C330,142 380,154 420,146 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.11} />
+            <Path d="M-20,178 C40,170 90,184 140,174 C190,164 240,180 290,170 C330,164 380,176 420,168 L420,260 L-20,260 Z" fill={COLORS.greenAccentLight} opacity={0.12} />
+            <Path d="M-20,200 C40,190 90,206 140,196 C190,186 240,202 290,192 C330,186 380,198 420,190 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.14} />
+            <Path d="M-20,222 C40,214 90,228 140,218 C190,208 240,224 290,214 C330,208 380,220 420,212 L420,260 L-20,260 Z" fill={COLORS.greenAccentLight} opacity={0.16} />
+          </Svg>
+
+          <Animated.View style={[styles.titleGroup, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
+            <Text style={styles.title}>Training Progress</Text>
+            <Text style={styles.subtitle}>TRACK YOUR SKILLS</Text>
+            <Text style={styles.tagline}>Supporting Areas · Pen Routines · Home Pen</Text>
+          </Animated.View>
+        </LinearGradient>
+
+        <View style={styles.options}>
+          <Animated.View style={{ opacity: summaryFade, transform: [{ translateY: summarySlide }] }}>
+            <View style={styles.summaryRow}>
+              <View style={styles.introGroup}>
+                <Text style={styles.summaryHeading}>{completedCount} of {totalCount}</Text>
+                <Text style={styles.eyebrowLabel}>SKILLS COMPLETED</Text>
+              </View>
+              <TouchableOpacity style={styles.hoursButtonWrap} onPress={() => router.push("/(tabs)/progress/hours")} activeOpacity={0.9}>
+                <View style={styles.hoursButton}>
+                  <Text style={styles.hoursButtonText}>Stats</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.white} />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.ringWrap}>
+              <ProgressRing percent={percent} size={168} strokeWidth={16} />
+            </View>
+          </Animated.View>
+
+          <Animated.View style={{ opacity: sectionsFade, transform: [{ translateY: sectionsSlide }] }}>
+            <View style={styles.sectionBlock}>
+              <SectionHeader
+                title="Supporting Areas"
+                subtitle="Must be completed before moving to Pen Routines"
+              />
+              {supportingAreas.length > 0 && (
+                <View style={styles.skillList}>
+                  {supportingAreas.map((skill, i) => (
+                    <SkillRow key={skill.id} skill={skill} index={i} skills={supportingAreas} />
+                  ))}
+                </View>
+              )}
+            </View>
+
+            <View style={styles.sectionBlock}>
+              <SectionHeader
+                title="Pen Routines"
+                subtitle={
+                  penLocked
+                    ? "Complete Supporting Areas to unlock these skills"
+                    : `${penCompletedCount} of ${penRoutines.length} completed`
+                }
+                locked={penLocked}
+              />
+              {penRoutines.length > 0 ? (
+                <View style={styles.skillList}>
+                  {penRoutines.map((skill, i) => (
+                    <SkillRow key={skill.id} skill={skill} index={i} skills={penRoutines} locked={penLocked} />
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyNote}>No pen routine skills have been added yet.</Text>
+              )}
+            </View>
+          </Animated.View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: { flex: 1 },
-  container: { flex: 1 },
-  headerRow: {
+  container: { flex: 1, backgroundColor: COLORS.white },
+  banner: {
+    alignItems: "center",
+    paddingBottom: 90,
+  },
+  titleGroup: {
+    alignSelf: "stretch",
+    alignItems: "flex-start",
+    paddingHorizontal: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: COLORS.white,
+    letterSpacing: 0.5,
+    zIndex: 1,
+    textShadowColor: "rgba(0,0,0,0.35)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: COLORS.greenAccentLight,
+    letterSpacing: 1.5,
+    marginLeft: 1.5,
+    marginTop: 6,
+    fontWeight: "700",
+    zIndex: 1,
+  },
+  tagline: {
+    fontSize: 11.5,
+    color: "#a8cf9e",
+    letterSpacing: 0.3,
+    marginTop: 6,
+    fontWeight: "500",
+    zIndex: 1,
+  },
+  options: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -20,
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    shadowColor: "#0d3305",
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  summaryRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 24,
+    width: "100%",
+    marginBottom: 20,
   },
-  headerCard: {
+  introGroup: { alignItems: "flex-start" },
+  summaryHeading: { fontSize: 24, color: COLORS.greenLight, fontWeight: "700" },
+  eyebrowLabel: { fontSize: 12, color: COLORS.green, fontWeight: "800", letterSpacing: 1.4, marginTop: 4 },
+  hoursButtonWrap: {
+    borderRadius: 40,
+    shadowColor: COLORS.greenDark,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  hoursButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 40,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    gap: 6,
+    backgroundColor: COLORS.greenMid,
+  },
+  hoursButtonText: { color: COLORS.white, fontWeight: "700", fontSize: 13 },
+  ringWrap: { alignItems: "center", marginBottom: 24 },
+  ringLabelWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+  ringPercent: { fontWeight: "900", color: COLORS.green },
+  sectionBlock: {
+    marginBottom: 18,
+  },
+  sectionHeader: {
     paddingVertical: 14,
   },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: COLORS.navy },
-  hoursButton: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
+  sectionTitle: { fontSize: 15.5, fontWeight: "700", color: COLORS.greenLight },
+  sectionTitleLocked: { color: "#8a938b" },
+  sectionSubtitle: { fontSize: 12, color: COLORS.greenMid, fontWeight: "700", marginTop: 2 },
+  sectionSubtitleLocked: { color: "#a8aeaa" },
+  skillList: {
+    paddingBottom: 4,
+  },
+  emptyNote: {
+    fontSize: 13,
+    color: "#8a938b",
+    paddingLeft: 44,
+    paddingBottom: 12,
+  },
+  pathRow: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 20,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    gap: 6,
+    height: 64,
+    paddingRight: 16,
   },
-  hoursButtonText: { color: COLORS.navy, fontWeight: "800", fontSize: 13 },
-  summaryCard: {
-    ...GLASS_CARD,
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 24,
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.5,
-    shadowRadius: 40,
-    elevation: 16,
-  },
-  summaryTopRow: { flexDirection: "row", alignItems: "center", gap: 18 },
-  summaryTextCol: { flex: 1, gap: 2 },
-  ringLabelWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-  ringPercent: { fontSize: 18, fontWeight: "900", color: COLORS.navy },
-  summaryText: { fontSize: 18, color: COLORS.navy, fontWeight: "800" },
-  summarySubtext: { fontSize: 13, color: COLORS.grey, fontWeight: "600" },
-  sectionHeader: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
-    flexDirection: "row",
-    justifyContent: "space-between",
+  pathTrack: {
+    width: 44,
+    height: 64,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  trackSeg: {
+    position: "absolute",
+    width: 2,
+    left: 21,
+    height: 18,
+    backgroundColor: "#e3e9e0",
+  },
+  trackSegTop: { top: 0 },
+  trackSegBottom: { bottom: 0 },
+  trackSegDone: { backgroundColor: COLORS.greenMid },
+  node: {
+    width: 28,
+    height: 28,
     borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    shadowRadius: 18,
-  },
-  sectionHeaderLocked: {
-    backgroundColor: "rgba(255,255,255,0.35)",
-    shadowOpacity: 0.15,
-  },
-  sectionTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
-  sectionTitleLocked: { color: COLORS.grey },
-  sectionSubtitle: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
-  skillRow: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_MD,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    borderWidth: 2,
+    borderColor: "#dbe3d9",
+    backgroundColor: COLORS.white,
     alignItems: "center",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
+    justifyContent: "center",
   },
-  skillRowCompleted: {
-    borderColor: COLORS.green,
-    borderTopColor: COLORS.green,
-  },
-  skillName: { fontSize: 14, color: COLORS.black, flexShrink: 1 },
+  nodeDone: { backgroundColor: COLORS.greenMid, borderColor: COLORS.greenMid },
+  nodeCurrent: { borderColor: COLORS.greenMid, borderWidth: 3 },
+  nodeDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: COLORS.greenMid },
+  pathBody: { flex: 1, justifyContent: "center", gap: 2 },
+  skillNameWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
+  pathName: { fontSize: 15, fontWeight: "600", color: "#6b736a", flexShrink: 1 },
+  pathNameCurrent: { color: "#1c2b1a", fontWeight: "700" },
+  pathNameDone: { color: COLORS.greenLight },
+  pathStatusDone: { fontSize: 12, color: "#7f8a7c", fontWeight: "500" },
+  pathStatusNext: { fontSize: 12, color: COLORS.greenMid, fontWeight: "700" },
   seasonalTag: { backgroundColor: COLORS.amberBg, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   seasonalText: { fontSize: 10, color: COLORS.amber, fontWeight: "700" },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  completedText: { fontSize: 12, color: COLORS.green, fontWeight: "600" },
-  incompleteText: { fontSize: 12, color: COLORS.grey },
 });
