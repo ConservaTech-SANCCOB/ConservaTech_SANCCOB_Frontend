@@ -125,21 +125,16 @@ export default function RequestChangeScreen() {
                 />
 
                 <TouchableOpacity style={styles.submitButtonWrap} onPress={handleSubmit} disabled={submitting}>
-                  <LinearGradient
-                    colors={["#FF6B6B", "#C62828"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={styles.submitButton}
-                  >
+                  <View style={styles.submitButton}>
                     {submitting ? (
                       <ActivityIndicator size="small" color={COLORS.white} />
                     ) : (
                       <>
-                        <Ionicons name="close-circle-outline" size={16} color={COLORS.white} />
                         <Text style={styles.submitButtonText}>Request Cancellation</Text>
+                        <Ionicons name="close-circle-outline" size={18} color={COLORS.white} />
                       </>
                     )}
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </View>
             </>
@@ -161,7 +156,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 18,
   },
-  headerTitle: { fontSize: 17, fontWeight: "800", color: COLORS.navy },
+  headerTitle: { fontSize: 17, fontWeight: "600", color: COLORS.navy },
   warningBanner: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
@@ -172,7 +167,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   warningText: { flex: 1, fontSize: 13, color: COLORS.navy, lineHeight: 18 },
-  sectionLabel: { fontSize: 14, fontWeight: "800", color: COLORS.navy, marginBottom: 10 },
+  sectionLabel: { fontSize: 14, fontWeight: "600", color: COLORS.navy, marginBottom: 10 },
   bookingCard: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
@@ -180,7 +175,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   bookingHeaderRow: { flexDirection: "row", alignItems: "center" },
-  bookingDate: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
+  bookingDate: { fontSize: 16, fontWeight: "600", color: COLORS.navy },
   bookingDetail: { fontSize: 14, color: COLORS.black, marginTop: 10 },
   bookingLocation: { fontSize: 13, color: COLORS.grey, marginTop: 2 },
   reasonLabel: { fontSize: 13, fontWeight: "700", color: COLORS.navy, marginTop: 16, marginBottom: 8 },
@@ -202,24 +197,24 @@ const styles = StyleSheet.create({
   },
   submitButtonWrap: {
     marginTop: 20,
-    borderRadius: 16,
-    borderWidth: 0.75,
-    borderColor: "rgba(255,255,255,0.5)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 10,
+    borderRadius: 40,
+    shadowColor: "#8a1f1f",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   submitButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 15.25,
-    paddingVertical: 14,
+    borderRadius: 40,
+    paddingVertical: 24,
+    paddingHorizontal: 18,
+    backgroundColor: "#C62828",
   },
-  submitButtonText: { color: COLORS.white, fontWeight: "800", fontSize: 15 },
+  submitButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
   emptyStateCard: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
@@ -228,6 +223,6 @@ const styles = StyleSheet.create({
     padding: 26,
     gap: 8,
   },
-  emptyTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.navy },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center" },
 });
