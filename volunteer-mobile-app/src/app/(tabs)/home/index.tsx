@@ -2,9 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, ImageBackground, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 import MyShiftCard from "../../../components/MyShiftCard";
-import { GLASS_CARD, GLASS_SHADOW_LG } from "../../../constants/glassCard";
 import { getPendingCancellationIds } from "../../../services/changeRequests";
 import { getMyNotifications } from "../../../services/notifications";
 import { getMyProfile } from "../../../services/profile";
@@ -21,6 +22,7 @@ function getGreeting(): string {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [shifts, setShifts] = useState<MyShift[]>([]);
@@ -102,113 +104,169 @@ export default function HomeScreen() {
   );
 
   return (
-    <ImageBackground
-      source={require("../../../../assets/images/bg_penguin.jpg.jpeg")}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <LinearGradient
-        colors={["rgba(255,255,255,0.86)", "rgba(255,255,255,0.76)", "rgba(255,255,255,0.84)"]}
-        locations={[0, 0.42, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-
+    <View style={styles.container}>
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingTop: 60, paddingBottom: 150 }}
+        contentContainerStyle={{ paddingBottom: 150 }}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.navy} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.blueMid} />
         }
       >
-        <View style={styles.headerCard}>
-          <LinearGradient colors={["#00567f", "#002e4c"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.avatar}>
-            <Text style={styles.avatarInitials}>{initials}</Text>
-          </LinearGradient>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.welcomeLabel}>{getGreeting()}</Text>
-            <Text style={styles.name}>{firstName || "Your Name"}</Text>
+        <LinearGradient
+          colors={[COLORS.blueLight, COLORS.blueDark]}
+          style={[styles.banner, { paddingTop: 16 + insets.top }]}
+        >
+          <LinearGradient
+            colors={["rgba(255,255,255,0.08)", "transparent"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+
+          <Svg style={StyleSheet.absoluteFill} viewBox="0 0 400 260" preserveAspectRatio="none" pointerEvents="none">
+            <Path d="M-20,26 C40,16 90,32 140,24 C190,16 240,30 290,22 C330,16 380,26 420,18 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.03} />
+            <Path d="M-20,46 C40,38 90,52 140,44 C190,36 240,50 290,42 C330,36 380,46 420,40 L420,260 L-20,260 Z" fill={COLORS.blueAccentLight} opacity={0.04} />
+            <Path d="M-20,68 C40,58 90,74 140,64 C190,54 240,70 290,60 C330,54 380,66 420,58 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.05} />
+            <Path d="M-20,90 C40,82 90,96 140,86 C190,76 240,92 290,82 C330,76 380,88 420,80 L420,260 L-20,260 Z" fill={COLORS.blueAccentLight} opacity={0.07} />
+            <Path d="M-20,112 C40,102 90,118 140,108 C190,98 240,114 290,104 C330,98 380,110 420,102 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.08} />
+            <Path d="M-20,134 C40,126 90,140 140,130 C190,120 240,136 290,126 C330,120 380,132 420,124 L420,260 L-20,260 Z" fill={COLORS.blueAccentLight} opacity={0.09} />
+            <Path d="M-20,156 C40,146 90,162 140,152 C190,142 240,158 290,148 C330,142 380,154 420,146 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.11} />
+            <Path d="M-20,178 C40,170 90,184 140,174 C190,164 240,180 290,170 C330,164 380,176 420,168 L420,260 L-20,260 Z" fill={COLORS.blueAccentLight} opacity={0.12} />
+            <Path d="M-20,200 C40,190 90,206 140,196 C190,186 240,202 290,192 C330,186 380,198 420,190 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.14} />
+            <Path d="M-20,222 C40,214 90,228 140,218 C190,208 240,224 290,214 C330,208 380,220 420,212 L420,260 L-20,260 Z" fill={COLORS.blueAccentLight} opacity={0.16} />
+          </Svg>
+
+          <View style={styles.bannerTopRow}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarInitials}>{initials}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.bellButton}
+              onPress={() => router.push("/(tabs)/home/notifications")}
+              accessibilityRole="button"
+              accessibilityLabel="Notifications"
+            >
+              <Ionicons name="notifications-outline" size={22} color={COLORS.white} />
+              <Text style={styles.bellBadgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.bellButton} onPress={() => router.push("/(tabs)/home/notifications")}>
-            <Ionicons name="notifications-outline" size={22} color="#3f5f75" />
-            <Text style={styles.bellBadgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
-          </TouchableOpacity>
-        </View>
+          <View style={styles.titleGroup}>
+            <Text style={styles.greeting}>{getGreeting()}</Text>
+            <Text style={styles.title}>{firstName || "Your Name"}</Text>
+            <Text style={styles.tagline}>Here&apos;s what your week looks like</Text>
+          </View>
+        </LinearGradient>
 
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.sectionChip}>
+        <View style={styles.sheet}>
+          <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionChipText}>
               THIS WEEK&apos;S SHIFTS{thisWeeksShifts.length > 0 ? ` (${thisWeeksShifts.length})` : ""}
             </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.viewAllButton}
-            onPress={() => router.push("/(tabs)/bookings")}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={styles.viewAllText}>View All</Text>
-            <Ionicons name="chevron-forward" size={14} color="#00567f" />
-          </TouchableOpacity>
-        </View>
-
-        {loadingShifts ? (
-          <View style={styles.emptyCard}>
-            <ActivityIndicator color={COLORS.blue} />
-          </View>
-        ) : shiftsError ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="warning-outline" size={26} color={COLORS.grey} />
-            <Text style={styles.emptyTitle}>Couldn&apos;t load shifts</Text>
-            <Text style={styles.emptyText}>Pull down to try again in a moment.</Text>
-          </View>
-        ) : upcoming.length > 0 ? (
-          upcoming.map((shift) => (
-            <MyShiftCard
-              key={shift.rosterAssignmentId}
-              item={shift}
-              cancellationPending={pendingCancellationIds.has(shift.rosterAssignmentId)}
-            />
-          ))
-        ) : (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No shifts yet</Text>
-            <Text style={styles.emptyText}>Set your availability and you&apos;ll be automatically matched to shifts that fit.</Text>
             <TouchableOpacity
-              style={styles.emptyCtaWrap}
-              onPress={() => router.push("/(tabs)/bookings/submit-availability")}
+              style={styles.viewAllButton}
+              onPress={() => router.push("/(tabs)/bookings")}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <LinearGradient
-                colors={["#6FD0FF", "#2BA8E0"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.emptyCta}
-              >
-                <Ionicons name="calendar-outline" size={16} color={COLORS.white} />
-                <Text style={styles.emptyCtaText}>Set Availability</Text>
-              </LinearGradient>
+              <Text style={styles.viewAllText}>View All</Text>
+              <Ionicons name="chevron-forward" size={14} color={COLORS.blueMid} />
             </TouchableOpacity>
           </View>
-        )}
+
+          {loadingShifts ? (
+            <View style={styles.emptyCard}>
+              <ActivityIndicator color={COLORS.blueMid} />
+            </View>
+          ) : shiftsError ? (
+            <View style={styles.emptyCard}>
+              <Ionicons name="warning-outline" size={26} color={COLORS.grey} />
+              <Text style={styles.emptyTitle}>Couldn&apos;t load shifts</Text>
+              <Text style={styles.emptyText}>Pull down to try again in a moment.</Text>
+            </View>
+          ) : upcoming.length > 0 ? (
+            upcoming.map((shift) => (
+              <MyShiftCard
+                key={shift.rosterAssignmentId}
+                item={shift}
+                cancellationPending={pendingCancellationIds.has(shift.rosterAssignmentId)}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>No shifts yet</Text>
+              <Text style={styles.emptyText}>Set your availability and you&apos;ll be automatically matched to shifts that fit.</Text>
+              <TouchableOpacity
+                style={styles.emptyCtaWrap}
+                onPress={() => router.push("/(tabs)/bookings/submit-availability")}
+              >
+                <View style={styles.emptyCta}>
+                  <Text style={styles.emptyCtaText}>Set Availability</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.white} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: { flex: 1 },
-  headerCard: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+  container: { flex: 1, backgroundColor: COLORS.white },
+  banner: {
+    paddingBottom: 90,
+  },
+  bannerTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 13,
-    padding: 14,
-    paddingLeft: 16,
-    borderRadius: 22,
-    marginBottom: 12,
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginBottom: 18,
+    zIndex: 1,
+  },
+  titleGroup: {
+    paddingHorizontal: 20,
+  },
+  greeting: {
+    fontSize: 13,
+    color: COLORS.blueAccentLight,
+    letterSpacing: 1.5,
+    fontWeight: "700",
+    zIndex: 1,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: COLORS.white,
+    letterSpacing: 0.5,
+    marginTop: 6,
+    zIndex: 1,
+    textShadowColor: "rgba(0,0,0,0.35)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  tagline: {
+    fontSize: 11.5,
+    color: "#8fb4cc",
+    letterSpacing: 0.3,
+    marginTop: 6,
+    fontWeight: "500",
+    zIndex: 1,
+  },
+  sheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -20,
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    shadowColor: COLORS.blueDark,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
   },
   avatar: {
     width: 46,
@@ -216,31 +274,20 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.7)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 10,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
   },
   avatarInitials: { color: COLORS.white, fontSize: 15, fontWeight: "800" },
-  welcomeLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1.1, color: "#3f5f75" },
-  name: { fontSize: 18, fontWeight: "800", color: COLORS.navy, marginTop: 2 },
   bellButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
   },
   bellBadgeText: {
     position: "absolute",
@@ -248,51 +295,49 @@ const styles = StyleSheet.create({
     right: 6,
     fontSize: 11,
     fontWeight: "900",
-    color: COLORS.blue,
+    color: COLORS.blueAccentLight,
   },
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 40,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   viewAllButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
   },
-  viewAllText: { fontSize: 13, fontWeight: "800", color: "#00567f" },
-  sectionChip: {
-    alignSelf: "flex-start",
-  },
-  sectionChipText: { fontSize: 13, fontWeight: "800", color: "#00567f" },
+  viewAllText: { fontSize: 13, fontWeight: "800", color: COLORS.blueMid },
+  sectionChipText: { fontSize: 13, fontWeight: "800", color: COLORS.blueMid },
   emptyCard: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
     alignItems: "center",
+    backgroundColor: COLORS.white,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e2e9ee",
     padding: 26,
     paddingHorizontal: 20,
   },
-  emptyTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.blueLight },
   emptyText: { fontSize: 13, fontWeight: "500", color: "#3d5260", textAlign: "center", maxWidth: 255, marginTop: 8 },
   emptyCtaWrap: {
     marginTop: 20,
-    borderRadius: 16,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 10,
+    borderRadius: 30,
+    shadowColor: COLORS.blueDark,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   emptyCta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    borderRadius: 14.5,
+    gap: 4,
+    borderRadius: 30,
     paddingVertical: 10,
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.blueMid,
   },
-  emptyCtaText: { fontSize: 13, fontWeight: "800", color: COLORS.white },
+  emptyCtaText: { fontSize: 13, fontWeight: "600", color: COLORS.white, letterSpacing: 0.2 },
 });

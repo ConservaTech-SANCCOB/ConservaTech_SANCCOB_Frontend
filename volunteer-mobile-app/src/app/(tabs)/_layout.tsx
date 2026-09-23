@@ -8,6 +8,12 @@ import { getTabBarStyle } from "../../constants/tabBar";
 
 const ACTIVE_COLOR = COLORS.blue;
 const INACTIVE_COLOR = COLORS.navy;
+// Tabs whose screens have their own accent colour; the rest fall back to ACTIVE_COLOR.
+const TAB_ACCENTS: Record<string, string> = {
+  progress: COLORS.green,
+  bookings: COLORS.amberMid,
+  profile: COLORS.pinkMid,
+};
 const INDICATOR_HEIGHT = 44;
 const PILL_HORIZONTAL_INSET = 6;
 
@@ -100,6 +106,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     return null;
   }
 
+  const activeRoute = state.routes[state.index].name;
+  const activeColor = TAB_ACCENTS[activeRoute] ?? ACTIVE_COLOR;
+
   const handleButtonLayout = (index: number, event: LayoutChangeEvent) => {
     const { x, width } = event.nativeEvent.layout;
     buttonLayouts.current[index] = { x, width };
@@ -113,14 +122,20 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       {pillWidth > 0 && (
         <View style={styles.indicatorLayer} pointerEvents="none">
           <Animated.View
-            style={[styles.indicatorPill, { width: pillWidth, transform: [{ translateX }] }]}
+            style={[
+              styles.indicatorPill,
+              activeRoute === "progress" && styles.indicatorPillTraining,
+              activeRoute === "bookings" && styles.indicatorPillShifts,
+              activeRoute === "profile" && styles.indicatorPillProfile,
+              { width: pillWidth, transform: [{ translateX }] },
+            ]}
           />
         </View>
       )}
       {state.routes.map((route: { key: string; name: string }, index: number) => {
         const { options } = descriptors[route.key];
         const focused = state.index === index;
-        const color = focused ? ACTIVE_COLOR : INACTIVE_COLOR;
+        const color = focused ? activeColor : INACTIVE_COLOR;
 
         const onPress = () => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -194,5 +209,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(83, 199, 255, 0.16)",
     borderWidth: 1,
     borderColor: "rgba(83, 199, 255, 0.35)",
+  },
+  indicatorPillTraining: {
+    backgroundColor: "rgba(63, 201, 32, 0.16)",
+    borderColor: "rgba(63, 201, 32, 0.35)",
+  },
+  indicatorPillShifts: {
+    backgroundColor: "rgba(255, 215, 63, 0.26)",
+    borderColor: "rgba(154, 116, 9, 0.35)",
+  },
+  indicatorPillProfile: {
+    backgroundColor: "rgba(181, 42, 107, 0.14)",
+    borderColor: "rgba(181, 42, 107, 0.35)",
   },
 });
