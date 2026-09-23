@@ -2,9 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { GLASS_CARD, GLASS_SHADOW_LG } from "../../constants/glassCard";
+import Svg, { Path } from "react-native-svg";
 import { clearToken } from "../../utils/api";
 import { COLORS } from "../../utils/colors";
 import { getMyProfile, updateMyProfile } from "../../services/profile";
@@ -79,29 +79,50 @@ export default function ProfileScreen() {
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
   return (
-    <ImageBackground
-      source={require("../../../assets/images/bg_penguin.jpg.jpeg")}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <LinearGradient
-        colors={["rgba(255,255,255,0.86)", "rgba(255,255,255,0.76)", "rgba(255,255,255,0.84)"]}
-        locations={[0, 0.42, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.container}>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8 + insets.top, paddingBottom: 150 }}>
-          <View style={styles.nameCard}>
-            <Text style={styles.name}>{fullName || "Your Name"}</Text>
-            <Text style={styles.roleLabel}>ACTIVE VOLUNTEER</Text>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
+        <LinearGradient
+          colors={[COLORS.pinkLight, COLORS.pinkDark]}
+          style={[styles.banner, { paddingTop: 16 + insets.top }]}
+        >
+          <LinearGradient
+            colors={["rgba(255,255,255,0.08)", "transparent"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+
+          <Svg style={StyleSheet.absoluteFill} viewBox="0 0 400 260" preserveAspectRatio="none" pointerEvents="none">
+            <Path d="M-20,26 C40,16 90,32 140,24 C190,16 240,30 290,22 C330,16 380,26 420,18 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.03} />
+            <Path d="M-20,46 C40,38 90,52 140,44 C190,36 240,50 290,42 C330,36 380,46 420,40 L420,260 L-20,260 Z" fill={COLORS.pinkAccentLight} opacity={0.04} />
+            <Path d="M-20,68 C40,58 90,74 140,64 C190,54 240,70 290,60 C330,54 380,66 420,58 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.05} />
+            <Path d="M-20,90 C40,82 90,96 140,86 C190,76 240,92 290,82 C330,76 380,88 420,80 L420,260 L-20,260 Z" fill={COLORS.pinkAccentLight} opacity={0.07} />
+            <Path d="M-20,112 C40,102 90,118 140,108 C190,98 240,114 290,104 C330,98 380,110 420,102 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.08} />
+            <Path d="M-20,134 C40,126 90,140 140,130 C190,120 240,136 290,126 C330,120 380,132 420,124 L420,260 L-20,260 Z" fill={COLORS.pinkAccentLight} opacity={0.09} />
+            <Path d="M-20,156 C40,146 90,162 140,152 C190,142 240,158 290,148 C330,142 380,154 420,146 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.11} />
+            <Path d="M-20,178 C40,170 90,184 140,174 C190,164 240,180 290,170 C330,164 380,176 420,168 L420,260 L-20,260 Z" fill={COLORS.pinkAccentLight} opacity={0.12} />
+            <Path d="M-20,200 C40,190 90,206 140,196 C190,186 240,202 290,192 C330,186 380,198 420,190 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.14} />
+            <Path d="M-20,222 C40,214 90,228 140,218 C190,208 240,224 290,214 C330,208 380,220 420,212 L420,260 L-20,260 Z" fill={COLORS.pinkAccentLight} opacity={0.16} />
+          </Svg>
+
+          <View style={styles.bannerTopRow}>
+            <View style={styles.nameBadge}>
+              <Text style={styles.nameBadgeText}>{fullName || "Your Name"}</Text>
+            </View>
           </View>
 
+          <View style={styles.titleGroup}>
+            <Text style={styles.subtitle}>ACTIVE VOLUNTEER</Text>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.sheet}>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Personal Details</Text>
 
             {loading ? (
               <View style={styles.loadingRow}>
-                <ActivityIndicator color={COLORS.blue} />
+                <ActivityIndicator color={COLORS.pinkMid} />
               </View>
             ) : (
               <>
@@ -164,21 +185,11 @@ export default function ProfileScreen() {
                 </View>
 
                 <TouchableOpacity style={styles.saveButtonWrap} onPress={handleSave} disabled={saving}>
-                  <LinearGradient
-                    colors={["#6FD0FF", "#2BA8E0"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={styles.saveButton}
-                  >
-                    {saving ? (
-                      <ActivityIndicator size="small" color={COLORS.white} />
-                    ) : (
-                      <>
-                        <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.white} />
-                        <Text style={styles.saveButtonText}>Save Changes</Text>
-                      </>
-                    )}
-                  </LinearGradient>
+                  {saving ? (
+                    <ActivityIndicator size="small" color={COLORS.white} />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Save Changes</Text>
+                  )}
                 </TouchableOpacity>
               </>
             )}
@@ -197,102 +208,119 @@ export default function ProfileScreen() {
           </View>
 
           <TouchableOpacity style={styles.logoutButtonWrap} onPress={handleLogout}>
-            <LinearGradient
-              colors={["#FF8A8A", "#EB5757"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.logoutButton}
-            >
-              <Ionicons name="log-out-outline" size={18} color={COLORS.white} />
-              <Text style={styles.logoutText}>Log Out</Text>
-            </LinearGradient>
+            <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
-        </ScrollView>
-      </View>
-    </ImageBackground>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: { flex: 1 },
-  container: { flex: 1 },
-  nameCard: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
-    alignItems: "center",
-    borderRadius: 22,
-    paddingVertical: 20,
-    marginBottom: 20,
+  container: { flex: 1, backgroundColor: COLORS.white },
+  banner: {
+    paddingBottom: 90,
   },
-  name: { fontSize: 18, fontWeight: "800", color: COLORS.navy },
-  roleLabel: { fontSize: 11, color: "#3f5f75", fontWeight: "700", letterSpacing: 1, marginTop: 4 },
+  bannerTopRow: {
+    paddingHorizontal: 20,
+    marginBottom: 18,
+    zIndex: 1,
+  },
+  nameBadge: {
+    alignSelf: "flex-start",
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
+  },
+  nameBadgeText: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.white,
+    letterSpacing: 0.3,
+    textShadowColor: "rgba(0,0,0,0.35)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  titleGroup: {
+    // Lines the eyebrow up with the name inside the badge: banner gutter + badge padding + its border.
+    paddingLeft: 41,
+    paddingRight: 20,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: COLORS.pinkAccentLight,
+    letterSpacing: 1.5,
+    marginTop: 6,
+    fontWeight: "700",
+    zIndex: 1,
+  },
+  sheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -20,
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    shadowColor: COLORS.pinkDark,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+  },
   card: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
+    backgroundColor: COLORS.white,
     borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#b3c3cc",
     padding: 16,
     marginBottom: 16,
   },
-  cardTitle: { fontSize: 15, fontWeight: "800", color: COLORS.navy, marginBottom: 12 },
-  fieldLabel: { fontSize: 10, color: COLORS.grey, fontWeight: "700", marginTop: 10, marginBottom: 4 },
+  cardTitle: { fontSize: 15.5, fontWeight: "700", color: COLORS.pinkLight, marginBottom: 12 },
+  fieldLabel: { fontSize: 10, color: COLORS.grey, fontWeight: "700", letterSpacing: 0.5, marginTop: 12, marginBottom: 5 },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "rgba(0,46,76,0.3)",
+    borderWidth: 1,
+    borderColor: "#dbe3e7",
     backgroundColor: COLORS.lightGrey,
     borderRadius: 26,
     paddingHorizontal: 18,
     gap: 10,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 4,
   },
   input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "700", color: COLORS.grey },
   loadingRow: { paddingVertical: 20, alignItems: "center" },
   loadErrorText: { fontSize: 12, color: COLORS.red, marginBottom: 8 },
   saveButtonWrap: {
-    marginTop: 20,
-    borderRadius: 16,
-    borderWidth: 0.75,
-    borderColor: "rgba(255,255,255,0.5)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 10,
+    marginTop: 22,
+    alignSelf: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 26,
+    borderRadius: 30,
+    backgroundColor: COLORS.pinkMid,
+    shadowColor: COLORS.pinkDark,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  saveButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: 15.25,
-    paddingVertical: 14,
-  },
-  saveButtonText: { color: COLORS.white, fontWeight: "800", fontSize: 15 },
+  saveButtonText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
   contactRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 },
-  contactText: { fontSize: 13, color: COLORS.black },
+  contactText: { fontSize: 13, color: "#1b2a33" },
   logoutButtonWrap: {
-    marginTop: 20,
-    borderRadius: 16,
-    borderWidth: 0.75,
-    borderColor: "rgba(255,255,255,0.5)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 10,
+    marginTop: 4,
+    alignSelf: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 26,
+    borderRadius: 30,
+    backgroundColor: "#7a1228",
+    shadowColor: "#2e0810",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: 15.25,
-    paddingVertical: 14,
-  },
-  logoutText: { color: COLORS.white, fontWeight: "800", fontSize: 15 },
+  logoutText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
 });

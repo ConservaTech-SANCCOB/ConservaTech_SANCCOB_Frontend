@@ -86,21 +86,16 @@ export default function ForgotPasswordScreen() {
                 />
               </View>
               <TouchableOpacity style={styles.submitButtonWrap} onPress={handleRequestCode} disabled={loading}>
-                <LinearGradient
-                  colors={["#6FD0FF", "#2BA8E0"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={styles.submitButton}
-                >
+                <View style={styles.submitButton}>
                   {loading ? (
                     <ActivityIndicator color={COLORS.white} />
                   ) : (
                     <>
-                      <Ionicons name="mail-outline" size={20} color={COLORS.white} />
                       <Text style={styles.submitButtonText}>Send Reset Code</Text>
+                      <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
                     </>
                   )}
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </>
           ) : (
@@ -130,21 +125,16 @@ export default function ForgotPasswordScreen() {
                 </TouchableOpacity>
               </View>
               <TouchableOpacity style={styles.submitButtonWrap} onPress={handleReset} disabled={loading}>
-                <LinearGradient
-                  colors={["#6FD0FF", "#2BA8E0"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={styles.submitButton}
-                >
+                <View style={styles.submitButton}>
                   {loading ? (
                     <ActivityIndicator color={COLORS.white} />
                   ) : (
                     <>
-                      <Ionicons name="key-outline" size={20} color={COLORS.white} />
                       <Text style={styles.submitButtonText}>Reset Password</Text>
+                      <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
                     </>
                   )}
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setStep("request")}>
                 <Text style={styles.helperText}>Didn&apos;t get a code? Send again</Text>
@@ -196,37 +186,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    borderWidth: 1.5,
-    borderColor: "rgba(0,46,76,0.3)",
+    borderWidth: 1,
+    borderColor: "rgba(0,46,76,0.15)",
     backgroundColor: COLORS.lightGrey,
     borderRadius: 26,
     paddingHorizontal: 18,
     shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
   },
   input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "600", color: COLORS.navy },
   submitButtonWrap: {
     marginTop: 28,
-    borderRadius: 16,
-    borderWidth: 0.75,
-    borderColor: "rgba(255,255,255,0.5)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 10,
+    borderRadius: 40,
+    shadowColor: "#075985",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   submitButton: {
     flexDirection: "row",
-    borderRadius: 16,
-    paddingVertical: 14,
+    borderRadius: 40,
+    paddingVertical: 24,
+    paddingHorizontal: 18,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    backgroundColor: "#0284c7",
   },
-  submitButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
+  submitButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
   helperText: { textAlign: "center", color: COLORS.navy, fontSize: 13, marginTop: 20 },
 });
