@@ -113,14 +113,7 @@ export default function TrainerDashboardScreen() {
                 style={[styles.filterTab, active && styles.filterTabActiveWrap]}
                 onPress={() => setStatusFilter(f.key)}
               >
-                {active && (
-                  <LinearGradient
-                    colors={["#6FD0FF", "#2BA8E0"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={styles.filterTabActiveFill}
-                  />
-                )}
+                {active && <View style={styles.filterTabActiveFill} />}
                 <Text style={[styles.filterTabText, active && styles.filterTabTextActive]}>{f.label}</Text>
               </TouchableOpacity>
             );
@@ -156,14 +149,9 @@ export default function TrainerDashboardScreen() {
                 }
               >
                 <View style={styles.cardTopRow}>
-                  <LinearGradient
-                    colors={["#6FD0FF", "#2BA8E0"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={styles.avatar}
-                  >
+                  <View style={styles.avatar}>
                     <Text style={styles.avatarInitials}>{initialsFor(item)}</Text>
-                  </LinearGradient>
+                  </View>
                   <View style={styles.cardInfo}>
                     <Text style={styles.volunteerName}>{`${item.firstName ?? ""} ${item.lastName ?? ""}`}</Text>
                   </View>
@@ -204,7 +192,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.lightGrey },
   header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
   headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  title: { fontSize: 22, fontWeight: "800", color: COLORS.white },
+  title: { fontSize: 22, fontWeight: "600", color: COLORS.white },
   subtitle: { fontSize: 12, color: COLORS.sky, marginTop: 4 },
   logoutButtonWrap: {
     borderRadius: 18,
@@ -250,10 +238,10 @@ const styles = StyleSheet.create({
   filterTabActiveWrap: {
     borderWidth: 0,
     shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 2,
   },
   filterTabActiveFill: {
     position: "absolute",
@@ -262,6 +250,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: 16,
+    backgroundColor: "#0284c7",
   },
   filterTabText: { fontSize: 12, color: COLORS.white, fontWeight: "700" },
   filterTabTextActive: { fontWeight: "900" },
@@ -280,11 +269,12 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#0284c7",
     shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 2,
   },
   avatarInitials: { color: COLORS.white, fontSize: 15, fontWeight: "800" },
   cardInfo: { flex: 1 },

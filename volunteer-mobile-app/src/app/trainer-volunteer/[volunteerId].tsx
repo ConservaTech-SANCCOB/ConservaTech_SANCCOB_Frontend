@@ -150,21 +150,16 @@ export default function TrainerVolunteerScreen() {
                     style={styles.signOffButtonWrap}
                     disabled={signingOffId === skill.skillId}
                   >
-                    <LinearGradient
-                      colors={["#6FD0FF", "#2BA8E0"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 0, y: 1 }}
-                      style={styles.signOffButton}
-                    >
+                    <View style={styles.signOffButton}>
                       {signingOffId === skill.skillId ? (
                         <ActivityIndicator size="small" color={COLORS.white} />
                       ) : (
                         <>
-                          <Ionicons name="checkmark" size={16} color={COLORS.white} />
                           <Text style={styles.signOffText}>Sign Off</Text>
+                          <Ionicons name="checkmark" size={16} color={COLORS.white} />
                         </>
                       )}
-                    </LinearGradient>
+                    </View>
                   </TouchableOpacity>
                 )}
               </View>
@@ -181,7 +176,7 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.lightGrey },
   header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
   backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  title: { fontSize: 20, fontWeight: "800", color: COLORS.white },
+  title: { fontSize: 20, fontWeight: "600", color: COLORS.white },
   summaryCard: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
@@ -194,7 +189,7 @@ const styles = StyleSheet.create({
   summaryPercent: { fontSize: 18, color: COLORS.navy, fontWeight: "800" },
   progressTrack: { height: 10, backgroundColor: "#E2E5E8", borderRadius: 5, overflow: "hidden" },
   progressFill: { height: 10, borderRadius: 5 },
-  sectionTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy, marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: "600", color: COLORS.navy, marginBottom: 10 },
   skillRow: {
     ...GLASS_CARD,
     ...GLASS_SHADOW_MD,
@@ -209,22 +204,23 @@ const styles = StyleSheet.create({
   skillName: { fontSize: 14, color: COLORS.black, fontWeight: "600" },
   signOffMeta: { fontSize: 11, color: COLORS.grey, marginTop: 4 },
   signOffButtonWrap: {
-    borderRadius: 8,
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    borderRadius: 16,
+    shadowColor: "#075985",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   signOffButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    borderRadius: 8,
+    gap: 5,
+    borderRadius: 16,
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
+    backgroundColor: "#0284c7",
   },
-  signOffText: { color: COLORS.white, fontWeight: "700", fontSize: 12 },
+  signOffText: { color: COLORS.white, fontWeight: "600", fontSize: 12.5, letterSpacing: 0.1 },
   signedOffTag: { flexDirection: "row", alignItems: "center", gap: 4 },
   signedOffText: { color: COLORS.green, fontWeight: "700", fontSize: 12 },
 });
