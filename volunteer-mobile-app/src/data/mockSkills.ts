@@ -9,4 +9,12 @@ export const supportingAreas: Skill[] = [
   { id: "s6", name: "Home Pen", completed: false },
 ];
 
-export const penRoutines: Skill[] = [];
+// Draft placeholders for layout review — replace with SANCCOB's real pen routine curriculum.
+export const penRoutines: Skill[] = [
+  { id: "p1", name: "Pen Preparation", completed: false },
+  { id: "p2", name: "Bird Handling", completed: false },
+  { id: "p3", name: "Feeding Routine", completed: false },
+  { id: "p4", name: "Swim Supervision", completed: false },
+  { id: "p5", name: "Daily Health Checks", completed: false },
+  { id: "p6", name: "Chick Rearing", completed: false, seasonal: true },
+];
