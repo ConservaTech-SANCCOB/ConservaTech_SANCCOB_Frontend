@@ -1,11 +1,20 @@
-import { useEffect, useRef, useState } from "react";
-import { Animated, View, Text, TouchableOpacity, StyleSheet, FlatList, Image, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "../utils/colors";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { GLASS_CARD, GLASS_SHADOW_MD } from "../constants/glassCard";
-import { getTrainers, Trainer } from "../services/trainers";
+import { getTrainers, selectTrainer, Trainer } from "../services/trainers";
+import { COLORS } from "../utils/colors";
 
 function initialsFor(trainer: Trainer) {
   return `${trainer.firstName?.[0] ?? ""}${trainer.lastName?.[0] ?? ""}`.toUpperCase();
@@ -21,8 +30,16 @@ export default function TrainerSelectScreen() {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, [fadeAnim, slideAnim]);
 
@@ -36,22 +53,42 @@ export default function TrainerSelectScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSelect = (trainer: Trainer) => {
-    router.push({
-      pathname: "/trainer-dashboard",
-      params: {
-        trainerId: String(trainer.trainerId),
-        trainerName: `${trainer.firstName ?? ""} ${trainer.lastName ?? ""}`.trim(),
-      },
-    });
+  const handleSelect = async (trainer: Trainer) => {
+    try {
+      await selectTrainer(trainer.trainerId);
+      router.push({
+        pathname: "/trainer-dashboard",
+        params: {
+          trainerId: String(trainer.trainerId),
+          trainerName:
+            `${trainer.firstName ?? ""} ${trainer.lastName ?? ""}`.trim(),
+        },
+      });
+    } catch (error) {
+      console.error("Select trainer error:", error);
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-        <LinearGradient colors={["#00567f", "#002e4c"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.header}>
+      <Animated.View
+        style={{
+          flex: 1,
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}
+      >
+        <LinearGradient
+          colors={["#00567f", "#002e4c"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.header}
+        >
           <View style={styles.logoCircle}>
-            <Image source={require("../../assets/images/sanccob-icon.png")} style={styles.logoImage} />
+            <Image
+              source={require("../../assets/images/sanccob-icon.png")}
+              style={styles.logoImage}
+            />
           </View>
           <Text style={styles.title}>Who are you?</Text>
           <Text style={styles.subtitle}>Select your name to continue</Text>
@@ -63,31 +100,48 @@ export default function TrainerSelectScreen() {
               <ActivityIndicator color={COLORS.blue} />
             </View>
           ) : (
-          <FlatList
-            data={trainers}
-            keyExtractor={(item) => String(item.trainerId)}
-            contentContainerStyle={{ padding: 20, flexGrow: 1 }}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.trainerRow} onPress={() => handleSelect(item)}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarInitials}>{initialsFor(item)}</Text>
+            <FlatList
+              data={trainers}
+              keyExtractor={(item) => String(item.trainerId)}
+              contentContainerStyle={{ padding: 20, flexGrow: 1 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.trainerRow}
+                  onPress={() => handleSelect(item)}
+                >
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarInitials}>
+                      {initialsFor(item)}
+                    </Text>
+                  </View>
+                  <View style={styles.trainerInfo}>
+                    <Text style={styles.trainerName}>
+                      {item.firstName} {item.lastName}
+                    </Text>
+                    <Text style={styles.trainerRole}>SANCCOB Trainer</Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={COLORS.grey}
+                  />
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Ionicons
+                    name={loadError ? "warning-outline" : "people-outline"}
+                    size={32}
+                    color={COLORS.grey}
+                  />
+                  <Text style={styles.emptyText}>
+                    {loadError
+                      ? "Couldn't load trainers. Pull back and try again."
+                      : "No trainers available right now."}
+                  </Text>
                 </View>
-                <View style={styles.trainerInfo}>
-                  <Text style={styles.trainerName}>{item.firstName} {item.lastName}</Text>
-                  <Text style={styles.trainerRole}>SANCCOB Trainer</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.grey} />
-              </TouchableOpacity>
-            )}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Ionicons name={loadError ? "warning-outline" : "people-outline"} size={32} color={COLORS.grey} />
-                <Text style={styles.emptyText}>
-                  {loadError ? "Couldn't load trainers. Pull back and try again." : "No trainers available right now."}
-                </Text>
-              </View>
-            }
-          />
+              }
+            />
           )}
         </View>
       </Animated.View>
@@ -97,7 +151,12 @@ export default function TrainerSelectScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
-  header: { alignItems: "center", paddingTop: 100, paddingBottom: 120, paddingHorizontal: 24 },
+  header: {
+    alignItems: "center",
+    paddingTop: 100,
+    paddingBottom: 120,
+    paddingHorizontal: 24,
+  },
   logoCircle: {
     width: 90,
     height: 90,
@@ -152,6 +211,12 @@ const styles = StyleSheet.create({
   trainerInfo: { flex: 1, gap: 2 },
   trainerName: { fontSize: 15, fontWeight: "700", color: COLORS.navy },
   trainerRole: { fontSize: 12, fontWeight: "600", color: COLORS.grey },
-  emptyState: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingTop: 40 },
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingTop: 40,
+  },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center" },
 });
