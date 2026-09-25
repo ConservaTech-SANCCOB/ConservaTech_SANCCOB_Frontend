@@ -5,10 +5,16 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { clearToken } from "../../utils/api";
+import KeyboardAvoidingScreen from "../../components/KeyboardAvoidingScreen";
+import SelectDropdown from "../../components/SelectDropdown";
+import { AGE_BRACKETS, isAgeBracket } from "../../constants/ageBrackets";
+import { logout } from "../../services/auth";
+import { getErrorMessage } from "../../utils/api";
 import { COLORS } from "../../utils/colors";
 import { getMyProfile, updateMyProfile } from "../../services/profile";
 import { showErrorToast } from "../../utils/toast";
+import { logError } from "../../utils/logError";
+import { SHEET_TOP_SHADOW } from "../../constants/glassCard";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -19,6 +25,8 @@ export default function ProfileScreen() {
   const [phone, setPhone] = useState("");
   const [nationality, setNationality] = useState("");
   const [ageBracket, setAgeBracket] = useState("");
+  const [emergencyName, setEmergencyName] = useState("");
+  const [emergencyPhone, setEmergencyPhone] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -31,10 +39,13 @@ export default function ProfileScreen() {
         setEmail(profile.email ?? "");
         setPhone(profile.phoneNumber ?? "");
         setNationality(profile.nationality ?? "");
-        setAgeBracket(profile.ageBracket ?? "");
+        // A legacy free-text value the backend would now reject shows as unselected.
+        setAgeBracket(isAgeBracket(profile.ageBracket) ? profile.ageBracket : "");
+        setEmergencyName(profile.emergencyContactName ?? "");
+        setEmergencyPhone(profile.emergencyContactPhone ?? "");
       })
       .catch((error) => {
-        console.error("Load profile error:", error);
+        logError("Load profile error", error);
         setLoadError(true);
       })
       .finally(() => setLoading(false));
@@ -51,12 +62,14 @@ export default function ProfileScreen() {
         email: email.trim(),
         phoneNumber: phone.trim() || null,
         nationality: nationality.trim() || null,
-        ageBracket: ageBracket.trim() || null,
+        ageBracket: ageBracket || null,
+        emergencyContactName: emergencyName.trim() || null,
+        emergencyContactPhone: emergencyPhone.trim() || null,
       });
       Alert.alert("Saved", "Your profile has been updated.");
     } catch (error) {
-      console.error("Save profile error:", error);
-      showErrorToast("Couldn't save", "Something went wrong. Try again in a moment.");
+      logError("Save profile error", error);
+      showErrorToast("Couldn't save", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     } finally {
       setSaving(false);
     }
@@ -69,7 +82,7 @@ export default function ProfileScreen() {
         text: "Log Out",
         style: "destructive",
         onPress: async () => {
-          await clearToken();
+          await logout();
           router.replace("/");
         },
       },
@@ -79,8 +92,12 @@ export default function ProfileScreen() {
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingScreen style={styles.container}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 150 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <LinearGradient
           colors={[COLORS.pinkLight, COLORS.pinkDark]}
           style={[styles.banner, { paddingTop: 16 + insets.top }]}
@@ -175,12 +192,35 @@ export default function ProfileScreen() {
                 </View>
 
                 <Text style={styles.fieldLabel}>AGE BRACKET</Text>
+                <SelectDropdown
+                  value={ageBracket}
+                  options={AGE_BRACKETS}
+                  onChange={setAgeBracket}
+                  placeholder="Select your age bracket"
+                  icon="hourglass-outline"
+                  accessibilityLabel="Age bracket"
+                />
+
+                <Text style={styles.fieldLabel}>EMERGENCY CONTACT NAME</Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="hourglass-outline" size={18} color={COLORS.grey} />
+                  <Ionicons name="medkit-outline" size={18} color={COLORS.grey} />
                   <TextInput
                     style={styles.input}
-                    value={ageBracket}
-                    onChangeText={setAgeBracket}
+                    value={emergencyName}
+                    onChangeText={setEmergencyName}
+                    accessibilityLabel="Emergency contact name"
+                  />
+                </View>
+
+                <Text style={styles.fieldLabel}>EMERGENCY CONTACT PHONE</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="call-outline" size={18} color={COLORS.grey} />
+                  <TextInput
+                    style={styles.input}
+                    value={emergencyPhone}
+                    onChangeText={setEmergencyPhone}
+                    keyboardType="phone-pad"
+                    accessibilityLabel="Emergency contact phone"
                   />
                 </View>
 
@@ -212,7 +252,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingScreen>
   );
 }
 
@@ -265,10 +305,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 28,
     shadowColor: COLORS.pinkDark,
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    ...SHEET_TOP_SHADOW,
   },
   card: {
     backgroundColor: COLORS.white,

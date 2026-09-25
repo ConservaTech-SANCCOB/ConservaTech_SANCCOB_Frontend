@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import KeyboardAvoidingScreen from "../components/KeyboardAvoidingScreen";
 import { COLORS } from "../utils/colors";
 import { forgotPassword, resetPassword } from "../services/auth";
-import { getErrorStatus } from "../utils/api";
+import { getErrorMessage, getErrorStatus } from "../utils/api";
 import { showErrorToast } from "../utils/toast";
+import { logError } from "../utils/logError";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -29,8 +31,8 @@ export default function ForgotPasswordScreen() {
         { text: "OK", onPress: () => setStep("reset") },
       ]);
     } catch (error) {
-      console.error("Forgot password error:", error);
-      showErrorToast("Couldn't send reset code", "Something went wrong. Try again in a moment.");
+      logError("Forgot password error", error);
+      showErrorToast("Couldn't send reset code", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     } finally {
       setLoading(false);
     }
@@ -46,11 +48,11 @@ export default function ForgotPasswordScreen() {
       await resetPassword(email, resetCode, newPassword);
       router.replace("/(tabs)/home");
     } catch (error) {
-      console.error("Reset password error:", error);
+      logError("Reset password error", error);
       const status = getErrorStatus(error);
       showErrorToast(
         "Couldn't reset password",
-        status === 401 ? "Incorrect or expired reset code" : "Something went wrong. Try again in a moment."
+        status === 401 ? "Incorrect or expired reset code" : getErrorMessage(error, "Something went wrong. Try again in a moment.")
       );
     } finally {
       setLoading(false);
@@ -58,95 +60,97 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={["#00567f", "#002e4c"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.banner}>
-        <View style={styles.logoCircle}>
-          <Image source={require("../../assets/images/sanccob-icon.png")} style={styles.logoImage} />
-        </View>
-        <Text style={styles.title}>Reset Password</Text>
-        <Text style={styles.subtitle}>
-          {step === "request" ? "ENTER YOUR EMAIL TO GET A RESET CODE" : "ENTER THE CODE AND A NEW PASSWORD"}
-        </Text>
-      </LinearGradient>
+    <KeyboardAvoidingScreen style={styles.container}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
+        <LinearGradient colors={["#00567f", "#002e4c"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.banner}>
+          <View style={styles.logoCircle}>
+            <Image source={require("../../assets/images/sanccob-icon.png")} style={styles.logoImage} />
+          </View>
+          <Text style={styles.title}>Reset Password</Text>
+          <Text style={styles.subtitle}>
+            {step === "request" ? "ENTER YOUR EMAIL TO GET A RESET CODE" : "ENTER THE CODE AND A NEW PASSWORD"}
+          </Text>
+        </LinearGradient>
 
-      <View style={styles.background}>
-        <View style={styles.form}>
-          {step === "request" ? (
-            <>
-              <Text style={styles.label}>Email Address</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
-                <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                />
-              </View>
-              <TouchableOpacity style={styles.submitButtonWrap} onPress={handleRequestCode} disabled={loading}>
-                <View style={styles.submitButton}>
-                  {loading ? (
-                    <ActivityIndicator color={COLORS.white} />
-                  ) : (
-                    <>
-                      <Text style={styles.submitButtonText}>Send Reset Code</Text>
-                      <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
-                    </>
-                  )}
+        <View style={styles.background}>
+          <View style={styles.form}>
+            {step === "request" ? (
+              <>
+                <Text style={styles.label}>Email Address</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                  />
                 </View>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <Text style={styles.label}>Reset Code</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="keypad-outline" size={18} color={COLORS.grey} />
-                <TextInput
-                  style={styles.input}
-                  value={resetCode}
-                  onChangeText={setResetCode}
-                  autoCorrect={false}
-                />
-              </View>
-              <Text style={styles.label}>New Password</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="lock-closed-outline" size={18} color={COLORS.grey} />
-                <TextInput
-                  style={styles.input}
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  secureTextEntry={!showPassword}
-                  autoCorrect={false}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
-                  <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={COLORS.grey} />
+                <TouchableOpacity style={styles.submitButtonWrap} onPress={handleRequestCode} disabled={loading}>
+                  <View style={styles.submitButton}>
+                    {loading ? (
+                      <ActivityIndicator color={COLORS.white} />
+                    ) : (
+                      <>
+                        <Text style={styles.submitButtonText}>Send Reset Code</Text>
+                        <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
+                      </>
+                    )}
+                  </View>
                 </TouchableOpacity>
-              </View>
-              <TouchableOpacity style={styles.submitButtonWrap} onPress={handleReset} disabled={loading}>
-                <View style={styles.submitButton}>
-                  {loading ? (
-                    <ActivityIndicator color={COLORS.white} />
-                  ) : (
-                    <>
-                      <Text style={styles.submitButtonText}>Reset Password</Text>
-                      <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
-                    </>
-                  )}
+              </>
+            ) : (
+              <>
+                <Text style={styles.label}>Reset Code</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="keypad-outline" size={18} color={COLORS.grey} />
+                  <TextInput
+                    style={styles.input}
+                    value={resetCode}
+                    onChangeText={setResetCode}
+                    autoCorrect={false}
+                  />
                 </View>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setStep("request")}>
-                <Text style={styles.helperText}>Didn&apos;t get a code? Send again</Text>
-              </TouchableOpacity>
-            </>
-          )}
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.helperText}>Back to login</Text>
-          </TouchableOpacity>
+                <Text style={styles.label}>New Password</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="lock-closed-outline" size={18} color={COLORS.grey} />
+                  <TextInput
+                    style={styles.input}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showPassword}
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+                    <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={COLORS.grey} />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity style={styles.submitButtonWrap} onPress={handleReset} disabled={loading}>
+                  <View style={styles.submitButton}>
+                    {loading ? (
+                      <ActivityIndicator color={COLORS.white} />
+                    ) : (
+                      <>
+                        <Text style={styles.submitButtonText}>Reset Password</Text>
+                        <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
+                      </>
+                    )}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setStep("request")}>
+                  <Text style={styles.helperText}>Didn&apos;t get a code? Send again</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text style={styles.helperText}>Back to login</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingScreen>
   );
 }
 

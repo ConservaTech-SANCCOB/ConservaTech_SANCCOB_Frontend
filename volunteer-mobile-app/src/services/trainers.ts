@@ -1,4 +1,4 @@
-import { api, saveToken } from "../utils/api";
+import { api, ApiError, saveToken } from "../utils/api";
 
 export interface Trainer {
   trainerId: number;
@@ -26,18 +26,11 @@ export async function verifyTrainerPin(pin: string) {
       { pin },
       { skipSessionRedirect: true },
     );
-    await saveToken(response.token);
+    await saveToken(response.token, "trainer");
   } catch (error) {
-    const raw = error instanceof Error ? error.message : "";
-    const jsonStart = raw.indexOf("{");
-    let backendMessage: string | null = null;
-    if (jsonStart >= 0) {
-      try {
-        const parsed = JSON.parse(raw.slice(jsonStart));
-        if (typeof parsed.message === "string") backendMessage = parsed.message;
-      } catch {}
-    }
-    throw backendMessage ? new Error(backendMessage) : error;
+    // Surfaces the backend's message even on a 500 (e.g. "Trainer access PIN has not
+    // been configured."), so trainer-pin.tsx can show it instead of a generic failure.
+    throw error instanceof ApiError && error.backendMessage ? new Error(error.backendMessage) : error;
   }
 }
 
@@ -47,5 +40,5 @@ export async function selectTrainer(trainerId: number) {
     {},
     { skipSessionRedirect: true },
   );
-  await saveToken(response.token);
+  await saveToken(response.token, "trainer");
 }

@@ -13,7 +13,9 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
+import { logError } from "../utils/logError";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../constants/glassCard";
+import { logout } from "../services/auth";
 import { getTrainingVolunteers, TrainingVolunteerSummary } from "../services/training";
 
 type StatusFilter = "all" | "not-started" | "in-progress" | "completed";
@@ -48,9 +50,10 @@ function badgeFor(status: Exclude<StatusFilter, "all">) {
 
 export default function TrainerDashboardScreen() {
   const router = useRouter();
-  const { trainerId, trainerName } = useLocalSearchParams<{ trainerId?: string; trainerName?: string }>();
+  const { trainerName } = useLocalSearchParams<{ trainerName?: string }>();
   const [volunteers, setVolunteers] = useState<TrainingVolunteerSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
@@ -59,12 +62,20 @@ export default function TrainerDashboardScreen() {
       try {
         setIsLoading(true);
         setVolunteers(await getTrainingVolunteers());
+      } catch (error) {
+        logError("Load training volunteers error", error);
+        setLoadError(true);
       } finally {
         setIsLoading(false);
       }
     }
     load();
   }, []);
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/");
+  };
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -84,7 +95,12 @@ export default function TrainerDashboardScreen() {
             <Text style={styles.title}>Volunteers</Text>
             {!!trainerName && <Text style={styles.subtitle}>{`Signed in as ${trainerName}`}</Text>}
           </View>
-          <TouchableOpacity style={styles.logoutButtonWrap} onPress={() => router.replace("/")}>
+          <TouchableOpacity
+            style={styles.logoutButtonWrap}
+            onPress={handleLogout}
+            accessibilityRole="button"
+            accessibilityLabel="Log out"
+          >
             <View style={styles.logoutButton}>
               <Ionicons name="log-out-outline" size={20} color={COLORS.white} />
             </View>
@@ -142,7 +158,6 @@ export default function TrainerDashboardScreen() {
                     pathname: "/trainer-volunteer/[volunteerId]",
                     params: {
                       volunteerId: String(item.userId),
-                      trainerId: trainerId ?? "",
                       trainerName: trainerName ?? "",
                     },
                   })
@@ -181,7 +196,11 @@ export default function TrainerDashboardScreen() {
               </TouchableOpacity>
             );
           }}
-          ListEmptyComponent={<Text style={styles.emptyText}>No volunteers match your search.</Text>}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>
+              {loadError ? "Couldn't load volunteers. Go back and try again." : "No volunteers match your search."}
+            </Text>
+          }
         />
       )}
     </View>

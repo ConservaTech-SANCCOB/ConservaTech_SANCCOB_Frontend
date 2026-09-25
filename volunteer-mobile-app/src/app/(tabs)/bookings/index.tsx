@@ -23,8 +23,10 @@ import { bookVacancy, BookingRejectedError, getVacancies, Vacancy } from "../../
 import { SessionExpiredError } from "../../../utils/api";
 import { COLORS } from "../../../utils/colors";
 import { bucketForDate, DateBucket, getRelativeLabel } from "../../../utils/dateBuckets";
-import { formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
+import { compareShiftsByStart, formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
 import { showErrorToast } from "../../../utils/toast";
+import { logError } from "../../../utils/logError";
+import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 
 type ListRow =
   | { type: "header"; key: string; title: string }
@@ -34,7 +36,7 @@ type ListRow =
 function groupMyShifts(shifts: MyShift[]): ListRow[] {
   const order: DateBucket[] = ["Today", "This Week", "Later"];
   const buckets: Record<string, MyShift[]> = {};
-  shifts.forEach((item) => {
+  [...shifts].sort(compareShiftsByStart).forEach((item) => {
     const key = bucketForDate(item.shiftDate);
     if (!buckets[key]) buckets[key] = [];
     buckets[key].push(item);
@@ -72,7 +74,7 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
       Alert.alert("Shift booked", "It's now in your My Shifts.");
     } catch (error) {
       if (error instanceof SessionExpiredError) return; // api.ts already redirected to /login
-      console.error("Book shift error:", error);
+      logError("Book shift error", error);
       if (error instanceof BookingRejectedError) {
         showErrorToast(
           "Couldn't book this shift",
@@ -109,7 +111,7 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
           {formatTimeSlotLabel(item.timeSlot)}
         </Text>
         <View style={SHIFT_CARD_STYLES.badgeRow}>
-          <DateBadge dateStr={item.shiftDate} size={68} color={COLORS.amberMid} />
+          <DateBadge dateStr={item.shiftDate} size={68} color={COLORS.amberFill} />
           <View style={SHIFT_CARD_STYLES.metaColumn}>
             <View style={SHIFT_CARD_STYLES.metaRow}>
               <Ionicons name="time-outline" size={14} color={COLORS.grey} />
@@ -146,7 +148,10 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
             {booking ? (
               <ActivityIndicator size="small" color={COLORS.white} />
             ) : (
-              <Text style={[SHIFT_CARD_STYLES.actionText, styles.bookActionText]}>Book</Text>
+              <>
+                <Ionicons name="add-circle-outline" size={14} color={COLORS.white} />
+                <Text style={[SHIFT_CARD_STYLES.actionText, styles.bookActionText]}>Book</Text>
+              </>
             )}
           </View>
         </TouchableOpacity>
@@ -232,7 +237,7 @@ export default function BookingsScreen() {
             getMyShifts(),
             // A failure here must not break My Shifts — keep the last known pending set.
             getPendingCancellationIds().catch((error) => {
-              console.error("Load pending cancellations error:", error);
+              logError("Load pending cancellations error", error);
               return null;
             }),
           ]);
@@ -251,10 +256,11 @@ export default function BookingsScreen() {
                 !hasShiftEnded(v.shiftDate, v.timeSlot) &&
                 !assignedShiftIds.has(v.shiftId)
             )
+              .sort(compareShiftsByStart)
           );
         }
       } catch (error) {
-        console.error(`Load ${tab} shifts error:`, error);
+        logError(`Load ${tab} shifts error`, error);
         setLoadError(true);
       } finally {
         if (mode === "manual") setRefreshing(false);
@@ -386,7 +392,7 @@ export default function BookingsScreen() {
                 <MyShiftCard
                   item={row.item}
                   cancellationPending={pendingCancellationIds.has(row.item.rosterAssignmentId)}
-                  accent={COLORS.amberMid}
+                  accent={COLORS.amberFill}
                 />
               </View>
             );
@@ -466,7 +472,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 11.5,
-    color: "#d8c893",
+    color: "#fbeccb",
     letterSpacing: 0.3,
     marginTop: 6,
     fontWeight: "500",
@@ -480,10 +486,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 28,
     shadowColor: "#3a2c02",
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    ...SHEET_TOP_SHADOW,
   },
   summaryRow: {
     flexDirection: "row",
@@ -509,7 +512,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 18,
     gap: 6,
-    backgroundColor: COLORS.amberMid,
+    backgroundColor: COLORS.amberFill,
   },
   availabilityButtonText: { color: COLORS.white, fontWeight: "700", fontSize: 13 },
   segmentRow: {
@@ -533,7 +536,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  segmentIndicatorFill: { flex: 1, borderRadius: 18, backgroundColor: COLORS.amberMid },
+  segmentIndicatorFill: { flex: 1, borderRadius: 18, backgroundColor: COLORS.amberFill },
   segmentText: { fontSize: 13, color: COLORS.grey, fontWeight: "700" },
   segmentTextActive: { color: COLORS.white, fontWeight: "900" },
   sectionHeader: {
@@ -557,7 +560,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.amberLight },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
   availableTimeLabel: { marginBottom: 12 },
-  bookAction: { backgroundColor: COLORS.amberMid },
+  bookAction: { backgroundColor: COLORS.amberFill },
   bookActionText: { color: COLORS.white },
   limitedTag: {
     backgroundColor: COLORS.amberBg,

@@ -9,12 +9,52 @@ if (!BASE_URL) {
 }
 
 const TOKEN_KEY = "auth_token";
+const SESSION_ROLE_KEY = "session_role";
+
+/** Who the stored token belongs to. Trainer sessions come from the PIN flow on a
+ * shared device, so they are never restored on the next launch (see _layout.tsx). */
+export type SessionRole = "volunteer" | "trainer";
 
 export class SessionExpiredError extends Error {
   constructor() {
     super("Session expired — please log in again.");
     this.name = "SessionExpiredError";
   }
+}
+
+/** Thrown by request() for any non-2xx response (other than a redirected 401).
+ * The message keeps the "API error <status>: <body>" format that getErrorStatus()
+ * relies on; `backendMessage` is the human-readable `message` from the backend's
+ * JSON body, when there is one. */
+export class ApiError extends Error {
+  status: number;
+  backendMessage: string | null;
+
+  constructor(status: number, body: string) {
+    super(`API error ${status}: ${body}`);
+    this.name = "ApiError";
+    this.status = status;
+    this.backendMessage = parseBackendMessage(body);
+  }
+}
+
+/** Pulls a displayable message out of an error response body: `message` first
+ * (the backend's own convention), then ASP.NET ProblemDetails' `detail`, then the
+ * first model-validation error. Returns null for non-JSON or message-less bodies. */
+export function parseBackendMessage(body: string): string | null {
+  try {
+    const parsed = JSON.parse(body);
+    for (const candidate of [parsed?.message, parsed?.detail]) {
+      if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+    }
+    if (parsed?.errors && typeof parsed.errors === "object") {
+      const first = Object.values(parsed.errors).flat()[0];
+      if (typeof first === "string" && first.trim()) return first.trim();
+    }
+  } catch {
+    // not JSON — nothing to show
+  }
+  return null;
 }
 
 interface RequestConfig {
@@ -41,11 +81,14 @@ async function request<T>(path: string, options: RequestInit = {}, config: Reque
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`API error ${response.status}: ${body}`);
+    throw new ApiError(response.status, body);
   }
 
+  // Several endpoints (profile/availability saves, sign-off, logout) answer a bare
+  // 200 with no body, which response.json() would reject as invalid JSON.
   if (response.status === 204) return undefined as T;
-  return response.json();
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export const api = {
@@ -67,11 +110,26 @@ export function getErrorStatus(error: unknown): number | null {
   return match ? Number(match[1]) : null;
 }
 
-export async function saveToken(token: string) {
+/** The message to show the user for a failed request: the backend's own message
+ * for 4xx responses (validation, bad input — written for users), otherwise the
+ * caller's fallback. 5xx bodies are never shown, since they can carry internals. */
+export function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500 && error.backendMessage) {
+    return error.backendMessage;
+  }
+  return fallback;
+}
+
+export async function saveToken(token: string, role: SessionRole = "volunteer") {
   await SecureStore.setItemAsync(TOKEN_KEY, token);
+  await SecureStore.setItemAsync(SESSION_ROLE_KEY, role);
 }
 export async function clearToken() {
   await SecureStore.deleteItemAsync(TOKEN_KEY);
+  await SecureStore.deleteItemAsync(SESSION_ROLE_KEY);
+}
+export async function getSessionRole(): Promise<SessionRole> {
+  return (await SecureStore.getItemAsync(SESSION_ROLE_KEY)) === "trainer" ? "trainer" : "volunteer";
 }
 export async function getToken() {
   return SecureStore.getItemAsync(TOKEN_KEY);

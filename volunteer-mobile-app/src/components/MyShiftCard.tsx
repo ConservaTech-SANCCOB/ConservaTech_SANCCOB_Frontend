@@ -16,7 +16,7 @@ export default function MyShiftCard({
   item: MyShift;
   /** A pending cancellation request already exists for this shift — hides the cancel action. */
   cancellationPending?: boolean;
-  /** Tints the date badge to match the screen this card is shown on. */
+  /** Tints the date badge and Cancel button to match the screen this card is shown on. */
   accent?: string;
 }) {
   const router = useRouter();
@@ -58,7 +58,7 @@ export default function MyShiftCard({
             ? [{ text: "Close", style: "cancel" }]
             : [
                 { text: "Close", style: "cancel" },
-                { text: "Request to Cancel", onPress: requestChange },
+                { text: "Cancel Shift", onPress: requestChange },
               ]
         )
       }
@@ -95,10 +95,16 @@ export default function MyShiftCard({
         </View>
         {!ended && !cancellationPending && <View style={SHIFT_CARD_STYLES.divider} />}
         {!ended && !cancellationPending && (
-          <TouchableOpacity style={SHIFT_CARD_STYLES.actionWrap} onPress={requestChange} hitSlop={6}>
-            <View style={[SHIFT_CARD_STYLES.action, styles.cancelAction]}>
-              <Ionicons name="close-circle-outline" size={14} color="#c62828" />
-              <Text style={[SHIFT_CARD_STYLES.actionText, styles.cancelActionText]}>Request to Cancel</Text>
+          <TouchableOpacity
+            style={SHIFT_CARD_STYLES.actionWrap}
+            onPress={requestChange}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel shift"
+          >
+            <View style={[SHIFT_CARD_STYLES.action, { backgroundColor: accent }]}>
+              <Ionicons name="close-circle-outline" size={14} color={COLORS.white} />
+              <Text style={[SHIFT_CARD_STYLES.actionText, styles.cancelActionText]}>Cancel</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -109,8 +115,7 @@ export default function MyShiftCard({
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-  cancelAction: { backgroundColor: "#fdeded" },
-  cancelActionText: { color: "#c62828" },
+  cancelActionText: { color: COLORS.white },
   // Same 8px round dot as the unread indicator in notifications.tsx, in amber for "pending".
   pendingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.amber },
 });
