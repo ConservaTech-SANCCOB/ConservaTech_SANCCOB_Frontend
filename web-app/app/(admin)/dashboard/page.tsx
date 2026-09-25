@@ -363,7 +363,7 @@ export default function DashboardPage() {
         <Card
           title="Staff & Volunteer Training"
           subtitle="Active training sessions"
-          headerRight={<LinkHeader href="/training" text="Training Hub" />}
+          headerRight={<LinkHeader href="/training-staff" text="Training Hub" />}
         >
           <SectionBody section={training}>
             {(data) =>
