@@ -44,7 +44,32 @@ export function getTrainingVolunteerProfile(userId: number) {
 }
 
 /** Trainer signs off a volunteer's skill for real. POST-only — the backend has no
- * revoke/undo endpoint, so a sign-off can't be reversed from this app once sent. */
-export function signOffTrainingSkill(userId: number, skillId: number, trainerId: number) {
-  return api.post<void>(`/api/training/volunteers/${userId}/sign-off`, { skillId, trainerId });
+ * revoke/undo endpoint, so a sign-off can't be reversed from this app once sent.
+ * The signing trainer comes from the trainer session token, not the request body. */
+export function signOffTrainingSkill(userId: number, skillId: number) {
+  return api.post<void>(`/api/training/volunteers/${userId}/sign-off`, { skillId });
+}
+
+/** The logged-in volunteer's own training record (same shape the trainer view uses). */
+export function getMyTrainingProfile() {
+  return api.get<TrainingVolunteerProfile>("/api/volunteers/me/training/profile");
+}
+
+export interface CompletedShift {
+  shiftDate: string;
+  timeSlot: string | null;
+  location: string | null;
+  hoursWorked: number;
+}
+
+export interface MyTrainingStats {
+  totalHours: number;
+  shiftsCompleted: number;
+  hoursThisMonth: number;
+  completedShifts: CompletedShift[] | null;
+}
+
+/** The logged-in volunteer's worked-hours summary and completed-shift log. */
+export function getMyTrainingStats() {
+  return api.get<MyTrainingStats>("/api/volunteers/me/training/stats");
 }

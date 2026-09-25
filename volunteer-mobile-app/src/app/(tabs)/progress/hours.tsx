@@ -13,83 +13,53 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { getMyTotalHours } from "../../../services/attendance";
-import { getMyShifts, MyShift } from "../../../services/shifts";
+import { CompletedShift, getMyTrainingStats, MyTrainingStats } from "../../../services/training";
 import { COLORS } from "../../../utils/colors";
 import { parseLocalDate } from "../../../utils/dateBuckets";
-import { formatTimeSlotLabel, getTimeSlotHours, hasShiftEnded } from "../../../utils/timeSlot";
-
-function isCancelled(status: string): boolean {
-  const s = status.toLowerCase();
-  return s.includes("cancel") || s.includes("declin") || s.includes("reject");
-}
-
-function isPending(status: string): boolean {
-  return status.toLowerCase().includes("pend");
-}
+import { formatTimeSlotLabel } from "../../../utils/timeSlot";
+import { logError } from "../../../utils/logError";
+import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 
 function monthLabelFor(dateStr: string): string {
   return parseLocalDate(dateStr).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
-type TotalHoursState = "confirmed" | "unknown";
+/** Most recent first: by date, then by start time within a day. */
+function newestFirst(a: CompletedShift, b: CompletedShift): number {
+  return b.shiftDate.localeCompare(a.shiftDate) || (b.timeSlot ?? "").localeCompare(a.timeSlot ?? "");
+}
 
 export default function HoursWorkedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [shifts, setShifts] = useState<MyShift[]>([]);
-  const [shiftsError, setShiftsError] = useState(false);
-  const [attendanceHours, setAttendanceHours] = useState<number | null>(null);
+  const [stats, setStats] = useState<MyTrainingStats | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
-    setShiftsError(false);
-    const [shiftsResult, hoursResult] = await Promise.allSettled([getMyShifts(), getMyTotalHours()]);
-    if (shiftsResult.status === "fulfilled") {
-      setShifts(shiftsResult.value);
-    } else {
-      console.error("Load hours error (shifts):", shiftsResult.reason);
-      setShiftsError(true);
+    try {
+      setStats(await getMyTrainingStats());
+      setLoadError(false);
+    } catch (error) {
+      logError("Load hours stats error", error);
+      setLoadError(true);
+    } finally {
+      if (isRefresh) setRefreshing(false);
+      else setLoading(false);
     }
-    if (hoursResult.status === "fulfilled") {
-      setAttendanceHours(hoursResult.value);
-    } else {
-      console.error("Load hours error (attendance):", hoursResult.reason);
-      setAttendanceHours(null);
-    }
-    if (isRefresh) setRefreshing(false);
-    else setLoading(false);
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const completedShifts = shifts
-    .filter((s) => hasShiftEnded(s.shiftDate, s.timeSlot) && !isCancelled(s.status) && !isPending(s.status))
-    .sort((a, b) => b.shiftDate.localeCompare(a.shiftDate));
-
-  let totalHoursState: TotalHoursState;
-  let totalHoursValue = 0;
-  if (attendanceHours !== null) {
-    totalHoursState = "confirmed";
-    totalHoursValue = attendanceHours;
-  } else {
-    totalHoursState = "unknown";
-  }
-
-  const now = new Date();
-  const hoursThisMonth = completedShifts
-    .filter((s) => {
-      const d = parseLocalDate(s.shiftDate);
-      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-    })
-    .reduce((sum, s) => sum + getTimeSlotHours(s.timeSlot), 0);
-
+  const completedShifts = [...(stats?.completedShifts ?? [])].sort(newestFirst);
   const months = Array.from(new Set(completedShifts.map((s) => monthLabelFor(s.shiftDate))));
+  const statValue = (value: number | undefined, decimals: number) =>
+    loadError || value === undefined ? "—" : value.toFixed(decimals);
 
   if (loading) {
     return (
@@ -155,25 +125,25 @@ export default function HoursWorkedScreen() {
             <View style={styles.statCard}>
               <Ionicons name="time-outline" size={18} color={COLORS.greenMid} />
               <Text style={styles.statValue}>
-                {totalHoursState === "unknown" ? "—" : totalHoursValue.toFixed(1)}
+                {statValue(stats?.totalHours, 1)}
               </Text>
               <Text style={styles.statLabel}>Total Hours</Text>
             </View>
             <View style={styles.statCard}>
               <Ionicons name="calendar-outline" size={18} color={COLORS.greenMid} />
-              <Text style={styles.statValue}>{shiftsError ? "—" : completedShifts.length}</Text>
+              <Text style={styles.statValue}>{statValue(stats?.shiftsCompleted, 0)}</Text>
               <Text style={styles.statLabel}>Shifts Done</Text>
             </View>
             <View style={styles.statCard}>
               <Ionicons name="trending-up-outline" size={18} color={COLORS.greenMid} />
-              <Text style={styles.statValue}>{shiftsError ? "—" : hoursThisMonth.toFixed(1)}</Text>
+              <Text style={styles.statValue}>{statValue(stats?.hoursThisMonth, 1)}</Text>
               <Text style={styles.statLabel}>This Month</Text>
             </View>
           </View>
 
           <Text style={styles.logTitle}>Completed Shifts Log</Text>
 
-          {shiftsError ? (
+          {loadError ? (
             <View style={styles.emptyStateCard}>
               <Ionicons name="warning-outline" size={32} color={COLORS.grey} />
               <Text style={styles.emptyTitle}>Couldn&apos;t load your shift history</Text>
@@ -187,7 +157,7 @@ export default function HoursWorkedScreen() {
                   <Text style={styles.monthLabel}>{month.toUpperCase()}</Text>
                   {monthShifts.map((shift, i) => (
                     <View
-                      key={shift.rosterAssignmentId}
+                      key={`${shift.shiftDate}-${shift.timeSlot}-${i}`}
                       style={[styles.shiftRow, i < monthShifts.length - 1 && styles.shiftRowDivider]}
                     >
                       <View style={{ flex: 1 }}>
@@ -197,8 +167,8 @@ export default function HoursWorkedScreen() {
                         </Text>
                       </View>
                       <View style={{ alignItems: "flex-end" }}>
-                        <Text style={styles.shiftHours}>{getTimeSlotHours(shift.timeSlot).toFixed(1)} hrs</Text>
-                        <Text style={styles.shiftTime}>{formatTimeSlotLabel(shift.timeSlot)}</Text>
+                        <Text style={styles.shiftHours}>{shift.hoursWorked.toFixed(1)} hrs</Text>
+                        <Text style={styles.shiftTime}>{formatTimeSlotLabel(shift.timeSlot ?? "")}</Text>
                       </View>
                     </View>
                   ))}
@@ -267,10 +237,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 28,
     shadowColor: "#0d3305",
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    ...SHEET_TOP_SHADOW,
   },
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 28 },
   statCard: {

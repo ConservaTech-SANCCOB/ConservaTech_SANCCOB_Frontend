@@ -1,4 +1,4 @@
-import { api, getErrorStatus } from "../utils/api";
+import { api, ApiError, getErrorStatus } from "../utils/api";
 
 export interface Vacancy {
   shiftId: number;
@@ -44,19 +44,7 @@ export async function bookVacancy(shiftId: number) {
   } catch (error) {
     const status = getErrorStatus(error);
     if (status === 400 || status === 404 || status === 409) {
-      const raw = error instanceof Error ? error.message : "";
-      const jsonStart = raw.indexOf("{");
-      let backendMessage: string | null = null;
-      if (jsonStart >= 0) {
-        try {
-          const parsed = JSON.parse(raw.slice(jsonStart));
-          const text = parsed.message ?? parsed.detail;
-          if (typeof text === "string" && text.trim()) backendMessage = text.trim();
-        } catch {
-          // body wasn't valid JSON — leave backendMessage null
-        }
-      }
-      throw new BookingRejectedError(backendMessage);
+      throw new BookingRejectedError(error instanceof ApiError ? error.backendMessage : null);
     }
     throw error;
   }

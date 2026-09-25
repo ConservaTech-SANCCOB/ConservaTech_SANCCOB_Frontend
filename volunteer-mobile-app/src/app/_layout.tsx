@@ -5,8 +5,10 @@ import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import AnimatedSplash from "../components/AnimatedSplash";
-import { getToken } from "../utils/api";
+import { toastConfig } from "../components/toastConfig";
+import { clearToken, getSessionRole, getToken } from "../utils/api";
 import { COLORS } from "../utils/colors";
+import { logError } from "../utils/logError";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -25,10 +27,16 @@ export default function RootLayout() {
     let cancelled = false;
     (async () => {
       try {
-        const token = await getToken();
+        let token = await getToken();
+        // A trainer session left over from the PIN flow (app closed mid-session) must
+        // not be restored as a volunteer session — sign it out and start fresh.
+        if (token && (await getSessionRole()) === "trainer") {
+          await clearToken();
+          token = null;
+        }
         if (!cancelled) setSessionCheck(token ? "authenticated" : "unauthenticated");
       } catch (error) {
-        console.error("Session restore check failed:", error);
+        logError("Session restore check failed", error);
         if (!cancelled) setSessionCheck("unauthenticated");
       }
     })();
@@ -50,7 +58,7 @@ export default function RootLayout() {
           <ActivityIndicator color={COLORS.blue} />
         </View>
         {showCustomSplash && <AnimatedSplash onFinish={() => setShowCustomSplash(false)} />}
-        <Toast />
+        <Toast config={toastConfig} />
       </SafeAreaProvider>
     );
   }
@@ -69,7 +77,7 @@ export default function RootLayout() {
         <Stack.Screen name="trainer-volunteer/[volunteerId]" />
       </Stack>
       {showCustomSplash && <AnimatedSplash onFinish={() => setShowCustomSplash(false)} />}
-      <Toast />
+      <Toast config={toastConfig} />
     </SafeAreaProvider>
   );
 }

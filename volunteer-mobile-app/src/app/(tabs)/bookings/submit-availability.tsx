@@ -9,7 +9,10 @@ import { COLORS } from "../../../utils/colors";
 import { getTabBarStyle } from "../../../constants/tabBar";
 import { TIME_SLOT_LABELS } from "../../../utils/timeSlot";
 import { getMyAvailability, updateMyAvailability, AvailabilitySlot, TimeBlock } from "../../../services/availability";
+import { getErrorMessage } from "../../../utils/api";
 import { showErrorToast } from "../../../utils/toast";
+import { logError } from "../../../utils/logError";
+import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const SLOTS: TimeBlock[] = ["08:00-13:00", "14:00-17:00", "08:00-17:00"];
@@ -34,7 +37,7 @@ export default function SubmitAvailabilityScreen() {
         setSelected(new Set(keys));
       })
       .catch((error) => {
-        console.error("Load availability error:", error);
+        logError("Load availability error", error);
         showErrorToast("Couldn't load availability", "Starting from a blank grid instead.");
       })
       .finally(() => setLoading(false));
@@ -80,8 +83,8 @@ export default function SubmitAvailabilityScreen() {
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (error) {
-      console.error("Save availability error:", error);
-      showErrorToast("Couldn't save", "Something went wrong. Try again in a moment.");
+      logError("Save availability error", error);
+      showErrorToast("Couldn't save", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     } finally {
       setSaving(false);
     }
@@ -265,7 +268,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 11.5,
-    color: "#d8c893",
+    color: "#fbeccb",
     letterSpacing: 0.3,
     marginTop: 6,
     fontWeight: "500",
@@ -279,10 +282,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 28,
     shadowColor: "#3a2c02",
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    ...SHEET_TOP_SHADOW,
   },
   infoBannerWrap: {
     marginBottom: 24,
@@ -334,8 +334,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cellActive: {
-    backgroundColor: COLORS.amberMid,
-    borderColor: COLORS.amberMid,
+    backgroundColor: COLORS.amberFill,
+    borderColor: COLORS.amberFill,
   },
   bottomScrim: {
     position: "absolute",
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 30,
-    backgroundColor: COLORS.amberMid,
+    backgroundColor: COLORS.amberFill,
   },
   bottomBarButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
 });

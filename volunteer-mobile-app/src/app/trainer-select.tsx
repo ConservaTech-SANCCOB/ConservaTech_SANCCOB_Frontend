@@ -14,7 +14,10 @@ import {
 } from "react-native";
 import { GLASS_CARD, GLASS_SHADOW_MD } from "../constants/glassCard";
 import { getTrainers, selectTrainer, Trainer } from "../services/trainers";
+import { getErrorMessage } from "../utils/api";
 import { COLORS } from "../utils/colors";
+import { showErrorToast } from "../utils/toast";
+import { logError } from "../utils/logError";
 
 function initialsFor(trainer: Trainer) {
   return `${trainer.firstName?.[0] ?? ""}${trainer.lastName?.[0] ?? ""}`.toUpperCase();
@@ -47,7 +50,7 @@ export default function TrainerSelectScreen() {
     getTrainers()
       .then(setTrainers)
       .catch((error) => {
-        console.error("Load trainers error:", error);
+        logError("Load trainers error", error);
         setLoadError(true);
       })
       .finally(() => setLoading(false));
@@ -65,7 +68,8 @@ export default function TrainerSelectScreen() {
         },
       });
     } catch (error) {
-      console.error("Select trainer error:", error);
+      logError("Select trainer error", error);
+      showErrorToast("Couldn't continue", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     }
   };
 

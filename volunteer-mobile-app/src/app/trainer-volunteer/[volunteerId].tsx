@@ -11,7 +11,9 @@ import {
   TrainingSkillDto,
   TrainingVolunteerProfile,
 } from "../../services/training";
+import { getErrorMessage } from "../../utils/api";
 import { showErrorToast } from "../../utils/toast";
+import { logError } from "../../utils/logError";
 
 type SkillGroup = { title: string; skills: TrainingSkillDto[] };
 
@@ -26,16 +28,15 @@ function groupsFor(profile: TrainingVolunteerProfile | null): SkillGroup[] {
 
 export default function TrainerVolunteerScreen() {
   const router = useRouter();
-  const { volunteerId, trainerId, trainerName } = useLocalSearchParams<{
+  const { volunteerId, trainerName } = useLocalSearchParams<{
     volunteerId: string;
-    trainerId?: string;
     trainerName?: string;
   }>();
   const userId = Number(volunteerId);
-  const numericTrainerId = trainerId ? Number(trainerId) : NaN;
 
   const [profile, setProfile] = useState<TrainingVolunteerProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [signingOffId, setSigningOffId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
@@ -48,6 +49,9 @@ export default function TrainerVolunteerScreen() {
       try {
         setIsLoading(true);
         await load();
+      } catch (error) {
+        logError("Load volunteer training error", error);
+        setLoadError(true);
       } finally {
         setIsLoading(false);
       }
@@ -61,19 +65,15 @@ export default function TrainerVolunteerScreen() {
   const volunteerLabel = profile ? `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() : "Volunteer";
 
   const applySignOff = async (skill: TrainingSkillDto) => {
-    if (!Number.isFinite(numericTrainerId)) {
-      showErrorToast("Missing trainer ID", "Sign in again from the trainer PIN screen, then retry.");
-      return;
-    }
     setSigningOffId(skill.skillId);
     try {
-      await signOffTrainingSkill(userId, skill.skillId, numericTrainerId);
+      await signOffTrainingSkill(userId, skill.skillId);
       // Re-fetch rather than trust the optimistic response — confirms the sign-off
       // actually persisted server-side and not just in local state.
       await load();
     } catch (error) {
-      console.error("Sign off skill error:", error);
-      showErrorToast("Couldn't sign off", "Something went wrong. Try again in a moment.");
+      logError("Sign off skill error", error);
+      showErrorToast("Couldn't sign off", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     } finally {
       setSigningOffId(null);
     }
@@ -109,63 +109,69 @@ export default function TrainerVolunteerScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryText}>{`${completedCount} of ${totalCount} skills completed`}</Text>
-            <Text style={styles.summaryPercent}>{`${percent}%`}</Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${percent}%`, backgroundColor: percent === 100 ? COLORS.green : COLORS.blue },
-              ]}
-            />
-          </View>
-        </View>
+        {loadError ? (
+          <Text style={styles.loadErrorText}>Couldn&apos;t load this volunteer&apos;s training. Go back and try again.</Text>
+        ) : (
+          <>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryText}>{`${completedCount} of ${totalCount} skills completed`}</Text>
+                <Text style={styles.summaryPercent}>{`${percent}%`}</Text>
+              </View>
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${percent}%`, backgroundColor: percent === 100 ? COLORS.green : COLORS.blue },
+                  ]}
+                />
+              </View>
+            </View>
 
-        {groups.map((group) => (
-          <View key={group.title} style={{ marginBottom: 24 }}>
-            <Text style={styles.sectionTitle}>{group.title}</Text>
-            {group.skills.map((skill) => (
-              <View key={skill.skillId} style={styles.skillRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.skillName}>{skill.skillName}</Text>
-                  {skill.isSignedOff && (
-                    <Text style={styles.signOffMeta}>
-                      {skill.trainerName ? `${skill.trainerName} · ` : ""}
-                      {skill.signedOffAt ? new Date(skill.signedOffAt).toLocaleDateString() : ""}
-                    </Text>
-                  )}
-                </View>
-
-                {skill.isSignedOff ? (
-                  <View style={styles.signedOffTag}>
-                    <Ionicons name="checkmark-circle" size={18} color={COLORS.green} />
-                    <Text style={styles.signedOffText}>Signed Off</Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => confirmSignOff(skill)}
-                    style={styles.signOffButtonWrap}
-                    disabled={signingOffId === skill.skillId}
-                  >
-                    <View style={styles.signOffButton}>
-                      {signingOffId === skill.skillId ? (
-                        <ActivityIndicator size="small" color={COLORS.white} />
-                      ) : (
-                        <>
-                          <Text style={styles.signOffText}>Sign Off</Text>
-                          <Ionicons name="checkmark" size={16} color={COLORS.white} />
-                        </>
+            {groups.map((group) => (
+              <View key={group.title} style={{ marginBottom: 24 }}>
+                <Text style={styles.sectionTitle}>{group.title}</Text>
+                {group.skills.map((skill) => (
+                  <View key={skill.skillId} style={styles.skillRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.skillName}>{skill.skillName}</Text>
+                      {skill.isSignedOff && (
+                        <Text style={styles.signOffMeta}>
+                          {skill.trainerName ? `${skill.trainerName} · ` : ""}
+                          {skill.signedOffAt ? new Date(skill.signedOffAt).toLocaleDateString() : ""}
+                        </Text>
                       )}
                     </View>
-                  </TouchableOpacity>
-                )}
+
+                    {skill.isSignedOff ? (
+                      <View style={styles.signedOffTag}>
+                        <Ionicons name="checkmark-circle" size={18} color={COLORS.green} />
+                        <Text style={styles.signedOffText}>Signed Off</Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => confirmSignOff(skill)}
+                        style={styles.signOffButtonWrap}
+                        disabled={signingOffId === skill.skillId}
+                      >
+                        <View style={styles.signOffButton}>
+                          {signingOffId === skill.skillId ? (
+                            <ActivityIndicator size="small" color={COLORS.white} />
+                          ) : (
+                            <>
+                              <Text style={styles.signOffText}>Sign Off</Text>
+                              <Ionicons name="checkmark" size={16} color={COLORS.white} />
+                            </>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
               </View>
             ))}
-          </View>
-        ))}
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -203,6 +209,7 @@ const styles = StyleSheet.create({
   },
   skillName: { fontSize: 14, color: COLORS.black, fontWeight: "600" },
   signOffMeta: { fontSize: 11, color: COLORS.grey, marginTop: 4 },
+  loadErrorText: { fontSize: 13, color: COLORS.grey, textAlign: "center", marginTop: 40 },
   signOffButtonWrap: {
     borderRadius: 16,
     shadowColor: "#075985",

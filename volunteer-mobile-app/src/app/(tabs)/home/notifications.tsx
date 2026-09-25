@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { AppNotification, getMyNotifications, markNotificationRead } from "../../../services/notifications";
 import { COLORS } from "../../../utils/colors";
+import { logError } from "../../../utils/logError";
+import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -19,7 +21,7 @@ export default function NotificationsScreen() {
     getMyNotifications()
       .then(setNotifications)
       .catch((error) => {
-        console.error("Load notifications error:", error);
+        logError("Load notifications error", error);
         setLoadError(true);
       })
       .finally(() => setLoading(false));
@@ -33,7 +35,7 @@ export default function NotificationsScreen() {
         prev.map((n) => (n.notificationId === item.notificationId ? { ...n, isRead: true } : n))
       );
     } catch (error) {
-      console.error("Mark read error:", error);
+      logError("Mark read error", error);
     }
   };
 
@@ -179,10 +181,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     marginTop: -20,
     shadowColor: COLORS.blueDark,
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    ...SHEET_TOP_SHADOW,
   },
   emptyStateCard: {
     alignItems: "center",

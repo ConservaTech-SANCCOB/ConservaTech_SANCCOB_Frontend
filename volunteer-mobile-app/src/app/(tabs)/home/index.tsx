@@ -11,7 +11,10 @@ import { getMyNotifications } from "../../../services/notifications";
 import { getMyProfile } from "../../../services/profile";
 import { getMyShifts, MyShift } from "../../../services/shifts";
 import { COLORS } from "../../../utils/colors";
-import { bucketForDate } from "../../../utils/dateBuckets";
+import { bucketForDate, getRelativeLabel } from "../../../utils/dateBuckets";
+import { logError } from "../../../utils/logError";
+import { compareShiftsByStart, formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
+import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -34,17 +37,22 @@ export default function HomeScreen() {
 
   const initials = (`${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "SV");
 
-  const thisWeeksShifts = shifts
-    .filter((s) => bucketForDate(s.shiftDate) === "Today" || bucketForDate(s.shiftDate) === "This Week")
-    .sort((a, b) => a.shiftDate.localeCompare(b.shiftDate));
+  // Only shifts still ahead: a shift earlier today that has already finished isn't "upcoming".
+  const futureShifts = shifts.filter((s) => !hasShiftEnded(s.shiftDate, s.timeSlot)).sort(compareShiftsByStart);
+  const thisWeeksShifts = futureShifts.filter((s) => {
+    const bucket = bucketForDate(s.shiftDate);
+    return bucket === "Today" || bucket === "This Week";
+  });
   const upcoming = thisWeeksShifts.slice(0, 2);
+  // Nothing this week doesn't mean nothing at all — point to the next one if there is one.
+  const nextLaterShift = futureShifts.find((s) => bucketForDate(s.shiftDate) === "Later");
 
   const loadUnreadCount = useCallback(async () => {
     try {
       const notifications = await getMyNotifications();
       setUnreadCount(notifications.filter((n) => !n.isRead).length);
     } catch (error) {
-      console.error("Load notifications count error:", error);
+      logError("Load notifications count error", error);
     }
   }, []);
 
@@ -54,7 +62,7 @@ export default function HomeScreen() {
       setFirstName(profile.firstName ?? "");
       setLastName(profile.lastName ?? "");
     } catch (error) {
-      console.error("Load profile error:", error);
+      logError("Load profile error", error);
     }
   }, []);
 
@@ -65,14 +73,14 @@ export default function HomeScreen() {
         getMyShifts(),
         // A failure here must not break the shifts list — keep the last known pending set.
         getPendingCancellationIds().catch((error) => {
-          console.error("Load pending cancellations error:", error);
+          logError("Load pending cancellations error", error);
           return null;
         }),
       ]);
       setShifts(myShifts);
       if (pending) setPendingCancellationIds(pending);
     } catch (error) {
-      console.error("Load shifts error:", error);
+      logError("Load shifts error", error);
       setShiftsError(true);
     }
   }, []);
@@ -148,7 +156,9 @@ export default function HomeScreen() {
               accessibilityLabel="Notifications"
             >
               <Ionicons name="notifications-outline" size={22} color={COLORS.white} />
-              <Text style={styles.bellBadgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+              {unreadCount > 0 && (
+                <Text style={styles.bellBadgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -192,6 +202,20 @@ export default function HomeScreen() {
                 cancellationPending={pendingCancellationIds.has(shift.rosterAssignmentId)}
               />
             ))
+          ) : nextLaterShift ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>No shifts this week</Text>
+              <Text style={styles.emptyText}>
+                Your next shift is {getRelativeLabel(nextLaterShift.shiftDate).toLowerCase()}
+                {` (${formatTimeSlotLabel(nextLaterShift.timeSlot)}${nextLaterShift.location ? `, ${nextLaterShift.location}` : ""}).`}
+              </Text>
+              <TouchableOpacity style={styles.emptyCtaWrap} onPress={() => router.push("/(tabs)/bookings")}>
+                <View style={styles.emptyCta}>
+                  <Text style={styles.emptyCtaText}>View My Shifts</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.white} />
+                </View>
+              </TouchableOpacity>
+            </View>
           ) : (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>No shifts yet</Text>
@@ -263,10 +287,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 28,
     shadowColor: COLORS.blueDark,
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    ...SHEET_TOP_SHADOW,
   },
   avatar: {
     width: 46,

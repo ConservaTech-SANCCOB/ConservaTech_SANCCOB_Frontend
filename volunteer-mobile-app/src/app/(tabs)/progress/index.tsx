@@ -1,13 +1,32 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
-import { Alert, Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
-import { penRoutines, supportingAreas } from "../../../data/mockSkills";
+import { getMyTrainingProfile, TrainingSkillDto, TrainingVolunteerProfile } from "../../../services/training";
 import { Skill } from "../../../types/skill";
 import { COLORS } from "../../../utils/colors";
+import { logError } from "../../../utils/logError";
+import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
+
+function toSkill(dto: TrainingSkillDto): Skill {
+  return {
+    id: String(dto.skillId),
+    name: dto.skillName ?? "Unnamed skill",
+    completed: dto.isSignedOff,
+    signedOffBy: dto.trainerName,
+    signedOffAt: dto.signedOffAt,
+  };
+}
+
+function signOffDetail(skill: Skill): string {
+  if (!skill.completed) return "Not signed off yet. A trainer signs this off once you've shown you can do it.";
+  const by = skill.signedOffBy ? ` by ${skill.signedOffBy}` : "";
+  const on = skill.signedOffAt ? ` on ${new Date(skill.signedOffAt).toLocaleDateString()}` : "";
+  return `Signed off${by}${on}.`;
+}
 
 function ProgressRing({ percent, size = 92, strokeWidth = 10 }: { percent: number; size?: number; strokeWidth?: number }) {
   const radius = (size - strokeWidth) / 2;
@@ -71,7 +90,7 @@ function SkillRow({
       style={styles.pathRow}
       activeOpacity={0.6}
       onPress={() =>
-        Alert.alert(skill.name, skill.completed ? "You've completed this skill." : "Not started yet.")
+        Alert.alert(skill.name, signOffDetail(skill))
       }
     >
       <View style={styles.pathTrack}>
@@ -99,11 +118,6 @@ function SkillRow({
           >
             {skill.name}
           </Text>
-          {skill.seasonal && (
-            <View style={styles.seasonalTag}>
-              <Text style={styles.seasonalText}>Seasonal</Text>
-            </View>
-          )}
         </View>
         {skill.completed && <Text style={styles.pathStatusDone}>Completed</Text>}
         {isCurrent && <Text style={styles.pathStatusNext}>Up next</Text>}
@@ -121,6 +135,28 @@ export default function TrainingScreen() {
   const summarySlide = useRef(new Animated.Value(18)).current;
   const sectionsFade = useRef(new Animated.Value(0)).current;
   const sectionsSlide = useRef(new Animated.Value(18)).current;
+  const [profile, setProfile] = useState<TrainingVolunteerProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  // Re-fetched on every focus so a trainer's sign-off shows up without a restart.
+  const load = useCallback(async () => {
+    try {
+      setProfile(await getMyTrainingProfile());
+      setLoadError(false);
+    } catch (error) {
+      logError("Load training profile error", error);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   useEffect(() => {
     const stagger = (fade: Animated.Value, slide: Animated.Value) =>
@@ -136,12 +172,16 @@ export default function TrainingScreen() {
     ]).start();
   }, [headerFade, headerSlide, summaryFade, summarySlide, sectionsFade, sectionsSlide]);
 
+  const supportingAreas = (profile?.supportingAreas ?? []).map((s) => toSkill(s));
+  const penRoutines = (profile?.penRoutines ?? []).map((s) => toSkill(s));
+  const seasonalSkills = (profile?.seasonalSkills ?? []).map((s) => toSkill(s));
   const allSupportingAreasComplete = supportingAreas.length > 0 && supportingAreas.every((s) => s.completed);
-  const ringSkills = allSupportingAreasComplete ? [...supportingAreas, ...penRoutines] : supportingAreas;
-  const completedCount = ringSkills.filter((s) => s.completed).length;
-  const totalCount = ringSkills.length;
-  const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  // The backend's own required-skill totals, so this matches what trainers see.
+  const completedCount = profile?.completedRequiredSkills ?? 0;
+  const totalCount = profile?.totalRequiredSkills ?? 0;
+  const percent = Math.round(profile?.progressPercentage ?? 0);
   const penCompletedCount = penRoutines.filter((s) => s.completed).length;
+  const seasonalCompletedCount = seasonalSkills.filter((s) => s.completed).length;
   const penLocked = !allSupportingAreasComplete;
 
   return (
@@ -200,40 +240,71 @@ export default function TrainingScreen() {
           </Animated.View>
 
           <Animated.View style={{ opacity: sectionsFade, transform: [{ translateY: sectionsSlide }] }}>
-            <View style={styles.sectionBlock}>
-              <SectionHeader
-                title="Supporting Areas"
-                subtitle="Must be completed before moving to Pen Routines"
-              />
-              {supportingAreas.length > 0 && (
-                <View style={styles.skillList}>
-                  {supportingAreas.map((skill, i) => (
-                    <SkillRow key={skill.id} skill={skill} index={i} skills={supportingAreas} />
-                  ))}
+            {loading ? (
+              <View style={styles.statusBlock}>
+                <ActivityIndicator color={COLORS.greenMid} />
+              </View>
+            ) : loadError && !profile ? (
+              <View style={styles.statusBlock}>
+                <Ionicons name="warning-outline" size={28} color={COLORS.grey} />
+                <Text style={styles.emptyNote}>Couldn&apos;t load your training progress. Try again in a moment.</Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.sectionBlock}>
+                  <SectionHeader
+                    title="Supporting Areas"
+                    subtitle="Must be completed before moving to Pen Routines"
+                  />
+                  {supportingAreas.length > 0 ? (
+                    <View style={styles.skillList}>
+                      {supportingAreas.map((skill, i) => (
+                        <SkillRow key={skill.id} skill={skill} index={i} skills={supportingAreas} />
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.emptyNote}>No supporting area skills have been added yet.</Text>
+                  )}
                 </View>
-              )}
-            </View>
 
-            <View style={styles.sectionBlock}>
-              <SectionHeader
-                title="Pen Routines"
-                subtitle={
-                  penLocked
-                    ? "Complete Supporting Areas to unlock these skills"
-                    : `${penCompletedCount} of ${penRoutines.length} completed`
-                }
-                locked={penLocked}
-              />
-              {penRoutines.length > 0 ? (
-                <View style={styles.skillList}>
-                  {penRoutines.map((skill, i) => (
-                    <SkillRow key={skill.id} skill={skill} index={i} skills={penRoutines} locked={penLocked} />
-                  ))}
+                <View style={styles.sectionBlock}>
+                  <SectionHeader
+                    title="Pen Routines"
+                    subtitle={
+                      penLocked
+                        ? "Complete Supporting Areas to unlock these skills"
+                        : `${penCompletedCount} of ${penRoutines.length} completed`
+                    }
+                    locked={penLocked}
+                  />
+                  {penRoutines.length > 0 ? (
+                    <View style={styles.skillList}>
+                      {penRoutines.map((skill, i) => (
+                        <SkillRow key={skill.id} skill={skill} index={i} skills={penRoutines} locked={penLocked} />
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.emptyNote}>No pen routine skills have been added yet.</Text>
+                  )}
                 </View>
-              ) : (
-                <Text style={styles.emptyNote}>No pen routine skills have been added yet.</Text>
-              )}
-            </View>
+
+                <View style={styles.sectionBlock}>
+                  <SectionHeader
+                    title="Seasonal Skills"
+                    subtitle={`${seasonalCompletedCount} of ${seasonalSkills.length} completed`}
+                  />
+                  {seasonalSkills.length > 0 ? (
+                    <View style={styles.skillList}>
+                      {seasonalSkills.map((skill, i) => (
+                        <SkillRow key={skill.id} skill={skill} index={i} skills={seasonalSkills} />
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.emptyNote}>No seasonal skills have been added yet.</Text>
+                  )}
+                </View>
+              </>
+            )}
           </Animated.View>
         </View>
       </ScrollView>
@@ -287,10 +358,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 28,
     shadowColor: "#0d3305",
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    ...SHEET_TOP_SHADOW,
   },
   summaryRow: {
     flexDirection: "row",
@@ -321,6 +389,7 @@ const styles = StyleSheet.create({
   },
   hoursButtonText: { color: COLORS.white, fontWeight: "700", fontSize: 13 },
   ringWrap: { alignItems: "center", marginBottom: 24 },
+  statusBlock: { alignItems: "center", gap: 10, paddingVertical: 32 },
   ringLabelWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   ringPercent: { fontWeight: "900", color: COLORS.green },
   sectionBlock: {
@@ -384,6 +453,4 @@ const styles = StyleSheet.create({
   pathNameDone: { color: COLORS.greenLight },
   pathStatusDone: { fontSize: 12, color: "#7f8a7c", fontWeight: "500" },
   pathStatusNext: { fontSize: 12, color: COLORS.greenMid, fontWeight: "700" },
-  seasonalTag: { backgroundColor: COLORS.amberBg, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  seasonalText: { fontSize: 10, color: COLORS.amber, fontWeight: "700" },
 });

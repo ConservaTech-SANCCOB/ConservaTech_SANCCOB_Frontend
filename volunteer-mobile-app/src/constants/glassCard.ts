@@ -29,3 +29,17 @@ export const GLASS_SHADOW_MD: ViewStyle = {
   shadowRadius: 18,
   elevation: 6,
 };
+
+/**
+ * Upward shadow for the white sheet that overlaps each screen's gradient banner.
+ * The upward offset is at least the blur radius, so the shadow falls on the banner
+ * but never reaches below the sheet's bottom edge (a 16px blur on an 8px offset
+ * showed as a faint divider line wherever the sheet's content ended). No
+ * `elevation`: Android can only cast shadows downward, which drew that same line.
+ * Pair with a per-screen `shadowColor`.
+ */
+export const SHEET_TOP_SHADOW: ViewStyle = {
+  shadowOffset: { width: 0, height: -10 },
+  shadowOpacity: 0.15,
+  shadowRadius: 8,
+};
