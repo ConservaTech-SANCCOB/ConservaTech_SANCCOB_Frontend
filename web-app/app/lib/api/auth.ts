@@ -1,9 +1,11 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// Matches the exact backend Swagger response schema
+// Matches the exact backend Swagger response schema (AuthResponseDto).
+// Both fields are marked nullable in the spec — auth-context.tsx's login()
+// checks for both before trusting this response.
 export interface LoginResponse {
-  token: string;
-  role: string;
+  token: string | null;
+  role: string | null;
 }
 
 export async function loginRequest(

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/auth-context";
-import { isUnauthorized } from "../../lib/api/https";
+import { isUnauthorized } from "../../lib/api/http";
 import {
   fetchVolunteers,
   fetchVolunteerById,
