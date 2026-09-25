@@ -1,6 +1,6 @@
 // app/lib/api/http.ts
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /**
  * Error thrown for any non-2xx response. `status` lets callers react
@@ -21,12 +21,37 @@ export function isUnauthorized(err: unknown): boolean {
   return err instanceof ApiError && err.status === 401;
 }
 
+/**
+ * Bridge to auth-context.tsx: apiFetch runs outside React (it's called from
+ * plain modules like roster.ts, shifts.ts, volunteers.ts), so it can't call
+ * useAuth().logout() directly. AuthProvider registers its logout here once,
+ * on mount, so a 401 from the BACKEND (a session that's actually gone dead
+ * mid-use) triggers a real logout automatically, no matter which page or
+ * API module the request came from.
+ *
+ * Only wired to backend-returned 401s (inside the !response.ok branch below),
+ * not to the client-side "no token" guard a few lines down — if there's
+ * already no token, the user is already logged out and the layout's own
+ * `!token` redirect handles it.
+ */
+let unauthorizedHandler: (() => void) | null = null;
+
+export function registerUnauthorizedHandler(handler: () => void): void {
+  unauthorizedHandler = handler;
+}
+
 export async function apiFetch<T = unknown>(
   endpoint: string,
   token: string | null,
   options: RequestInit = {},
   errorMessage = "API request failed"
 ): Promise<T> {
+  if (!API_BASE_URL) {
+    // Fail loudly rather than silently falling back to a dev URL — a
+    // misconfigured env var in production should be obvious, not a
+    // confusing "can't reach localhost" error for the person using it.
+    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
+  }
   if (!token) {
     // Refuse to send an unauthenticated request rather than silently
     // dropping the Authorization header and letting the backend 401 it.
@@ -62,6 +87,10 @@ export async function apiFetch<T = unknown>(
       }
     } catch {
       // Response was not JSON, so keep the default error message.
+    }
+
+    if (response.status === 401) {
+      unauthorizedHandler?.();
     }
 
     throw new ApiError(message, response.status);
