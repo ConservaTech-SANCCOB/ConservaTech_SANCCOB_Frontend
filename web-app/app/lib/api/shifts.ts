@@ -1,4 +1,4 @@
-import { apiFetch } from "./http";
+import { apiFetch, ApiError } from "./http";
 
 /* ============================================================
    TYPES — match the confirmed backend Swagger schema exactly
@@ -150,7 +150,7 @@ export async function deleteShift(token: string | null, shiftId: number): Promis
     // Surface the roster-conflict case with a clearer message than the
     // generic backend error, since this is a known business rule (a shift
     // already linked to roster assignments can't be deleted).
-    if (err instanceof Error && /409|conflict/i.test(err.message)) {
+    if (err instanceof ApiError && err.status === 409) {
       throw new Error(
         "This shift can't be deleted because it's already linked to roster assignments."
       );
