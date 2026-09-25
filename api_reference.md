@@ -230,6 +230,27 @@ Skills progress — the round percentage tracker plus category breakdowns.
 
 ---
 
+# Vacancies — Read-Only (Max's, admin-facing)
+
+A "vacancy" is purely computed — any shift where `Capacity > active assignment count` (`Vacant`-status assignments correctly excluded). Nothing here books anything; that's the separate endpoint below.
+
+## GET /api/vacancies — every open vacancy
+## GET /api/vacancies/{shiftId} — one specific shift's vacancy detail, `404` if it's not actually open
+## GET /api/vacancies/week?weekStartDate=2026-09-22 — open vacancies in one week
+## GET /api/vacancies/location/{location} — open vacancies at one location
+
+**Response shape (all four):**
+```json
+{
+  "shiftId": 4, "shiftDate": "2026-09-25", "timeSlot": "08:00-13:00",
+  "location": "Aviary 1", "birdCount": 15, "capacity": 3,
+  "assignedVolunteers": 2, "vacanciesAvailable": 1,
+  "requiredSkillIds": [1, 2]
+}
+```
+
+---
+
 # Vacancy Booking
 
 ## POST /api/vacancies/{shiftId}/book
