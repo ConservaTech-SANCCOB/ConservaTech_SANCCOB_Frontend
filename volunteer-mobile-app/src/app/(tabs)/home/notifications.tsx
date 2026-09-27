@@ -9,6 +9,7 @@ import { AppNotification, getMyNotifications, markNotificationRead } from "../..
 import { COLORS } from "../../../utils/colors";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
+import { BannerBirds } from "../../../components/Wildlife";
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -82,6 +83,8 @@ export default function NotificationsScreen() {
                 <Path d="M-20,200 C40,190 90,206 140,196 C190,186 240,202 290,192 C330,186 380,198 420,190 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.14} />
                 <Path d="M-20,222 C40,214 90,228 140,218 C190,208 240,224 290,214 C330,208 380,220 420,212 L420,260 L-20,260 Z" fill={COLORS.blueAccentLight} opacity={0.16} />
               </Svg>
+
+              <BannerBirds top={insets.top} />
 
               <View style={styles.bannerTopRow}>
                 <TouchableOpacity

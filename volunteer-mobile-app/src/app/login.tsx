@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import PhotoBackdrop from "../components/PhotoBackdrop";
+import { SEABIRD_PHOTOS } from "../constants/seabirds";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
@@ -40,6 +42,11 @@ export default function LoginScreen() {
     <KeyboardAvoidingScreen style={styles.container}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
         <LinearGradient colors={["#003b5c", "#001a2c"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.banner}>
+          <PhotoBackdrop
+            source={SEABIRD_PHOTOS.africanPenguin}
+            tint={["rgba(0,59,92,0.66)", "rgba(0,26,44,0.9)"]}
+            position={{ top: "68%", left: "50%" }}
+          />
           <LinearGradient
             colors={["rgba(255,255,255,0.08)", "transparent"]}
             start={{ x: 0, y: 0 }}

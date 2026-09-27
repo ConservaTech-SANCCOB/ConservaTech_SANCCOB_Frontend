@@ -10,16 +10,26 @@ import { getTabBarStyle } from "../../../constants/tabBar";
 import { TIME_SLOT_LABELS } from "../../../utils/timeSlot";
 import { getMyAvailability, updateMyAvailability, AvailabilitySlot, TimeBlock } from "../../../services/availability";
 import { getErrorMessage } from "../../../utils/api";
-import { showErrorToast } from "../../../utils/toast";
+import { showErrorToast, showInfoToast } from "../../../utils/toast";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
+import { BannerBirds, BannerPenguin } from "../../../components/Wildlife";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const SLOTS: TimeBlock[] = ["08:00-13:00", "14:00-17:00", "08:00-17:00"];
 const FULL_DAY_SLOT: TimeBlock = "08:00-17:00";
+const HALF_DAY_SLOTS = SLOTS.filter((s) => s !== FULL_DAY_SLOT);
 
 function slotKey(day: string, slot: string) {
   return `${day}-${slot}`;
+}
+
+/** Morning + Afternoon on the same day is a full day, so store it as one Full Day block. */
+function mergeHalfDays(keys: Set<string>, day: string): boolean {
+  if (!HALF_DAY_SLOTS.every((s) => keys.has(slotKey(day, s)))) return false;
+  HALF_DAY_SLOTS.forEach((s) => keys.delete(slotKey(day, s)));
+  keys.add(slotKey(day, FULL_DAY_SLOT));
+  return true;
 }
 
 export default function SubmitAvailabilityScreen() {
@@ -33,8 +43,9 @@ export default function SubmitAvailabilityScreen() {
   useEffect(() => {
     getMyAvailability()
       .then((slots) => {
-        const keys = slots.map((s) => slotKey(s.dayOfWeek, s.timeSlot));
-        setSelected(new Set(keys));
+        const keys = new Set(slots.map((s) => slotKey(s.dayOfWeek, s.timeSlot)));
+        DAYS.forEach((day) => mergeHalfDays(keys, day));
+        setSelected(keys);
       })
       .catch((error) => {
         logError("Load availability error", error);
@@ -52,21 +63,24 @@ export default function SubmitAvailabilityScreen() {
   }, [navigation, insets.bottom]);
 
   const toggle = (day: string, slot: TimeBlock) => {
+    const next = new Set(selected);
     const key = slotKey(day, slot);
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-        return next;
-      }
+    let merged = false;
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
       next.add(key);
       if (slot === FULL_DAY_SLOT) {
-        SLOTS.filter((s) => s !== FULL_DAY_SLOT).forEach((s) => next.delete(slotKey(day, s)));
+        HALF_DAY_SLOTS.forEach((s) => next.delete(slotKey(day, s)));
       } else {
         next.delete(slotKey(day, FULL_DAY_SLOT));
+        merged = mergeHalfDays(next, day);
       }
-      return next;
-    });
+    }
+    setSelected(next);
+    if (merged) {
+      showInfoToast("Full day selected", `Morning and afternoon on ${day} were combined into a full day.`);
+    }
   };
 
   const performSave = async () => {
@@ -117,7 +131,7 @@ export default function SubmitAvailabilityScreen() {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={[COLORS.amberLight, COLORS.amberDark]}
+          colors={[COLORS.pastelYellowLight, COLORS.pastelYellowDeep]}
           style={[styles.banner, { paddingTop: 16 + insets.top }]}
         >
           <LinearGradient
@@ -140,6 +154,8 @@ export default function SubmitAvailabilityScreen() {
             <Path d="M-20,222 C40,214 90,228 140,218 C190,208 240,224 290,214 C330,208 380,220 420,212 L420,260 L-20,260 Z" fill={COLORS.amberAccentLight} opacity={0.16} />
           </Svg>
 
+          <BannerBirds tint="dark" top={insets.top} />
+
           <View style={styles.bannerTopRow}>
             <TouchableOpacity
               onPress={() => router.back()}
@@ -147,7 +163,7 @@ export default function SubmitAvailabilityScreen() {
               accessibilityRole="button"
               accessibilityLabel="Go back"
             >
-              <Ionicons name="arrow-back" size={22} color={COLORS.white} />
+              <Ionicons name="arrow-back" size={22} color={COLORS.pastelInk} />
             </TouchableOpacity>
           </View>
 
@@ -156,6 +172,8 @@ export default function SubmitAvailabilityScreen() {
             <Text style={styles.subtitle}>WHEN YOU&apos;RE FREE</Text>
             <Text style={styles.tagline}>Pick the days and time blocks you&apos;re free to help</Text>
           </View>
+
+          <BannerPenguin variant="adult" />
         </LinearGradient>
 
         <View style={styles.sheet}>
@@ -167,7 +185,7 @@ export default function SubmitAvailabilityScreen() {
               </Text>
             </View>
             <Svg width={18} height={10} viewBox="0 0 18 10" style={styles.infoBannerTail}>
-              <Path d="M0,0 L18,0 L18,10 Z" fill={COLORS.amberBg} />
+              <Path d="M0,0 L18,0 L18,10 Z" fill={COLORS.pastelYellowBg} />
             </Svg>
           </View>
 
@@ -196,7 +214,7 @@ export default function SubmitAvailabilityScreen() {
                     accessibilityState={{ selected: active }}
                     accessibilityLabel={`${day} ${TIME_SLOT_LABELS[slot]}`}
                   >
-                    {active && <Ionicons name="checkmark" size={18} color={COLORS.white} />}
+                    {active && <Ionicons name="checkmark" size={18} color={COLORS.pastelInk} />}
                   </TouchableOpacity>
                 );
               })}
@@ -219,7 +237,7 @@ export default function SubmitAvailabilityScreen() {
       >
         <View style={styles.bottomBarButton}>
           {saving ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
+            <ActivityIndicator size="small" color={COLORS.pastelInk} />
           ) : (
             <Text style={styles.bottomBarButtonText}>
               {selected.size > 0
@@ -250,16 +268,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: COLORS.white,
+    color: COLORS.pastelInk,
     letterSpacing: 0.5,
     zIndex: 1,
-    textShadowColor: "rgba(0,0,0,0.35)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    textShadowColor: "rgba(255,255,255,0.6)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: COLORS.amberAccentLight,
+    color: COLORS.amberDark,
     letterSpacing: 1.5,
     marginLeft: 1.5,
     marginTop: 6,
@@ -268,7 +286,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 11.5,
-    color: "#fbeccb",
+    color: COLORS.amberDark,
     letterSpacing: 0.3,
     marginTop: 6,
     fontWeight: "500",
@@ -288,7 +306,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   infoBanner: {
-    backgroundColor: COLORS.amberBg,
+    backgroundColor: COLORS.pastelYellowBg,
     flexDirection: "row",
     borderTopLeftRadius: 14,
     borderTopRightRadius: 14,
@@ -334,8 +352,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cellActive: {
-    backgroundColor: COLORS.amberFill,
-    borderColor: COLORS.amberFill,
+    backgroundColor: COLORS.pastelYellowDeep,
+    borderColor: COLORS.pastelYellowBorder,
   },
   bottomScrim: {
     position: "absolute",
@@ -363,7 +381,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 30,
-    backgroundColor: COLORS.amberFill,
+    backgroundColor: COLORS.pastelYellowDeep,
+    borderWidth: 1,
+    borderColor: COLORS.pastelYellowBorder,
   },
-  bottomBarButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
+  bottomBarButtonText: { color: COLORS.pastelInk, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
 });
