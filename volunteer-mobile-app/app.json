@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "volunteer-mobile-app",
+    "name": "SANCCOB Volunteers",
     "slug": "volunteer-mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -35,6 +35,18 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fa31c281-227b-4041-a0ad-fc8043420606"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.conservatech.sanccob",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     }
   }
 }
