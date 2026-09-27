@@ -6,11 +6,14 @@ export function DateBadge({
   dateStr,
   size = 72,
   color = COLORS.blueMid,
+  textColor = COLORS.white,
 }: {
   dateStr: string;
   size?: number;
   /** Tints the badge to match the screen the card is shown on. */
   color?: string;
+  /** For light badge colours (the pastel shifts theme), where white text would vanish. */
+  textColor?: string;
 }) {
   const dateObj = parseLocalDate(dateStr);
   const day = dateObj.getDate();
@@ -19,8 +22,12 @@ export function DateBadge({
     <View
       style={[styles.dateBadge, { width: size, height: size, borderRadius: size * 0.25, backgroundColor: color }]}
     >
-      <Text style={[styles.dateBadgeDay, { fontSize: size * 0.36, lineHeight: size * 0.39 }]}>{day}</Text>
-      <Text style={[styles.dateBadgeWeekday, { fontSize: size * 0.167 }]}>{weekday}</Text>
+      <Text style={[styles.dateBadgeDay, { fontSize: size * 0.36, lineHeight: size * 0.39, color: textColor }]}>
+        {day}
+      </Text>
+      <Text style={[styles.dateBadgeWeekday, { fontSize: size * 0.167, color: textColor, opacity: 0.85 }]}>
+        {weekday}
+      </Text>
     </View>
   );
 }
@@ -89,5 +96,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   dateBadgeDay: { fontSize: 26, fontWeight: "900", color: COLORS.white, lineHeight: 28 },
-  dateBadgeWeekday: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.85)", letterSpacing: 0.5 },
+  dateBadgeWeekday: { fontSize: 12, fontWeight: "700", color: COLORS.white, letterSpacing: 0.5 },
 });
