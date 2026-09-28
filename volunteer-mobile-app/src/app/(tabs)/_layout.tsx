@@ -11,7 +11,7 @@ const INACTIVE_COLOR = COLORS.navy;
 // Tabs whose screens have their own accent colour; the rest fall back to ACTIVE_COLOR.
 const TAB_ACCENTS: Record<string, string> = {
   progress: COLORS.green,
-  bookings: COLORS.amberFill,
+  bookings: COLORS.amberMid,
   profile: COLORS.pinkMid,
 };
 const INDICATOR_HEIGHT = 44;
@@ -168,7 +168,15 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="bookings"
-        options={{ title: "Shift", tabBarIcon: ({ color, size, focused }) => <TabIcon name="calendar" color={color} size={size} focused={focused} /> }}
+        options={{
+          title: "Shift",
+          // Coming back to the tab always shows the Shifts list, never a half-finished
+          // Submit Availability or Request Change screen left open from earlier.
+          popToTopOnBlur: true,
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name="calendar" color={color} size={size} focused={focused} />
+          ),
+        }}
       />
       <Tabs.Screen
         name="progress"
@@ -215,8 +223,8 @@ const styles = StyleSheet.create({
     borderColor: "rgba(63, 201, 32, 0.35)",
   },
   indicatorPillShifts: {
-    backgroundColor: "rgba(255, 215, 63, 0.26)",
-    borderColor: "rgba(154, 116, 9, 0.35)",
+    backgroundColor: "rgba(255, 226, 122, 0.5)",
+    borderColor: "rgba(239, 203, 85, 0.6)",
   },
   indicatorPillProfile: {
     backgroundColor: "rgba(181, 42, 107, 0.14)",

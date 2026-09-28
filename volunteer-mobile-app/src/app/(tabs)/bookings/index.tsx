@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import MyShiftCard from "../../../components/MyShiftCard";
 import { DateBadge, SHIFT_CARD_STYLES } from "../../../components/ShiftCardParts";
+import { BannerBirds, BannerPenguin, EmptyStatePenguin } from "../../../components/Wildlife";
 import { getPendingCancellationIds } from "../../../services/changeRequests";
 import { getMyShifts, MyShift } from "../../../services/shifts";
 import { bookVacancy, BookingRejectedError, getVacancies, Vacancy } from "../../../services/vacancies";
@@ -111,7 +112,7 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
           {formatTimeSlotLabel(item.timeSlot)}
         </Text>
         <View style={SHIFT_CARD_STYLES.badgeRow}>
-          <DateBadge dateStr={item.shiftDate} size={68} color={COLORS.amberFill} />
+          <DateBadge dateStr={item.shiftDate} size={68} color={COLORS.pastelYellowDeep} textColor={COLORS.pastelInk} />
           <View style={SHIFT_CARD_STYLES.metaColumn}>
             <View style={SHIFT_CARD_STYLES.metaRow}>
               <Ionicons name="time-outline" size={14} color={COLORS.grey} />
@@ -146,10 +147,10 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
         <TouchableOpacity style={SHIFT_CARD_STYLES.actionWrap} onPress={confirmBook} disabled={booking} hitSlop={6}>
           <View style={[SHIFT_CARD_STYLES.action, styles.bookAction]}>
             {booking ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
+              <ActivityIndicator size="small" color={COLORS.pastelInk} />
             ) : (
               <>
-                <Ionicons name="add-circle-outline" size={14} color={COLORS.white} />
+                <Ionicons name="add-circle-outline" size={14} color={COLORS.pastelInk} />
                 <Text style={[SHIFT_CARD_STYLES.actionText, styles.bookActionText]}>Book</Text>
               </>
             )}
@@ -288,7 +289,7 @@ export default function BookingsScreen() {
   const header = (
     <>
       <LinearGradient
-        colors={[COLORS.amberLight, COLORS.amberDark]}
+        colors={[COLORS.pastelYellowLight, COLORS.pastelYellowDeep]}
         style={[styles.banner, { paddingTop: 24 + insets.top }]}
       >
         <LinearGradient
@@ -311,6 +312,8 @@ export default function BookingsScreen() {
           <Path d="M-20,222 C40,214 90,228 140,218 C190,208 240,224 290,214 C330,208 380,220 420,212 L420,260 L-20,260 Z" fill={COLORS.amberAccentLight} opacity={0.16} />
         </Svg>
 
+        <BannerBirds tint="dark" top={insets.top} />
+
         <Animated.View
           style={[styles.titleGroup, { opacity: bannerFade, transform: [{ translateY: bannerSlide }] }]}
         >
@@ -318,6 +321,8 @@ export default function BookingsScreen() {
           <Text style={styles.subtitle}>YOUR SCHEDULE</Text>
           <Text style={styles.tagline}>My Shifts · Available Shifts</Text>
         </Animated.View>
+
+        <BannerPenguin variant="family" />
       </LinearGradient>
 
       <View style={styles.sheet}>
@@ -336,7 +341,7 @@ export default function BookingsScreen() {
             >
               <View style={styles.availabilityButton}>
                 <Text style={styles.availabilityButtonText}>Availability</Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.white} />
+                <Ionicons name="chevron-forward" size={16} color={COLORS.pastelInk} />
               </View>
             </TouchableOpacity>
           </View>
@@ -392,7 +397,8 @@ export default function BookingsScreen() {
                 <MyShiftCard
                   item={row.item}
                   cancellationPending={pendingCancellationIds.has(row.item.rosterAssignmentId)}
-                  accent={COLORS.amberFill}
+                  accent={COLORS.pastelYellowDeep}
+                  accentText={COLORS.pastelInk}
                 />
               </View>
             );
@@ -413,13 +419,19 @@ export default function BookingsScreen() {
               </>
             ) : loadError ? (
               <View style={styles.emptyStateCard}>
-                <Ionicons name="warning-outline" size={40} color={COLORS.grey} />
+                <View style={styles.emptyArtRow}>
+                  <Ionicons name="warning-outline" size={40} color={COLORS.grey} />
+                  <EmptyStatePenguin />
+                </View>
                 <Text style={styles.emptyTitle}>Couldn't load shifts</Text>
                 <Text style={styles.emptyText}>Switch tabs or try again in a moment.</Text>
               </View>
             ) : (
               <View style={styles.emptyStateCard}>
-                <Ionicons name="calendar-outline" size={40} color={COLORS.grey} />
+                <View style={styles.emptyArtRow}>
+                  <Ionicons name="calendar-outline" size={40} color={COLORS.grey} />
+                  <EmptyStatePenguin />
+                </View>
                 <Text style={styles.emptyTitle}>
                   {tab === "mine" ? "No shifts scheduled yet" : "No open shifts right now"}
                 </Text>
@@ -454,16 +466,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: COLORS.white,
+    color: COLORS.pastelInk,
     letterSpacing: 0.5,
     zIndex: 1,
-    textShadowColor: "rgba(0,0,0,0.35)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    textShadowColor: "rgba(255,255,255,0.6)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: COLORS.amberAccentLight,
+    color: COLORS.amberDark,
     letterSpacing: 1.5,
     marginLeft: 1.5,
     marginTop: 6,
@@ -472,7 +484,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 11.5,
-    color: "#fbeccb",
+    color: COLORS.amberDark,
     letterSpacing: 0.3,
     marginTop: 6,
     fontWeight: "500",
@@ -512,16 +524,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 18,
     gap: 6,
-    backgroundColor: COLORS.amberFill,
+    backgroundColor: COLORS.pastelYellowDeep,
+    borderWidth: 1,
+    borderColor: COLORS.pastelYellowBorder,
   },
-  availabilityButtonText: { color: COLORS.white, fontWeight: "700", fontSize: 13 },
+  availabilityButtonText: { color: COLORS.pastelInk, fontWeight: "700", fontSize: 13 },
   segmentRow: {
     flexDirection: "row",
     height: 44,
     padding: 4,
     borderRadius: 22,
     marginBottom: 16,
-    backgroundColor: COLORS.amberBg,
+    backgroundColor: COLORS.pastelYellowBg,
+    borderWidth: 1,
+    borderColor: COLORS.pastelYellow,
   },
   segment: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 18 },
   segmentIndicator: {
@@ -536,9 +552,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  segmentIndicatorFill: { flex: 1, borderRadius: 18, backgroundColor: COLORS.amberFill },
+  segmentIndicatorFill: { flex: 1, borderRadius: 18, backgroundColor: COLORS.pastelYellowDeep },
   segmentText: { fontSize: 13, color: COLORS.grey, fontWeight: "700" },
-  segmentTextActive: { color: COLORS.white, fontWeight: "900" },
+  segmentTextActive: { color: COLORS.pastelInk, fontWeight: "900" },
   sectionHeader: {
     fontSize: 12,
     fontWeight: "700",
@@ -557,13 +573,14 @@ const styles = StyleSheet.create({
     padding: 26,
     gap: 12,
   },
+  emptyArtRow: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
   emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.amberLight },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
   availableTimeLabel: { marginBottom: 12 },
-  bookAction: { backgroundColor: COLORS.amberFill },
-  bookActionText: { color: COLORS.white },
+  bookAction: { backgroundColor: COLORS.pastelYellowDeep },
+  bookActionText: { color: COLORS.pastelInk },
   limitedTag: {
-    backgroundColor: COLORS.amberBg,
+    backgroundColor: COLORS.pastelYellow,
     paddingVertical: 3,
     paddingHorizontal: 10,
     borderRadius: 13,

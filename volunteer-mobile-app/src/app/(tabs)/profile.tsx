@@ -15,6 +15,7 @@ import { getMyProfile, updateMyProfile } from "../../services/profile";
 import { showErrorToast } from "../../utils/toast";
 import { logError } from "../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../constants/glassCard";
+import { BannerBirds, BannerPenguin } from "../../components/Wildlife";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -122,6 +123,8 @@ export default function ProfileScreen() {
             <Path d="M-20,222 C40,214 90,228 140,218 C190,208 240,224 290,214 C330,208 380,220 420,212 L420,260 L-20,260 Z" fill={COLORS.pinkAccentLight} opacity={0.16} />
           </Svg>
 
+          <BannerBirds top={insets.top} />
+
           <View style={styles.bannerTopRow}>
             <View style={styles.nameBadge}>
               <Text style={styles.nameBadgeText}>{fullName || "Your Name"}</Text>
@@ -131,6 +134,8 @@ export default function ProfileScreen() {
           <View style={styles.titleGroup}>
             <Text style={styles.subtitle}>ACTIVE VOLUNTEER</Text>
           </View>
+
+          <BannerPenguin variant="adult" />
         </LinearGradient>
 
         <View style={styles.sheet}>

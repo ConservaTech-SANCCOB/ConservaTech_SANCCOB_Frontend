@@ -6,6 +6,7 @@ import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, Toucha
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import MyShiftCard from "../../../components/MyShiftCard";
+import SeabirdSpotlight from "../../../components/SeabirdSpotlight";
 import { getPendingCancellationIds } from "../../../services/changeRequests";
 import { getMyNotifications } from "../../../services/notifications";
 import { getMyProfile } from "../../../services/profile";
@@ -15,6 +16,7 @@ import { bucketForDate, getRelativeLabel } from "../../../utils/dateBuckets";
 import { logError } from "../../../utils/logError";
 import { compareShiftsByStart, formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
+import { BannerBirds, BannerPenguin, EmptyStatePenguin } from "../../../components/Wildlife";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -144,6 +146,8 @@ export default function HomeScreen() {
             <Path d="M-20,222 C40,214 90,228 140,218 C190,208 240,224 290,214 C330,208 380,220 420,212 L420,260 L-20,260 Z" fill={COLORS.blueAccentLight} opacity={0.16} />
           </Svg>
 
+          <BannerBirds top={insets.top} />
+
           <View style={styles.bannerTopRow}>
             <View style={styles.avatar}>
               <Text style={styles.avatarInitials}>{initials}</Text>
@@ -167,6 +171,8 @@ export default function HomeScreen() {
             <Text style={styles.title}>{firstName || "Your Name"}</Text>
             <Text style={styles.tagline}>Here&apos;s what your week looks like</Text>
           </View>
+
+          <BannerPenguin variant="adult" />
         </LinearGradient>
 
         <View style={styles.sheet}>
@@ -204,6 +210,9 @@ export default function HomeScreen() {
             ))
           ) : nextLaterShift ? (
             <View style={styles.emptyCard}>
+              <View style={styles.emptyPenguin}>
+                <EmptyStatePenguin size={34} />
+              </View>
               <Text style={styles.emptyTitle}>No shifts this week</Text>
               <Text style={styles.emptyText}>
                 Your next shift is {getRelativeLabel(nextLaterShift.shiftDate).toLowerCase()}
@@ -218,11 +227,15 @@ export default function HomeScreen() {
             </View>
           ) : (
             <View style={styles.emptyCard}>
+              <View style={styles.emptyPenguin}>
+                <EmptyStatePenguin size={34} />
+              </View>
               <Text style={styles.emptyTitle}>No shifts yet</Text>
               <Text style={styles.emptyText}>Set your availability and you&apos;ll be automatically matched to shifts that fit.</Text>
               <TouchableOpacity
                 style={styles.emptyCtaWrap}
-                onPress={() => router.push("/(tabs)/bookings/submit-availability")}
+                // Lands on the Shifts list; the volunteer opens the form from its Availability button.
+                onPress={() => router.push("/(tabs)/bookings")}
               >
                 <View style={styles.emptyCta}>
                   <Text style={styles.emptyCtaText}>Set Availability</Text>
@@ -231,6 +244,9 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           )}
+
+          <Text style={[styles.sectionChipText, styles.spotlightHeading]}>MEET THE SEABIRDS</Text>
+          <SeabirdSpotlight />
         </View>
       </ScrollView>
     </View>
@@ -331,6 +347,7 @@ const styles = StyleSheet.create({
   },
   viewAllText: { fontSize: 13, fontWeight: "800", color: COLORS.blueMid },
   sectionChipText: { fontSize: 13, fontWeight: "800", color: COLORS.blueMid },
+  spotlightHeading: { marginTop: 26, marginBottom: 14 },
   emptyCard: {
     alignItems: "center",
     backgroundColor: COLORS.white,
@@ -340,6 +357,7 @@ const styles = StyleSheet.create({
     padding: 26,
     paddingHorizontal: 20,
   },
+  emptyPenguin: { marginBottom: 10 },
   emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.blueLight },
   emptyText: { fontSize: 13, fontWeight: "500", color: "#3d5260", textAlign: "center", maxWidth: 255, marginTop: 8 },
   emptyCtaWrap: {
