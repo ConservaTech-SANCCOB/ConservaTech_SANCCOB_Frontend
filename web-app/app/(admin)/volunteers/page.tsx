@@ -17,6 +17,7 @@ import {
   UpdateVolunteerPayload,
   AGE_BRACKETS,
 } from "../../lib/api/volunteers";
+import AttendanceModal from "../../../components/volunteers/AttendanceModal";
 
 // "2026-09-22" -> "Tue, 22 Sept 2026"
 function formatShiftDate(value: string): string {
@@ -49,6 +50,7 @@ export default function VolunteersPage() {
 
   const [viewingVolunteer, setViewingVolunteer] = useState<Volunteer | null>(null);
   const [editingVolunteer, setEditingVolunteer] = useState<Volunteer | null>(null);
+  const [attendanceVolunteer, setAttendanceVolunteer] = useState<Volunteer | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
     id: string;
     type: "Approved" | "Declined";
@@ -162,6 +164,12 @@ export default function VolunteersPage() {
     // The create response has no userId, so re-fetch the real list.
     await loadData(false);
     setActiveTab("management");
+  };
+
+  // Attendance updates change backend-computed Weekly Hours / Attendance Rate,
+  // so re-fetch the volunteer list (no spinner — the modal stays open on top).
+  const handleAttendanceChanged = () => {
+    loadData(false);
   };
 
   const filteredVolunteers = volunteers.filter(
@@ -321,13 +329,24 @@ export default function VolunteersPage() {
                           </td>
 
                           <td className="py-4 px-4">
-                            <span className="font-bold text-slate-900">{attendance}%</span>
-                            <div className="w-28 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
-                              <div
-                                className="h-full bg-blue-600 rounded-full"
-                                style={{ width: `${attendance}%` }}
-                              />
-                            </div>
+                            <button
+                              onClick={() => setAttendanceVolunteer(v)}
+                              className="group/att flex items-center gap-2 text-left"
+                              title="Manage attendance"
+                            >
+                              <div>
+                                <span className="font-bold text-slate-900 group-hover/att:text-blue-600 transition-colors">
+                                  {attendance}%
+                                </span>
+                                <div className="w-28 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                                  <div
+                                    className="h-full bg-blue-600 rounded-full"
+                                    style={{ width: `${attendance}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <CalendarCheckIcon className="w-3.5 h-3.5 text-slate-300 group-hover/att:text-blue-600 transition-colors shrink-0" />
+                            </button>
                           </td>
 
                           <td className="py-4 px-4 text-right space-x-1">
@@ -485,6 +504,15 @@ export default function VolunteersPage() {
           volunteer={editingVolunteer}
           onCancel={() => setEditingVolunteer(null)}
           onSave={handleSaveEdit}
+        />
+      )}
+
+      {/* ATTENDANCE MODAL */}
+      {attendanceVolunteer && (
+        <AttendanceModal
+          volunteer={attendanceVolunteer}
+          onClose={() => setAttendanceVolunteer(null)}
+          onAttendanceChanged={handleAttendanceChanged}
         />
       )}
 
@@ -925,6 +953,16 @@ function EditNoteIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M14 4h-8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
       <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function CalendarCheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+      <path d="m9 16 2 2 4-4" />
     </svg>
   );
 }
