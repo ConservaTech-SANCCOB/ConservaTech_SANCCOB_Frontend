@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -6,8 +6,16 @@ import { Animated, ColorValue, LayoutChangeEvent, Pressable, StyleSheet, View } 
 import { COLORS } from "../../utils/colors";
 import { getTabBarStyle } from "../../constants/tabBar";
 
-const INDICATOR_WIDTH = 52;
-const INDICATOR_HEIGHT = 36;
+const ACTIVE_COLOR = COLORS.blue;
+const INACTIVE_COLOR = COLORS.navy;
+// Tabs whose screens have their own accent colour; the rest fall back to ACTIVE_COLOR.
+const TAB_ACCENTS: Record<string, string> = {
+  progress: COLORS.green,
+  bookings: COLORS.amberMid,
+  profile: COLORS.pinkMid,
+};
+const INDICATOR_HEIGHT = 44;
+const PILL_HORIZONTAL_INSET = 6;
 
 function TabIcon({
   name,
@@ -21,7 +29,22 @@ function TabIcon({
   focused: boolean;
 }) {
   const iconName = (focused ? name : `${name}-outline`) as keyof typeof Ionicons.glyphMap;
-  return <Ionicons name={iconName} size={focused ? size + 2 : size} color={color} />;
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (focused) {
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.15, duration: 140, useNativeDriver: true }),
+        Animated.spring(pulse, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }),
+      ]).start();
+    }
+  }, [focused, pulse]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale: pulse }] }}>
+      <Ionicons name={iconName} size={focused ? size + 2 : size} color={color} />
+    </Animated.View>
+  );
 }
 
 function TabButton({
@@ -36,7 +59,7 @@ function TabButton({
   const scale = useRef(new Animated.Value(1)).current;
 
   const pressIn = () => {
-    Animated.spring(scale, { toValue: 0.86, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
   };
   const pressOut = () => {
     Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }).start();
@@ -49,16 +72,18 @@ function TabButton({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const translateX = useRef(new Animated.Value(0)).current;
-  const buttonLayouts = useRef<Array<{ x: number; width: number }>>([]);
+  const buttonLayouts = useRef<{ x: number; width: number }[]>([]);
+  const [pillWidth, setPillWidth] = useState(0);
 
   const moveIndicatorTo = (index: number, animate: boolean) => {
     const layout = buttonLayouts.current[index];
     if (!layout) return;
-    const target = layout.x + (layout.width - INDICATOR_WIDTH) / 2;
+    const width = layout.width - PILL_HORIZONTAL_INSET * 2;
+    setPillWidth(width);
+    const target = layout.x + PILL_HORIZONTAL_INSET;
     if (animate) {
       Animated.spring(translateX, {
         toValue: target,
@@ -81,6 +106,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     return null;
   }
 
+  const activeRoute = state.routes[state.index].name;
+  const activeColor = TAB_ACCENTS[activeRoute] ?? ACTIVE_COLOR;
+
   const handleButtonLayout = (index: number, event: LayoutChangeEvent) => {
     const { x, width } = event.nativeEvent.layout;
     buttonLayouts.current[index] = { x, width };
@@ -91,13 +119,23 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
   return (
     <View style={[getTabBarStyle(insets.bottom), styles.barContainer]}>
-      <View style={styles.indicatorLayer} pointerEvents="none">
-        <Animated.View style={[styles.indicator, { transform: [{ translateX }] }]} />
-      </View>
+      {pillWidth > 0 && (
+        <View style={styles.indicatorLayer} pointerEvents="none">
+          <Animated.View
+            style={[
+              styles.indicatorPill,
+              activeRoute === "progress" && styles.indicatorPillTraining,
+              activeRoute === "bookings" && styles.indicatorPillShifts,
+              activeRoute === "profile" && styles.indicatorPillProfile,
+              { width: pillWidth, transform: [{ translateX }] },
+            ]}
+          />
+        </View>
+      )}
       {state.routes.map((route: { key: string; name: string }, index: number) => {
         const { options } = descriptors[route.key];
         const focused = state.index === index;
-        const color = focused ? COLORS.navy : COLORS.grey;
+        const color = focused ? activeColor : INACTIVE_COLOR;
 
         const onPress = () => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -108,7 +146,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
         return (
           <TabButton key={route.key} onPress={onPress} onLayout={(e) => handleButtonLayout(index, e)}>
-            {options.tabBarIcon?.({ focused, color, size: 22 })}
+            {options.tabBarIcon?.({ focused, color, size: 20 })}
           </TabButton>
         );
       })}
@@ -130,7 +168,15 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="bookings"
-        options={{ title: "Shift", tabBarIcon: ({ color, size, focused }) => <TabIcon name="calendar" color={color} size={size} focused={focused} /> }}
+        options={{
+          title: "Shift",
+          // Coming back to the tab always shows the Shifts list, never a half-finished
+          // Submit Availability or Request Change screen left open from earlier.
+          popToTopOnBlur: true,
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name="calendar" color={color} size={size} focused={focused} />
+          ),
+        }}
       />
       <Tabs.Screen
         name="progress"
@@ -165,15 +211,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  indicator: {
-    width: INDICATOR_WIDTH,
+  indicatorPill: {
     height: INDICATOR_HEIGHT,
-    borderRadius: 14,
-    backgroundColor: "rgba(83, 199, 255, 0.22)",
-    shadowColor: COLORS.sky,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-    elevation: 10,
+    borderRadius: INDICATOR_HEIGHT / 2,
+    backgroundColor: "rgba(83, 199, 255, 0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(83, 199, 255, 0.35)",
+  },
+  indicatorPillTraining: {
+    backgroundColor: "rgba(63, 201, 32, 0.16)",
+    borderColor: "rgba(63, 201, 32, 0.35)",
+  },
+  indicatorPillShifts: {
+    backgroundColor: "rgba(255, 226, 122, 0.5)",
+    borderColor: "rgba(239, 203, 85, 0.6)",
+  },
+  indicatorPillProfile: {
+    backgroundColor: "rgba(181, 42, 107, 0.14)",
+    borderColor: "rgba(181, 42, 107, 0.35)",
   },
 });

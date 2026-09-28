@@ -1,43 +1,8 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { apiFetch } from "./http";
 
 /* ============================================================
-   TYPES
-   Matches the exact backend Swagger response schema where confirmed.
+   TYPES  (matched to the backend Swagger schemas)
    ============================================================ */
-
-export interface AvailabilitySlot {
-  day: string;
-  time: string;
-}
-
-export interface Volunteer {
-  id: string;
-  initials: string;
-  name: string;
-  area: string;
-  email: string;
-  phone: string;
-  address: string;
-  joinedDate: string;
-  weeklyHoursLogged: number;
-  maxWeeklyHours: number;
-  annualHoursLogged: number;
-  availability: AvailabilitySlot[];
-  confirmedShifts: string[];
-  nationality?: string;
-  ageBracket: AgeBracket;
-}
-
-export interface CreateVolunteerPayload {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  nationality: string;
-  ageBracket: AgeBracket;
-  availability?: AvailabilitySlot[];
-  maxWeeklyHours?: number;
-}
 
 export const AGE_BRACKETS = [
   "18-24",
@@ -50,411 +15,263 @@ export const AGE_BRACKETS = [
 
 export type AgeBracket = (typeof AGE_BRACKETS)[number];
 
-export interface ShiftRequest {
+// Shape of one volunteer in the UI.
+// The LIST endpoint only returns: id, names, email, phone, weeklyHours, attendanceRate.
+// nationality / ageBracket / emergency contact come from the DETAIL endpoint
+// (fetchVolunteerById) and are empty strings on list items.
+export interface Volunteer {
   id: string;
-  volunteerInitials: string;
+  firstName: string;
+  lastName: string;
+  name: string;
+  initials: string;
+  email: string;
+  phone: string;
+  weeklyHours: number;
+  attendanceRate: number;
+  nationality: string;
+  ageBracket: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+}
+
+// POST /api/admin/volunteers  (CreateVolunteerRequestDto)
+export interface CreateVolunteerPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  nationality: string;
+  ageBracket: string;
+}
+
+// PUT /api/admin/volunteers/{id}  (AdminUpdateVolunteerDto)
+// firstName, lastName and email are REQUIRED by the backend.
+export interface UpdateVolunteerPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  nationality: string;
+  ageBracket: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+}
+
+// Mapped from ChangeRequestDto (GET /api/change-requests/pending)
+export interface ShiftRequest {
+  id: string; // requestId
+  rosterAssignmentId: number;
   volunteerName: string;
-  currentDate: string;
-  currentTime: string;
-  requestedDate: string;
-  requestedTime: string;
-  requestType: "Change Date/Time" | "Cancellation";
+  volunteerInitials: string;
+  shiftDate: string; // "YYYY-MM-DD"
+  timeSlot: string;
   reason: string;
   status: "Pending" | "Approved" | "Declined";
 }
 
-export interface Shift {
-  shiftId: number;
-  shiftDate: string;
-  timeSlot: string;
-  location: string;
-  birdCount: number;
-  capacity: number;
-  requiredSkillIds: number[];
+/* ============================================================
+   RAW BACKEND SHAPES
+   ============================================================ */
+
+interface RawVolunteer {
+  userId?: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phoneNumber?: string | null;
+  nationality?: string | null;
+  ageBracket?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  weeklyHours?: number;
+  attendanceRate?: number;
 }
 
-export interface Vacancy {
-  shiftId: number;
-  shiftDate: string;
-  timeSlot: string;
-  location: string;
-  birdCount: number;
-  capacity: number;
-  assignedVolunteers: number;
-  vacanciesAvailable: number;
-  requiredSkillIds: number[];
+interface RawChangeRequest {
+  requestId?: number;
+  rosterAssignmentId?: number;
+  reason?: string | null;
+  status?: string | null;
+  shiftDate?: string;
+  timeSlot?: string | null;
+  volunteerName?: string | null;
 }
 
-export interface ApiAvailabilitySlot {
-  dayOfWeek: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
-  timeSlot: "Morning" | "Afternoon";
+function mapVolunteer(item: RawVolunteer): Volunteer {
+  const firstName = item.firstName ?? "";
+  const lastName = item.lastName ?? "";
+  const email = item.email ?? "";
+  const name = `${firstName} ${lastName}`.trim() || email || "Volunteer";
+  const initials =
+    (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() ||
+    name.charAt(0).toUpperCase() ||
+    "V";
+
+  return {
+    id: String(item.userId ?? email),
+    firstName,
+    lastName,
+    name,
+    initials,
+    email,
+    phone: item.phoneNumber ?? "",
+    weeklyHours: item.weeklyHours ?? 0,
+    attendanceRate: item.attendanceRate ?? 0,
+    nationality: item.nationality ?? "",
+    ageBracket: item.ageBracket ?? "",
+    emergencyContactName: item.emergencyContactName ?? "",
+    emergencyContactPhone: item.emergencyContactPhone ?? "",
+  };
+}
+
+function normaliseStatus(status?: string | null): ShiftRequest["status"] {
+  const s = (status ?? "").toLowerCase();
+  if (s === "approved") return "Approved";
+  if (s === "declined" || s === "rejected") return "Declined";
+  return "Pending";
+}
+
+function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "V";
+  return (parts[0].charAt(0) + (parts[1]?.charAt(0) ?? "")).toUpperCase();
 }
 
 /* ============================================================
-   ADMIN VOLUNTEERS
+   ADMIN VOLUNTEER ENDPOINTS
    ============================================================ */
 
-/**
- * IMPORTANT: There is currently no confirmed GET /api/admin/volunteers
- * endpoint in the backend's Swagger docs. This does not invent one —
- * it returns an empty list until the backend team confirms the route.
- */
+// GET /api/admin/volunteers
 export async function fetchVolunteers(token: string | null): Promise<Volunteer[]> {
-  console.warn("GET /api/admin/volunteers is not currently documented by the backend.");
-  return [];
+  const data = await apiFetch<RawVolunteer[]>(
+    "/api/admin/volunteers",
+    token,
+    { method: "GET" },
+    "Unable to fetch volunteers"
+  );
+  return Array.isArray(data) ? data.map(mapVolunteer) : [];
 }
 
-// Confirmed endpoint: POST /api/admin/volunteers
+// GET /api/admin/volunteers/{id}
+export async function fetchVolunteerById(
+  token: string | null,
+  id: string
+): Promise<Volunteer> {
+  const item = await apiFetch<RawVolunteer>(
+    `/api/admin/volunteers/${id}`,
+    token,
+    { method: "GET" },
+    "Unable to fetch volunteer details"
+  );
+  return mapVolunteer(item);
+}
+
+// POST /api/admin/volunteers
+// The response schema is just an echo of the request, so we do NOT rely on it.
+// Callers should re-fetch the list afterwards to get the real userId.
 export async function createVolunteer(
   token: string | null,
   payload: CreateVolunteerPayload
-): Promise<Volunteer> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(`${API_URL}/api/admin/volunteers`, {
-    method: "POST",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      firstName: payload.firstName.trim(),
-      lastName: payload.lastName.trim(),
-      email: payload.email.trim(),
-      phoneNumber: payload.phoneNumber.trim(),
-      nationality: payload.nationality.trim(),
-      ageBracket: payload.ageBracket,
-      availability: payload.availability,
-      maxWeeklyHours: payload.maxWeeklyHours,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to create volunteer");
-  }
-
-  const data: Volunteer = await response.json();
-
-  console.log("[Create Volunteer API Response]", data);
-
-  return data;
-}
-
-/* ============================================================
-   SHIFT REQUESTS
-   ============================================================ */
-
-/**
- * There is currently no confirmed admin shift-request endpoint.
- * Returns an empty array rather than calling an undocumented route.
- */
-export async function fetchShiftRequests(token: string | null): Promise<ShiftRequest[]> {
-  console.warn("Admin shift-request endpoints are not currently documented by the backend.");
-  return [];
-}
-
-/* ============================================================
-   SHIFTS
-   ============================================================ */
-
-// Confirmed endpoint: GET /api/shifts
-export async function fetchShifts(token: string | null): Promise<Shift[]> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(`${API_URL}/api/shifts`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load shifts");
-  }
-
-  const data: Shift[] = await response.json();
-
-  console.log("[Fetch Shifts API Response]", data);
-
-  return Array.isArray(data) ? data : [];
-}
-
-// Confirmed endpoint: GET /api/shifts/week?weekStartDate=...
-export async function fetchShiftsForWeek(
-  token: string | null,
-  weekStartDate: string
-): Promise<Shift[]> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(
-    `${API_URL}/api/shifts/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json, text/plain, */*",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load weekly shifts");
-  }
-
-  const data: Shift[] = await response.json();
-
-  console.log("[Fetch Shifts For Week API Response]", data);
-
-  return Array.isArray(data) ? data : [];
-}
-
-// Confirmed endpoint: GET /api/shifts/{shiftId}
-export async function fetchShift(token: string | null, shiftId: number): Promise<Shift> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(`${API_URL}/api/shifts/${shiftId}`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load shift");
-  }
-
-  const data: Shift = await response.json();
-
-  console.log("[Fetch Shift API Response]", data);
-
-  return data;
-}
-
-/* ============================================================
-   VACANCIES
-   ============================================================ */
-
-// Confirmed endpoint: GET /api/vacancies
-export async function fetchVacancies(token: string | null): Promise<Vacancy[]> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(`${API_URL}/api/vacancies`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load vacancies");
-  }
-
-  const data: Vacancy[] = await response.json();
-
-  console.log("[Fetch Vacancies API Response]", data);
-
-  return Array.isArray(data) ? data : [];
-}
-
-// Confirmed endpoint: GET /api/vacancies/week?weekStartDate=...
-export async function fetchVacanciesForWeek(
-  token: string | null,
-  weekStartDate: string
-): Promise<Vacancy[]> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(
-    `${API_URL}/api/vacancies/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json, text/plain, */*",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load weekly vacancies");
-  }
-
-  const data: Vacancy[] = await response.json();
-
-  console.log("[Fetch Vacancies For Week API Response]", data);
-
-  return Array.isArray(data) ? data : [];
-}
-
-// Confirmed endpoint: GET /api/vacancies/{shiftId}
-export async function fetchVacancy(token: string | null, shiftId: number): Promise<Vacancy> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(`${API_URL}/api/vacancies/${shiftId}`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load vacancy");
-  }
-
-  const data: Vacancy = await response.json();
-
-  console.log("[Fetch Vacancy API Response]", data);
-
-  return data;
-}
-
-/* ============================================================
-   VOLUNTEER MOBILE AVAILABILITY
-   These apply to the logged-in volunteer, not an arbitrary admin lookup.
-   ============================================================ */
-
-// Confirmed endpoint: GET /api/volunteers/me/availability
-export async function fetchMyAvailability(token: string | null): Promise<ApiAvailabilitySlot[]> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(`${API_URL}/api/volunteers/me/availability`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load availability");
-  }
-
-  const data: ApiAvailabilitySlot[] = await response.json();
-
-  console.log("[Fetch My Availability API Response]", data);
-
-  return Array.isArray(data) ? data : [];
-}
-
-// Confirmed endpoint: PUT /api/volunteers/me/availability
-export async function updateMyAvailability(
-  token: string | null,
-  slots: ApiAvailabilitySlot[]
 ): Promise<void> {
-  if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const response = await fetch(`${API_URL}/api/volunteers/me/availability`, {
-    method: "PUT",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+  await apiFetch(
+    "/api/admin/volunteers",
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        firstName: payload.firstName.trim(),
+        lastName: payload.lastName.trim(),
+        email: payload.email.trim(),
+        phoneNumber: payload.phoneNumber.trim() || null,
+        nationality: payload.nationality.trim() || null,
+        ageBracket: payload.ageBracket || null,
+      }),
     },
-    body: JSON.stringify({ slots }),
-  });
+    "Unable to create volunteer"
+  );
+}
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to update availability");
-  }
-
-  console.log("[Update My Availability] Success");
+// PUT /api/admin/volunteers/{id}
+// Sends every field, so load the full detail record before editing
+// (otherwise fields you didn't include may be cleared on the backend).
+export async function updateVolunteer(
+  token: string | null,
+  id: string,
+  payload: UpdateVolunteerPayload
+): Promise<void> {
+  await apiFetch(
+    `/api/admin/volunteers/${id}`,
+    token,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        firstName: payload.firstName.trim(),
+        lastName: payload.lastName.trim(),
+        email: payload.email.trim(),
+        phoneNumber: payload.phoneNumber.trim() || null,
+        nationality: payload.nationality.trim() || null,
+        ageBracket: payload.ageBracket || null,
+        emergencyContactName: payload.emergencyContactName.trim() || null,
+        emergencyContactPhone: payload.emergencyContactPhone.trim() || null,
+      }),
+    },
+    "Unable to update volunteer"
+  );
 }
 
 /* ============================================================
-   UTILITY EXPORTS
+   CHANGE REQUESTS
    ============================================================ */
 
-export { API_URL };
+// GET /api/change-requests/pending
+export async function fetchShiftRequests(token: string | null): Promise<ShiftRequest[]> {
+  const data = await apiFetch<RawChangeRequest[]>(
+    "/api/change-requests/pending",
+    token,
+    { method: "GET" },
+    "Unable to fetch change requests"
+  );
 
-  // --- MOCK (remove once USE_REAL_API is permanently true) ---
-//   await new Promise((resolve) => setTimeout(resolve, 600));
+  if (!Array.isArray(data)) return [];
 
-//   return [
-//     {
-//       id: "r1",
-//       volunteerInitials: "AD",
-//       volunteerName: "Amahle Dlamini",
-//       currentDate: "2026-08-18",
-//       currentTime: "07:00–13:00",
-//       requestedDate: "2026-08-19",
-//       requestedTime: "13:00–18:00",
-//       requestType: "Change Date/Time",
-//       reason: "Medical appointment...",
-//       status: "Pending",
-//     },
-//     {
-//       id: "r2",
-//       volunteerInitials: "ZM",
-//       volunteerName: "Zanele Mokoena",
-//       currentDate: "2026-08-17",
-//       currentTime: "13:00–18:00",
-//       requestedDate: "2026-08-17",
-//       requestedTime: "07:00–13:00",
-//       requestType: "Change Date/Time",
-//       reason: "Family commitment i...",
-//       status: "Pending",
-//     },
-//     {
-//       id: "r3",
-//       volunteerInitials: "CA",
-//       volunteerName: "Chloe Anderson",
-//       currentDate: "2026-08-20",
-//       currentTime: "07:00–13:00",
-//       requestedDate: "-",
-//       requestedTime: "-",
-//       requestType: "Cancellation",
-//       reason: "Out of town for work",
-//       status: "Approved",
-//     },
-//     {
-//       id: "r4",
-//       volunteerInitials: "PV",
-//       volunteerName: "Pieter van der Merwe",
-//       currentDate: "2026-08-16",
-//       currentTime: "13:00–18:00",
-//       requestedDate: "2026-08-23",
-//       requestedTime: "13:00–18:00",
-//       requestType: "Change Date/Time",
-//       reason: "Conflict with another...",
-//       status: "Declined",
-//     },
-//   ];
-// }
+  return data.map((item) => {
+    const volunteerName = item.volunteerName ?? "Unknown volunteer";
+    return {
+      id: String(item.requestId ?? ""),
+      rosterAssignmentId: item.rosterAssignmentId ?? 0,
+      volunteerName,
+      volunteerInitials: initialsFromName(volunteerName),
+      shiftDate: item.shiftDate ?? "",
+      timeSlot: item.timeSlot ?? "",
+      reason: item.reason ?? "",
+      status: normaliseStatus(item.status),
+    };
+  });
+}
+
+// PUT /api/change-requests/{id}/approve
+export async function approveShiftRequest(
+  token: string | null,
+  requestId: string
+): Promise<void> {
+  await apiFetch(
+    `/api/change-requests/${requestId}/approve`,
+    token,
+    { method: "PUT" },
+    "Failed to approve request"
+  );
+}
+
+// PUT /api/change-requests/{id}/decline
+export async function declineShiftRequest(
+  token: string | null,
+  requestId: string
+): Promise<void> {
+  await apiFetch(
+    `/api/change-requests/${requestId}/decline`,
+    token,
+    { method: "PUT" },
+    "Failed to decline request"
+  );
+}

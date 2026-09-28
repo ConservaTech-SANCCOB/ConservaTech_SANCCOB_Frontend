@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { label: "Volunteers", href: "/volunteers", icon: VolunteersIcon },
   { label: "Roster Management", href: "/roster", icon: RosterIcon },
   { label: "Shift Scheduling", href: "/shifts", icon: ShiftsIcon },
-  { label: "Staff Training", href: "/training", icon: TrainingIcon },
+  { label: "Staff Training", href: "/training-staff", icon: TrainingIcon },
   { label: "Vacancies", href: "/vacancies", icon: VacanciesIcon },
   { label: "Reports", href: "/reports", icon: ReportsIcon },
   { label: "Settings", href: "/settings", icon: SettingsIcon },

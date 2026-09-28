@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "../../app/lib/auth-context";
 
 function getFormattedDate(): string {
   return new Date().toLocaleDateString("en-GB", {
@@ -12,6 +13,7 @@ function getFormattedDate(): string {
 }
 
 export function Topbar() {
+  const { logout } = useAuth();
   const [today, setToday] = useState<string>("");
 
   useEffect(() => {
@@ -74,6 +76,14 @@ export function Topbar() {
           <p className="text-sm font-medium text-slate-900 leading-tight">Cathy Adams</p>
           <p className="text-xs text-slate-500 leading-tight">Admin</p>
         </div>
+         <button
+        onClick={logout}
+        className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-600 rounded-lg hover:bg-slate-100"
+        aria-label="Log out"
+      >
+        <LogoutIcon />
+        <span className="hidden sm:inline">Log out</span>
+      </button>
       </div>
      </div>
     </header>
@@ -108,6 +118,17 @@ function BellIcon() {
     >
       <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
     </svg>
   );
 }
