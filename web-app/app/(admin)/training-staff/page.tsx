@@ -17,11 +17,43 @@ import {
 import { isUnauthorized } from "../../lib/api/http";
 
 type Tab = "progress" | "trainers";
+type TrainerStatus = "Active" | "Inactive";
 
 const TABS: { label: string; value: Tab }[] = [
   { label: "Volunteer Progress", value: "progress" },
   { label: "Trainers", value: "trainers" },
 ];
+
+// ---------------------------------------------------------------------------
+// PLACEHOLDER STORAGE: TrainerDto has no contact details or status fields yet,
+// so these are kept in this browser's localStorage, keyed by trainerId.
+// They are NOT shared between devices/admins and the mobile app can't see them.
+// Replace with real API fields once the backend adds them.
+// ---------------------------------------------------------------------------
+interface TrainerExtras {
+  contactDetails: string;
+  status: TrainerStatus;
+}
+
+const EXTRAS_KEY = "sanccob_trainer_extras";
+const STATUS_OPTIONS: TrainerStatus[] = ["Active", "Inactive"];
+
+function loadTrainerExtras(): Record<number, TrainerExtras> {
+  try {
+    const raw = localStorage.getItem(EXTRAS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveTrainerExtras(extras: Record<number, TrainerExtras>) {
+  try {
+    localStorage.setItem(EXTRAS_KEY, JSON.stringify(extras));
+  } catch {
+    // storage unavailable, changes simply won't persist
+  }
+}
 
 export default function TrainingStaffPage() {
   const { token, logout } = useAuth();
@@ -38,10 +70,12 @@ export default function TrainingStaffPage() {
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [trainersLoading, setTrainersLoading] = useState(false);
   const [trainersError, setTrainersError] = useState<string | null>(null);
+  const [trainerExtras, setTrainerExtras] = useState<Record<number, TrainerExtras>>({});
 
   const [showCreateTrainer, setShowCreateTrainer] = useState(false);
   const [trainerFirstName, setTrainerFirstName] = useState("");
   const [trainerLastName, setTrainerLastName] = useState("");
+  const [trainerContact, setTrainerContact] = useState("");
   const [isSavingTrainer, setIsSavingTrainer] = useState(false);
   const [createTrainerError, setCreateTrainerError] = useState<string | null>(null);
 
@@ -86,10 +120,22 @@ export default function TrainingStaffPage() {
     loadData();
   }, [loadData]);
 
+  // Restore locally-saved contact details / status once on mount
+  useEffect(() => {
+    setTrainerExtras(loadTrainerExtras());
+  }, []);
+
   // Only fetch trainers when the Trainers tab is opened
   useEffect(() => {
     if (activeTab === "trainers") loadTrainers();
   }, [activeTab, loadTrainers]);
+
+  const updateTrainerExtras = (trainerId: number, patch: Partial<TrainerExtras>) => {
+    const current = trainerExtras[trainerId] ?? { contactDetails: "", status: "Active" as TrainerStatus };
+    const next = { ...trainerExtras, [trainerId]: { ...current, ...patch } };
+    setTrainerExtras(next);
+    saveTrainerExtras(next);
+  };
 
   const handleOpenHistory = async (userId: number) => {
     try {
@@ -109,13 +155,21 @@ export default function TrainingStaffPage() {
     setCreateTrainerError(null);
     setIsSavingTrainer(true);
     try {
-      await createTrainer(
+      const created = await createTrainer(
         { firstName: trainerFirstName.trim(), lastName: trainerLastName.trim() },
         token
       );
+      // Contact details can't go to the backend yet, so keep them locally
+      if (created?.trainerId != null) {
+        updateTrainerExtras(created.trainerId, {
+          contactDetails: trainerContact.trim(),
+          status: "Active",
+        });
+      }
       setShowCreateTrainer(false);
       setTrainerFirstName("");
       setTrainerLastName("");
+      setTrainerContact("");
       await loadTrainers(); // refresh so the new trainer shows in the table
     } catch (err) {
       if (isUnauthorized(err)) {
@@ -159,22 +213,23 @@ export default function TrainingStaffPage() {
         )}
       </div>
 
-     {/* Tabs */}
-     <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-1 mb-6">
-      {TABS.map((tab) => (
-       <button
-      key={tab.value}
-      onClick={() => setActiveTab(tab.value)}
-      className={`rounded-full px-5 py-2 text-xs font-semibold transition-all ${
-        activeTab === tab.value
-          ? "bg-white text-slate-900 shadow-sm"
-          : "text-slate-500 hover:text-slate-700"
-           }`}
-           >
-          {tab.label}
-         </button>
-       ))}
-     </div>
+      {/* Tabs */}
+      <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-1 mb-6">
+        {TABS.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setActiveTab(tab.value)}
+            className={`rounded-full px-5 py-2 text-xs font-semibold transition-all ${
+              activeTab === tab.value
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* ================= Volunteer Progress tab ================= */}
       {activeTab === "progress" && (
         <>
@@ -272,24 +327,52 @@ export default function TrainingStaffPage() {
                 ) : trainers.length === 0 ? (
                   <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">No trainers yet</td></tr>
                 ) : (
-                  trainers.map((t) => (
-                    <tr key={t.trainerId} className="border-b border-slate-50 last:border-0">
-                      <td className="px-6 py-4">
-                        <div className="w-9 h-9 rounded-full bg-blue-800 text-white flex items-center justify-center text-xs font-semibold">
-                          {initials(t)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 font-medium text-slate-900">{t.firstName}</td>
-                      <td className="px-6 py-4 font-medium text-slate-900">{t.lastName}</td>
-                      {/* Not in TrainerDto yet, placeholders until the backend adds these fields */}
-                      <td className="px-6 py-4 text-slate-400">—</td>
-                      <td className="px-6 py-4 text-slate-400">—</td>
-                    </tr>
-                  ))
+                  trainers.map((t) => {
+                    const extras = trainerExtras[t.trainerId];
+                    const status: TrainerStatus = extras?.status ?? "Active";
+                    return (
+                      <tr key={t.trainerId} className="border-b border-slate-50 last:border-0">
+                        <td className="px-6 py-4">
+                          <div className="w-9 h-9 rounded-full bg-blue-800 text-white flex items-center justify-center text-xs font-semibold">
+                            {initials(t)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 font-medium text-slate-900">{t.firstName}</td>
+                        <td className="px-6 py-4 font-medium text-slate-900">{t.lastName}</td>
+                        <td className="px-6 py-4 text-slate-600">
+                          {extras?.contactDetails ? extras.contactDetails : <span className="text-slate-400">—</span>}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="inline-flex rounded-full bg-slate-100 p-0.5">
+                            {STATUS_OPTIONS.map((option) => (
+                              <button
+                                key={option}
+                                onClick={() => updateTrainerExtras(t.trainerId, { status: option })}
+                                className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
+                                  status === option
+                                    ? option === "Active"
+                                      ? "bg-green-500 text-white shadow-sm"
+                                      : "bg-slate-500 text-white shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700"
+                                }`}
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
+
+          {/* PLACEHOLDER notice, remove once the backend stores these fields */}
+          <p className="mt-3 text-xs text-amber-600">
+            Contact details and status are saved in this browser only until the backend supports them.
+          </p>
         </>
       )}
 
@@ -327,6 +410,15 @@ export default function TrainingStaffPage() {
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Contact details</label>
+                <input
+                  value={trainerContact}
+                  onChange={(e) => setTrainerContact(e.target.value)}
+                  placeholder="Phone number or email"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-400"
+                />
+              </div>
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
@@ -360,3 +452,5 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
     </div>
   );
 }
+
+
