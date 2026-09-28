@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../lib/auth-context";
 import { fetchVolunteers, Volunteer } from "../../lib/api/volunteers";
-import { fetchShiftsForWeek, Shift } from "../../lib/api/shifts";
+import { fetchShiftsForWeek, fetchVacanciesForWeek, Shift, Vacancy } from "../../lib/api/shifts";
 import {
   fetchWeeklyRoster,
   generateAutomatedRoster,
@@ -12,16 +12,32 @@ import {
   RosterAssignment,
 } from "../../lib/api/roster";
 
-// Helper: Get Monday of the current or given week (YYYY-MM-DD)
+// Helper: Get Monday of the current or given week, normalized to local
+// midnight. Normalizing here (rather than leaving whatever time-of-day the
+// Date was created at) is what makes formatDateISO's UTC-free conversion
+// safe below.
 function getMonday(d: Date = new Date()): Date {
   const date = new Date(d);
   const day = date.getDay();
   const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(date.setDate(diff));
+  date.setDate(diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
 }
 
+// Builds "YYYY-MM-DD" from the Date's LOCAL calendar fields.
+// NOTE: do NOT use d.toISOString().split("T")[0] here — toISOString()
+// converts to UTC first. In a UTC+2 timezone (e.g. South Africa), any local
+// time between 00:00 and 01:59 gets shifted back to the previous calendar
+// day once converted to UTC, silently turning a Monday into Sunday. That
+// off-by-one was why POST /api/Rosters/generate rejected the date with
+// "The roster week must start on a Monday" even though getMonday() had
+// computed the correct Monday.
 function formatDateISO(d: Date): string {
-  return d.toISOString().split("T")[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 // Helper: Format range label (e.g., "17–23 Aug 2026")
@@ -49,6 +65,10 @@ export default function RosterPage() {
   // Shared Data States
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
+  // Only used to show "X volunteers assigned" per shift card below. Fetched
+  // separately because /api/Vacancies never returns a shift that's already
+  // fully booked (see shiftAssignedInfo()).
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   // Full roster object (not just assignments) so we always have rosterId for publish.
   const [roster, setRoster] = useState<Roster | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +83,11 @@ export default function RosterPage() {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  // Confirm before jumping from the Weekly Roster tab into the Generate flow —
+  // that tab has no review step of its own, unlike the Generate tab's own
+  // "Generate Roster for {weekLabel}" button, which already sits behind
+  // Step 1 (Review Inputs).
+  const [isGenerateConfirmOpen, setIsGenerateConfirmOpen] = useState(false);
 
   // Fetch data whenever week or token changes
   useEffect(() => {
@@ -72,18 +97,22 @@ export default function RosterPage() {
         setIsLoading(true);
         const weekStr = formatDateISO(currentWeekStart);
 
-        const [vData, sData, rData] = await Promise.all([
+        const [vData, sData, rData, vacData] = await Promise.all([
           fetchVolunteers(token),
           fetchShiftsForWeek(token, weekStr),
           // No roster exists yet for this week -> backend 404s. That's expected,
           // not an error, so we swallow it and just show an empty roster.
           fetchWeeklyRoster(token, weekStr).catch(() => null),
+          // Don't let a vacancies hiccup break the whole page — the assigned
+          // count on each shift card just falls back to "fully assigned".
+          fetchVacanciesForWeek(token, weekStr).catch(() => []),
         ]);
 
         setVolunteers(vData);
         setSelectedVolunteers(vData);
         setShifts(sData);
         setRoster(rData);
+        setVacancies(vacData);
       } catch (err) {
         console.error("Failed to load roster data for week", err);
       } finally {
@@ -258,7 +287,7 @@ export default function RosterPage() {
             </div>
 
             <button
-              onClick={() => setActiveTab("generate")}
+              onClick={() => setIsGenerateConfirmOpen(true)}
               className="px-4 py-2 rounded-xl bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors"
             >
               ⚡ Generate Roster
@@ -396,8 +425,26 @@ export default function RosterPage() {
                 </button>
 
                 {expandedSection === "shifts" && (
-                  <div className="p-5 bg-white text-xs text-slate-500">
-                    Loaded {shifts.length} facility shift{shifts.length === 1 ? "" : "s"} for week of {weekLabel}.
+                  <div className="p-5 bg-white space-y-2">
+                    {shifts.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">
+                        No shifts scheduled for {weekLabel}.
+                      </p>
+                    ) : (
+                      [...shifts]
+                        .sort((a, b) =>
+                          a.shiftDate === b.shiftDate
+                            ? a.timeSlot.localeCompare(b.timeSlot)
+                            : a.shiftDate.localeCompare(b.shiftDate)
+                        )
+                        .map((s) => (
+                          <ShiftDetailCard
+                            key={s.shiftId}
+                            shift={s}
+                            assignedInfo={shiftAssignedInfo(s, vacancies)}
+                          />
+                        ))
+                    )}
                   </div>
                 )}
               </div>
@@ -467,6 +514,52 @@ export default function RosterPage() {
         </div>
       )}
 
+      {/* GENERATE CONFIRM MODAL (Weekly Roster tab only) */}
+      {isGenerateConfirmOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setIsGenerateConfirmOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900">Generate roster for {weekLabel}?</h2>
+              <button
+                onClick={() => setIsGenerateConfirmOpen(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">
+              {roster
+                ? "A roster already exists for this week. You'll be taken to Review Inputs to check the volunteer pool and shifts before generating again."
+                : "You'll be taken to Review Inputs to check the volunteer pool and shifts before anything is generated."}
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                onClick={() => setIsGenerateConfirmOpen(false)}
+                className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setIsGenerateConfirmOpen(false);
+                  setStep(1);
+                  setActiveTab("generate");
+                }}
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800 transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PUBLISH MODAL */}
       {isPublishModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setIsPublishModalOpen(false)}>
@@ -521,6 +614,92 @@ export default function RosterPage() {
   );
 }
 
+// Maps the three known VALID_TIME_SLOTS values (shifts.ts) to a session
+// label, matching how the mobile app groups shifts under "Morning" etc.
+// Falls back to the raw string for anything unrecognised rather than
+// guessing, per the project's "don't invent values" convention.
+function shiftSessionLabel(timeSlot: string): string {
+  switch (timeSlot) {
+    case "08:00-13:00":
+      return "Morning";
+    case "14:00-17:00":
+      return "Afternoon";
+    case "08:00-17:00":
+      return "Full Day";
+    default:
+      return timeSlot;
+  }
+}
+
+// /api/Vacancies never returns a shift with 0 remaining capacity, so a shift
+// with no matching vacancy entry is treated as fully assigned — same default
+// used elsewhere in this project for that gap.
+function shiftAssignedInfo(
+  shift: Shift,
+  vacancies: Vacancy[]
+): { assigned: number; capacity: number } {
+  const match = vacancies.find((v) => v.shiftId === shift.shiftId);
+  if (match) {
+    return { assigned: match.assignedVolunteers, capacity: match.capacity };
+  }
+  return { assigned: shift.capacity, capacity: shift.capacity };
+}
+
+function ShiftDetailCard({
+  shift,
+  assignedInfo,
+}: {
+  shift: Shift;
+  assignedInfo: { assigned: number; capacity: number };
+}) {
+  const date = new Date(`${shift.shiftDate.slice(0, 10)}T00:00:00`);
+  const dayNum = date.getDate();
+  const dayName = date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+  const isFull = assignedInfo.assigned >= assignedInfo.capacity;
+
+  return (
+    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200/80 rounded-xl p-4">
+      <div className="w-14 h-14 rounded-xl bg-blue-700 text-white flex flex-col items-center justify-center shrink-0">
+        <span className="text-lg font-bold leading-none">{dayNum}</span>
+        <span className="text-[10px] font-semibold leading-none mt-1">{dayName}</span>
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-slate-800">
+          {shiftSessionLabel(shift.timeSlot)}{" "}
+          <span className="font-normal text-slate-400">· {shift.timeSlot}</span>
+        </p>
+        <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+          <LocationIcon className="w-3.5 h-3.5 shrink-0" />
+          {shift.location}
+        </p>
+      </div>
+
+      <div
+        className={`text-right shrink-0 px-3 py-1.5 rounded-xl border ${
+          isFull
+            ? "bg-emerald-50 border-emerald-200"
+            : "bg-amber-50 border-amber-200"
+        }`}
+      >
+        <p className={`text-sm font-bold ${isFull ? "text-emerald-700" : "text-amber-700"}`}>
+          {assignedInfo.assigned}/{assignedInfo.capacity}
+        </p>
+        <p className={`text-[10px] ${isFull ? "text-emerald-600" : "text-amber-600"}`}>volunteers</p>
+      </div>
+    </div>
+  );
+}
+
+function LocationIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11Z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  );
+}
+
 /* ============================================================
    SHARED COMPONENTS
    ============================================================ */
@@ -543,8 +722,10 @@ function RosterMatrix({
   assignments: RosterAssignment[];
   mondayDate: Date;
 }) {
-  // Generate Mon-Fri labels + ISO date keys based on selected mondayDate
-  const days = [0, 1, 2, 3, 4].map((offset) => {
+  // Generate Mon-Sun labels + ISO date keys based on selected mondayDate.
+  // Was [0,1,2,3,4] (Mon-Fri only) — extended to 0-6 so Saturday and Sunday
+  // render too.
+  const days = [0, 1, 2, 3, 4, 5, 6].map((offset) => {
     const d = new Date(mondayDate);
     d.setDate(mondayDate.getDate() + offset);
     return {
@@ -618,4 +799,4 @@ function RosterMatrix({
       </table>
     </div>
   );
-}
+} 
