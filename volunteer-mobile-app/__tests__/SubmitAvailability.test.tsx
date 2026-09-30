@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import SubmitAvailabilityScreen from "../src/app/(tabs)/bookings/submit-availability";
 import { getMyAvailability, updateMyAvailability } from "../src/services/availability";
 import { ApiError } from "../src/utils/api";
-import { showErrorToast } from "../src/utils/toast";
+import { showErrorToast, showInfoToast } from "../src/utils/toast";
 
 jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
@@ -79,11 +79,35 @@ describe("Submit Availability", () => {
     expect(cell("Friday Morning")).not.toBeSelected();
   });
 
+  it("picking both Morning and Afternoon selects Full Day instead", async () => {
+    await render(<SubmitAvailabilityScreen />);
+
+    await fireEvent.press(await screen.findByRole("button", { name: "Thursday Morning" }));
+    await fireEvent.press(cell("Thursday Afternoon"));
+
+    expect(cell("Thursday Full Day")).toBeSelected();
+    expect(cell("Thursday Morning")).not.toBeSelected();
+    expect(cell("Thursday Afternoon")).not.toBeSelected();
+    expect(showInfoToast).toHaveBeenCalledWith("Full day selected", expect.stringContaining("Thursday"));
+    expect(screen.getByText("Submit 1 block")).toBeOnTheScreen();
+  });
+
+  it("shows saved Morning + Afternoon availability as a Full Day", async () => {
+    mockedGetMyAvailability.mockResolvedValue([
+      { dayOfWeek: "Friday", timeSlot: "08:00-13:00" },
+      { dayOfWeek: "Friday", timeSlot: "14:00-17:00" },
+    ]);
+    await render(<SubmitAvailabilityScreen />);
+
+    expect(await screen.findByText("Submit 1 block")).toBeOnTheScreen();
+    expect(cell("Friday Full Day")).toBeSelected();
+    expect(cell("Friday Morning")).not.toBeSelected();
+  });
+
   it("Full Day replaces Morning/Afternoon on the same day, and vice versa", async () => {
     await render(<SubmitAvailabilityScreen />);
 
     await fireEvent.press(await screen.findByRole("button", { name: "Tuesday Morning" }));
-    await fireEvent.press(cell("Tuesday Afternoon"));
     await fireEvent.press(cell("Tuesday Full Day"));
 
     expect(cell("Tuesday Full Day")).toBeSelected();

@@ -36,5 +36,13 @@ export const COLORS = {
   grey: "#817576",
   greenBg: "#E8F8EF",
   amberBg: "#FEF3D9",
+  // Pastel yellow theme for the Shifts pages. Pastels are too light for white text,
+  // so anything filled with them uses pastelInk for its text and icons.
+  pastelYellowLight: "#FFF8D6",
+  pastelYellow: "#FFEFA6",
+  pastelYellowDeep: "#FFE27A",
+  pastelYellowBorder: "#EFCB55",
+  pastelYellowBg: "#FFFBE8",
+  pastelInk: "#5c4508",
   lightGrey: "#F5F7F8",
 };

@@ -12,12 +12,15 @@ export default function MyShiftCard({
   item,
   cancellationPending = false,
   accent = COLORS.blueMid,
+  accentText = COLORS.white,
 }: {
   item: MyShift;
   /** A pending cancellation request already exists for this shift — hides the cancel action. */
   cancellationPending?: boolean;
   /** Tints the date badge and Cancel button to match the screen this card is shown on. */
   accent?: string;
+  /** Text/icon colour on top of `accent`; override when the accent is too light for white. */
+  accentText?: string;
 }) {
   const router = useRouter();
   const ended = hasShiftEnded(item.shiftDate, item.timeSlot);
@@ -73,7 +76,7 @@ export default function MyShiftCard({
           )}
         </View>
         <View style={SHIFT_CARD_STYLES.badgeRow}>
-          <DateBadge dateStr={item.shiftDate} size={56} color={accent} />
+          <DateBadge dateStr={item.shiftDate} size={56} color={accent} textColor={accentText} />
           <View style={SHIFT_CARD_STYLES.metaColumn}>
             <View style={SHIFT_CARD_STYLES.metaRow}>
               <Ionicons name="time-outline" size={14} color={COLORS.grey} />
@@ -103,8 +106,8 @@ export default function MyShiftCard({
             accessibilityLabel="Cancel shift"
           >
             <View style={[SHIFT_CARD_STYLES.action, { backgroundColor: accent }]}>
-              <Ionicons name="close-circle-outline" size={14} color={COLORS.white} />
-              <Text style={[SHIFT_CARD_STYLES.actionText, styles.cancelActionText]}>Cancel</Text>
+              <Ionicons name="close-circle-outline" size={14} color={accentText} />
+              <Text style={[SHIFT_CARD_STYLES.actionText, { color: accentText }]}>Cancel</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -115,7 +118,6 @@ export default function MyShiftCard({
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-  cancelActionText: { color: COLORS.white },
   // Same 8px round dot as the unread indicator in notifications.tsx, in amber for "pending".
   pendingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.amber },
 });
