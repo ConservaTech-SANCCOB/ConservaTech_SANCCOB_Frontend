@@ -212,6 +212,7 @@ dialog .btn{color:var(--ink);border-color:var(--ink);background:#fff}
 .people{list-style:none;padding:0;margin:0;display:grid;gap:10px}
 .people li{padding:10px 14px;border-left:6px solid var(--sky);background:#e9f5fa;border-radius:0 12px 12px 0}
 .people b{font:800 17px var(--font-display)}
+.people .stu{font:600 13px var(--font-code);color:var(--ink-soft);background:#dcecf2;padding:1px 8px;border-radius:99px;margin-left:6px;vertical-align:middle}
 .diagram{display:block;width:100%;height:auto;background:#fff;border:3px solid var(--ink);border-radius:16px;margin:12px 0}
 .diagram text{font-family:var(--font-body)}
 .dn{font:700 17px var(--font-display);fill:var(--ink)}
@@ -282,7 +283,7 @@ dialog .btn{color:var(--ink);border-color:var(--ink);background:#fff}
 <header class="top" id="top">
   <a class="brand" href="#tour" aria-label="ConservaTech for SANCCOB, back to the tour">
     <span class="brand-mark"><svg viewBox="0 0 40 58" aria-hidden="true"><use href="#penguin"/></svg></span>
-    <span class="brand-text"><b>ConservaTech</b><small>for SANCCOB</small></span>
+    <span class="brand-text"><b>ConservaTech</b><small>for SANCCOB &middot; <span id="module-code-1">INSY7315</span></small></span>
   </a>
   <nav class="views" aria-label="Site sections">
     <a href="#tour" id="nav-tour">Tour</a>
@@ -532,7 +533,7 @@ dialog .btn{color:var(--ink);border-color:var(--ink);background:#fff}
     <article class="doc">
       <h1 id="readme-overview">SANCCOB Volunteer Management System</h1>
       <p class="lead">A mobile app for volunteers and trainers, a web dashboard for coordinators, and one secure API behind both. Built by ConservaTech for the Southern African Foundation for the Conservation of Coastal Birds (SANCCOB), which rehabilitates injured and oiled seabirds, especially African penguins.</p>
-      <p>This page is both our presentation and our README. The <a href="#tour">Tour</a> walks through the same material as short clips. Module: INSY7315 Work Integrated Learning, The Independent Institute of Education. Team of five.</p>
+      <p>This page is both our presentation and our README. The <a href="#tour">Tour</a> walks through the same material as short clips. Module: <span id="module-code-2">INSY7315</span> Work Integrated Learning, The Independent Institute of Education. Team of five.</p>
 
       <h2 id="readme-links">Links</h2>
       <div class="scroll"><table><thead><tr><th>What</th><th>Where</th><th>Notes</th></tr></thead><tbody id="links-body"></tbody></table></div>
@@ -765,7 +766,7 @@ npx expo start</code></pre>
         </tbody>
       </table></div>
 
-      <p class="doc-foot">Built by ConservaTech for INSY7315, The Independent Institute of Education.</p>
+      <p class="doc-foot">Built by ConservaTech for <span id="module-code-3">INSY7315</span>, The Independent Institute of Education.</p>
     </article>
   </div>
 </section>
@@ -851,12 +852,14 @@ const CONFIG = {
   autostartTimer: true    // the clock starts when the first stop opens
 };
 
+const MODULE_CODE = "INSY7315";
+
 const TEAM = [
-  { name: "Funi",     role: "Backend developer",  detail: "Authentication and security, volunteer, change request, vacancy, dashboard and reporting APIs, CI/CD and cloud hosting" },
-  { name: "Max",      role: "Backend developer",  detail: "Attendance, shifts, vacancies, roster generation, trainer and notification services" },
-  { name: "TK",       role: "Database developer", detail: "PostgreSQL schema and data model" },
-  { name: "Pabi",     role: "Mobile developer",   detail: "Volunteer and trainer app in React Native with Expo" },
-  { name: "Lofentse", role: "Web developer",      detail: "Admin dashboard in Next.js on Vercel" }
+  { name: "Funiwe Mapunda",         student: "ST10438308", role: "Backend developer",                     detail: "Authentication and security, volunteer, change request, vacancy, dashboard and reporting APIs, CI/CD and cloud hosting" },
+  { name: "Max Harvery",            student: "ST10438637", role: "Project manager and backend developer", detail: "Attendance, shifts, vacancies, roster generation, trainer and notification services" },
+  { name: "Takalani Nemuhuyuni",    student: "ST10440111", role: "Database developer",                    detail: "PostgreSQL schema and data model; took over the volunteer app's integration with the API partway through the project" },
+  { name: "Paballo Nthutang",       student: "ST10446382", role: "Mobile developer",                      detail: "Designed and built the original volunteer and trainer app in React Native with Expo" },
+  { name: "Lofentse Moagi",         student: "ST10438345", role: "Web developer",                         detail: "Admin dashboard in Next.js on Vercel" }
 ];
 
 const LINKS = [
@@ -895,9 +898,11 @@ const STOPS = [
     ],
     rubric: ["Requirements alignment"], code: ["AppDbContext", "Skill", "VolunteerSkillProgress"] },
 
-  { id: "volunteer", name: "Pen A", sub: "The volunteer app", speaker: "Pabi", mins: 3,
+  { id: "volunteer", name: "Pen A", sub: "The volunteer app", speaker: "Pabi and TK", mins: 3,
     video: { file: "videos/03-volunteer-app.mp4", youtube: "" },
     points: [
+      "Designed and built by Pabi: the screens, navigation and overall look of the app.",
+      "Picked up partway through by TK, who took over the integration with the live API.",
       "Activate an account from the emailed code, then sign in, or reset a forgotten password.",
       "Submit weekly availability on a Monday to Sunday grid.",
       "See upcoming shifts and ask to change or cancel one.",
@@ -1026,6 +1031,7 @@ const els = {
 
 /* ---------- README data ---------- */
 function renderReadmeData() {
+  ['#module-code-1', '#module-code-2', '#module-code-3'].forEach(sel => { const el = $(sel); if (el) el.textContent = MODULE_CODE; });
   $('#links-body').innerHTML = LINKS.map(l => {
     const where = l.url
       ? `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.url.replace(/^https?:\/\//, ''))}</a>`
@@ -1033,7 +1039,7 @@ function renderReadmeData() {
     return `<tr><td>${esc(l.label)}</td><td>${where}</td><td>${esc(l.note)}</td></tr>`;
   }).join('');
   $('#team-list').innerHTML = TEAM.map(t =>
-    `<li><b>${esc(t.name)}</b>, ${esc(t.role)}<br>${esc(t.detail)}</li>`).join('');
+    `<li><b>${esc(t.name)}</b> <span class="stu">${esc(t.student)}</span>, ${esc(t.role)}<br>${esc(t.detail)}</li>`).join('');
 }
 
 /* ---------- map tags ---------- */
