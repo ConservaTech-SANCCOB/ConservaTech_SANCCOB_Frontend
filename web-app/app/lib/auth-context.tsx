@@ -1,35 +1,57 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { loginRequest, LoginResponse } from "./api/auth";
 import { registerUnauthorizedHandler } from "./api/http";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Decodes a JWT's payload without verifying the signature (fine client-side —
-// we're just checking expiry, the backend still verifies on every request).
+// the backend still verifies on every request). Returns null if malformed.
 //
 // JWTs use base64URL encoding (RFC 4648 §5), NOT standard base64: '-' instead
 // of '+', '_' instead of '/', and no '=' padding. atob() only understands
-// standard base64, so it must be converted first — otherwise any token whose
-// payload happens to contain a '-' or '_' (common, not an edge case) throws
-// or decodes to garbage, and gets wrongly treated as expired below.
-function isTokenExpired(token: string): boolean {
+// standard base64, so it must be converted first.
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-    const payload = JSON.parse(atob(padded));
-    if (!payload.exp) return false; // no exp claim -> treat as non-expiring
-    return Date.now() >= payload.exp * 1000;
+    return JSON.parse(atob(padded));
   } catch {
-    return true; // malformed token -> treat as invalid
+    return null;
   }
+}
+
+function isTokenExpired(token: string): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload) return true; // malformed token -> treat as invalid
+  if (typeof payload.exp !== "number") return false; // no exp claim -> non-expiring
+  return Date.now() >= payload.exp * 1000;
+}
+
+// Reads a string claim, trying the short key first and then the long .NET
+// URI form (the role claim arrives in the long form, so name/email might too).
+function readClaim(payload: Record<string, unknown> | null, ...keys: string[]): string | null {
+  if (!payload) return null;
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === "string" && value.trim() !== "") return value;
+  }
+  return null;
+}
+
+export interface AuthUser {
+  name: string | null;
+  email: string | null;
 }
 
 interface AuthContextType {
   token: string | null;
   role: string | null;
+  // Read from the JWT claims. Only as fresh as the token: it won't update
+  // mid-session if a profile changes; the user must log in again.
+  user: AuthUser | null;
   isLoading: boolean;
   login: (email: string, password: string, keepSignedIn?: boolean) => Promise<void>;
   logout: () => void;
@@ -46,6 +68,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // React state updates are batched/async, so checking `token` alone isn't
   // enough to dedupe calls that happen in the same tick.
   const loggingOutRef = useRef(false);
+
+  // Derived from the token, so it can never drift out of sync with it.
+  // A token issued before the backend added these claims gives null values.
+  const user = useMemo<AuthUser | null>(() => {
+    if (!token) return null;
+    const payload = decodeJwtPayload(token);
+    return {
+      name: readClaim(payload, "name", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"),
+      email: readClaim(payload, "email", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"),
+    };
+  }, [token]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -133,7 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ token, role, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ token, role, user, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
