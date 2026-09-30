@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -32,27 +32,36 @@ export default function ProfileScreen() {
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    getMyProfile()
-      .then((profile) => {
-        setFirstName(profile.firstName ?? "");
-        setLastName(profile.lastName ?? "");
-        setEmail(profile.email ?? "");
-        setPhone(profile.phoneNumber ?? "");
-        setNationality(profile.nationality ?? "");
-        // A legacy free-text value the backend would now reject shows as unselected.
-        setAgeBracket(isAgeBracket(profile.ageBracket) ? profile.ageBracket : "");
-        setEmergencyName(profile.emergencyContactName ?? "");
-        setEmergencyPhone(profile.emergencyContactPhone ?? "");
-      })
-      .catch((error) => {
-        logError("Load profile error", error);
-        setLoadError(true);
-      })
-      .finally(() => setLoading(false));
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const profile = await getMyProfile();
+      setFirstName(profile.firstName ?? "");
+      setLastName(profile.lastName ?? "");
+      setEmail(profile.email ?? "");
+      setPhone(profile.phoneNumber ?? "");
+      setNationality(profile.nationality ?? "");
+      // A legacy free-text value the backend would now reject shows as unselected.
+      setAgeBracket(isAgeBracket(profile.ageBracket) ? profile.ageBracket : "");
+      setEmergencyName(profile.emergencyContactName ?? "");
+      setEmergencyPhone(profile.emergencyContactPhone ?? "");
+    } catch (error) {
+      logError("Load profile error", error);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
   const handleSave = async () => {
+    // The PUT replaces every field, so saving a form that never loaded would send
+    // nulls over the volunteer's real details. The form isn't shown then, but guard anyway.
+    if (loading || loadError) return;
     if (!email.trim()) {
       Alert.alert("Email required", "Please enter your email address.");
       return;
@@ -146,12 +155,21 @@ export default function ProfileScreen() {
               <View style={styles.loadingRow}>
                 <ActivityIndicator color={COLORS.pinkMid} />
               </View>
+            ) : loadError ? (
+              <View style={styles.loadErrorState}>
+                <Ionicons name="warning-outline" size={26} color={COLORS.grey} />
+                <Text style={styles.loadErrorText}>Couldn&apos;t load your profile. Check your connection and try again.</Text>
+                <TouchableOpacity
+                  style={styles.saveButtonWrap}
+                  onPress={loadProfile}
+                  accessibilityRole="button"
+                  accessibilityLabel="Try again"
+                >
+                  <Text style={styles.saveButtonText}>Try again</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               <>
-                {loadError && (
-                  <Text style={styles.loadErrorText}>Couldn&apos;t load your profile. Try again in a moment.</Text>
-                )}
-
                 <Text style={styles.fieldLabel}>FIRST NAME</Text>
                 <View style={styles.inputRow}>
                   <Ionicons name="person-outline" size={18} color={COLORS.grey} />
@@ -334,7 +352,8 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "700", color: COLORS.grey },
   loadingRow: { paddingVertical: 20, alignItems: "center" },
-  loadErrorText: { fontSize: 12, color: COLORS.red, marginBottom: 8 },
+  loadErrorState: { alignItems: "center", paddingVertical: 12, gap: 8 },
+  loadErrorText: { fontSize: 13, color: COLORS.grey, textAlign: "center" },
   saveButtonWrap: {
     marginTop: 22,
     alignSelf: "center",
