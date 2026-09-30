@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
@@ -57,20 +57,30 @@ export default function TrainerDashboardScreen() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setIsLoading(true);
-        setVolunteers(await getTrainingVolunteers());
-      } catch (error) {
-        logError("Load training volunteers error", error);
-        setLoadError(true);
-      } finally {
-        setIsLoading(false);
-      }
+  const load = useCallback(async () => {
+    try {
+      setVolunteers(await getTrainingVolunteers());
+      setLoadError(false);
+    } catch (error) {
+      logError("Load training volunteers error", error);
+      setLoadError(true);
     }
-    load();
   }, []);
+
+  const hasLoadedRef = useRef(false);
+
+  // Re-fetched on every focus so a sign-off made on the volunteer screen shows here
+  // after Back. Only the first load shows the spinner; later ones refresh silently.
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasLoadedRef.current) {
+        hasLoadedRef.current = true;
+        load().finally(() => setIsLoading(false));
+      } else {
+        load();
+      }
+    }, [load])
+  );
 
   const handleLogout = async () => {
     await logout();
