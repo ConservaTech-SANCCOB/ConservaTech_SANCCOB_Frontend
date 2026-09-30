@@ -1,17 +1,27 @@
-import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image, ScrollView } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import PhotoBackdrop from "../components/PhotoBackdrop";
-import { SEABIRD_PHOTOS } from "../constants/seabirds";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Svg, { Path } from "react-native-svg";
 import KeyboardAvoidingScreen from "../components/KeyboardAvoidingScreen";
-import { COLORS } from "../utils/colors";
+import PhotoBackdrop from "../components/PhotoBackdrop";
+import { SEABIRD_PHOTOS } from "../constants/seabirds";
 import { login } from "../services/auth";
 import { getErrorMessage, getErrorStatus } from "../utils/api";
-import { showErrorToast } from "../utils/toast";
+import { COLORS } from "../utils/colors";
 import { logError } from "../utils/logError";
+import { showErrorToast } from "../utils/toast";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -32,7 +42,12 @@ export default function LoginScreen() {
     } catch (error) {
       logError("Login error", error);
       const status = getErrorStatus(error);
-      showErrorToast("Login failed", status === 401 ? "Incorrect email or password" : getErrorMessage(error, "Couldn't log in. Try again in a moment."));
+      showErrorToast(
+        "Login failed",
+        status === 401
+          ? "Incorrect email or password"
+          : getErrorMessage(error, "Couldn't log in. Try again in a moment."),
+      );
     } finally {
       setLoading(false);
     }
@@ -40,8 +55,17 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingScreen style={styles.container}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
-        <LinearGradient colors={["#003b5c", "#001a2c"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.banner}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
+        <LinearGradient
+          colors={["#003b5c", "#001a2c"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.banner}
+        >
           <PhotoBackdrop
             source={SEABIRD_PHOTOS.africanPenguin}
             tint={["rgba(0,59,92,0.66)", "rgba(0,26,44,0.9)"]}
@@ -55,14 +79,47 @@ export default function LoginScreen() {
           />
 
           {/* Stylized sweeping waves */}
-          <Svg style={StyleSheet.absoluteFill} viewBox="0 0 400 380" preserveAspectRatio="none" pointerEvents="none">
-            <Path d="M-20,40 C60,15 120,55 200,35 C280,15 340,45 420,25 L420,380 L-20,380 Z" fill="#ffffff" opacity={0.03} />
-            <Path d="M-20,85 C70,110 140,70 220,90 C300,110 350,80 420,95 L420,380 L-20,380 Z" fill="#7dd3fc" opacity={0.04} />
-            <Path d="M-20,130 C60,105 130,140 210,120 C290,100 350,135 420,115 L420,380 L-20,380 Z" fill="#ffffff" opacity={0.05} />
-            <Path d="M-20,180 C80,205 150,165 230,185 C310,205 360,175 420,190 L420,380 L-20,380 Z" fill="#7dd3fc" opacity={0.07} />
-            <Path d="M-20,225 C70,195 140,235 220,215 C300,195 355,230 420,210 L420,380 L-20,380 Z" fill="#ffffff" opacity={0.09} />
-            <Path d="M-20,270 C80,300 155,260 235,285 C315,310 365,275 420,290 L420,380 L-20,380 Z" fill="#7dd3fc" opacity={0.11} />
-            <Path d="M-20,320 C80,345 160,310 240,330 C320,350 360,320 420,335 L420,380 L-20,380 Z" fill="#ffffff" opacity={0.14} />
+          <Svg
+            style={StyleSheet.absoluteFill}
+            viewBox="0 0 400 380"
+            preserveAspectRatio="none"
+            pointerEvents="none"
+          >
+            <Path
+              d="M-20,40 C60,15 120,55 200,35 C280,15 340,45 420,25 L420,380 L-20,380 Z"
+              fill="#ffffff"
+              opacity={0.03}
+            />
+            <Path
+              d="M-20,85 C70,110 140,70 220,90 C300,110 350,80 420,95 L420,380 L-20,380 Z"
+              fill="#7dd3fc"
+              opacity={0.04}
+            />
+            <Path
+              d="M-20,130 C60,105 130,140 210,120 C290,100 350,135 420,115 L420,380 L-20,380 Z"
+              fill="#ffffff"
+              opacity={0.05}
+            />
+            <Path
+              d="M-20,180 C80,205 150,165 230,185 C310,205 360,175 420,190 L420,380 L-20,380 Z"
+              fill="#7dd3fc"
+              opacity={0.07}
+            />
+            <Path
+              d="M-20,225 C70,195 140,235 220,215 C300,195 355,230 420,210 L420,380 L-20,380 Z"
+              fill="#ffffff"
+              opacity={0.09}
+            />
+            <Path
+              d="M-20,270 C80,300 155,260 235,285 C315,310 365,275 420,290 L420,380 L-20,380 Z"
+              fill="#7dd3fc"
+              opacity={0.11}
+            />
+            <Path
+              d="M-20,320 C80,345 160,310 240,330 C320,350 360,320 420,335 L420,380 L-20,380 Z"
+              fill="#ffffff"
+              opacity={0.14}
+            />
           </Svg>
 
           <View style={styles.logoCircleOuter}>
@@ -73,7 +130,10 @@ export default function LoginScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.logoCircle}
             >
-              <Image source={require("../../assets/images/sanccob-icon.png")} style={styles.logoImage} />
+              <Image
+                source={require("../../assets/images/sanccob-icon.png")}
+                style={styles.logoImage}
+              />
             </LinearGradient>
           </View>
           <Text style={styles.title}>SANCCOB</Text>
@@ -97,7 +157,11 @@ export default function LoginScreen() {
             </View>
             <Text style={styles.label}>Password</Text>
             <View style={styles.inputRow}>
-              <Ionicons name="lock-closed-outline" size={18} color={COLORS.grey} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={18}
+                color={COLORS.grey}
+              />
               <TextInput
                 style={styles.input}
                 value={password}
@@ -106,11 +170,22 @@ export default function LoginScreen() {
                 secureTextEntry={!showPassword}
                 autoCorrect={false}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
-                <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={COLORS.grey} />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-outline" : "eye-off-outline"}
+                  size={20}
+                  color={COLORS.grey}
+                />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.loginButtonWrap} onPress={handleLogin} disabled={loading}>
+            <TouchableOpacity
+              style={styles.loginButtonWrap}
+              onPress={handleLogin}
+              disabled={loading}
+            >
               <View style={styles.loginButton}>
                 {loading ? (
                   <ActivityIndicator color={COLORS.white} />
@@ -122,7 +197,7 @@ export default function LoginScreen() {
             <TouchableOpacity onPress={() => router.push("/forgot-password")}>
               <Text style={styles.helperText}>Forgot your password?</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.back()}>
+            <TouchableOpacity onPress={() => router.replace("/")}>
               <Text style={styles.helperText}>Back to options</Text>
             </TouchableOpacity>
           </View>
@@ -164,7 +239,13 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
   },
-  subtitle: { fontSize: 13, color: "#7dd3fc", letterSpacing: 1.5, marginTop: 6, fontWeight: "700" },
+  subtitle: {
+    fontSize: 13,
+    color: "#7dd3fc",
+    letterSpacing: 1.5,
+    marginTop: 6,
+    fontWeight: "700",
+  },
   background: {
     flex: 1,
     justifyContent: "center",
@@ -179,7 +260,13 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   form: { paddingHorizontal: 24 },
-  label: { fontSize: 14, fontWeight: "600", color: COLORS.navy, marginBottom: 6, marginTop: 16 },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.navy,
+    marginBottom: 6,
+    marginTop: 16,
+  },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -195,7 +282,13 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "600", color: COLORS.navy },
+  input: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.navy,
+  },
   loginButtonWrap: {
     marginTop: 28,
     borderRadius: 40,
@@ -215,6 +308,17 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: "#00567f",
   },
-  loginButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
-  helperText: { textAlign: "center", color: COLORS.navy, fontSize: 12, marginTop: 16, lineHeight: 18 },
+  loginButtonText: {
+    color: COLORS.white,
+    fontWeight: "600",
+    fontSize: 15.5,
+    letterSpacing: 0.2,
+  },
+  helperText: {
+    textAlign: "center",
+    color: COLORS.navy,
+    fontSize: 12,
+    marginTop: 16,
+    lineHeight: 18,
+  },
 });
