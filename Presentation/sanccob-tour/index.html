@@ -1,0 +1,1397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ConservaTech for SANCCOB: a tour of the volunteer platform</title>
+<meta name="description" content="A guided tour and README for the SANCCOB Volunteer Management System, built by ConservaTech.">
+<meta name="theme-color" content="#002e4c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 58'%3E%3Cpath d='M20 2C10 2 6 14 6 30c0 16 4 24 14 24s14-8 14-24C34 14 30 2 20 2z' fill='%230f1f2b'/%3E%3Cpath d='M20 12c-7 0-9 12-9 22 0 12 3 18 9 18s9-6 9-18c0-10-2-22-9-22z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#002e4c; --navy-deep:#06202f; --blue:#00567f; --sky:#53c7ff; --sky-soft:#bfe9ff;
+  --sand:#f0dfb2; --sage:#d5e5bf; --ink:#0d2233; --ink-soft:#3d5566; --paper:#f4f9fb;
+  --amber:#f5b13d; --coral:#ff6b57; --green:#2fa36b;
+  --font-display:"Bricolage Grotesque","Trebuchet MS","Segoe UI",sans-serif;
+  --font-body:"Atkinson Hyperlegible","Verdana","Segoe UI",system-ui,sans-serif;
+  --font-code:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;font:400 16px/1.6 var(--font-body);color:#fff;background:
+  radial-gradient(1100px 620px at 78% -8%,#0b5d86 0,transparent 62%),
+  linear-gradient(#06202f,#002e4c 55%,#041a28);background-attachment:fixed;min-height:100vh}
+[hidden]{display:none!important}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+kbd{font:600 12px var(--font-body);padding:1px 6px;border-radius:5px;border:1px solid currentColor;opacity:.75;white-space:nowrap}
+.ic{width:20px;height:20px;flex:none}
+.skip{position:absolute;left:-999px;top:8px;background:var(--amber);color:#1b2a36;padding:8px 14px;border-radius:8px;z-index:100;font-weight:700}
+.skip:focus{left:8px}
+
+/* ---------- header ---------- */
+.top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:clamp(12px,2.4vw,28px);padding:10px clamp(14px,3vw,32px);
+  background:rgba(0,36,60,.88);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.12)}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand-mark{width:38px;height:38px;border-radius:50%;background:#e6f6ff;display:grid;place-items:center;border:2px solid var(--sky)}
+.brand-mark svg{width:16px;height:23px}
+.brand-text{display:grid;line-height:1.15}
+.brand-text b{font:800 18px var(--font-display);letter-spacing:-.01em}
+.brand-text small{font-size:13px;color:#a9cde0}
+.views{display:flex;gap:6px;margin-right:auto}
+.views a{padding:8px 14px;border-radius:10px;text-decoration:none;font-weight:700;color:#cfe6f3}
+.views a:hover{background:rgba(255,255,255,.1)}
+.views a[aria-current="page"]{color:#fff;box-shadow:inset 0 -3px 0 var(--amber)}
+.top-tools{display:flex;align-items:center;gap:10px}
+.released{display:flex;align-items:center;gap:3px;margin-right:6px}
+.released .pg{width:15px;height:22px;opacity:.28;filter:grayscale(1) brightness(1.6);transition:opacity .2s}
+.released .pg.on{opacity:1;filter:none}
+.released-n{font-size:14px;color:#a9cde0;margin-left:6px;white-space:nowrap}
+.tool{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:2px solid rgba(255,255,255,.28);background:transparent;color:#fff;font:700 14px var(--font-body);cursor:pointer}
+.tool:hover,.tool[aria-pressed="true"]{background:rgba(255,255,255,.14)}
+.tool.icon{padding:8px}
+
+/* ---------- tour ---------- */
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(16px,4vw,56px);align-items:end;
+  max-width:1280px;margin:0 auto;padding:clamp(18px,3.4vw,40px) clamp(14px,3vw,32px) 18px}
+.hero h1{font:800 clamp(34px,5.6vw,72px)/.96 var(--font-display);letter-spacing:-.025em;margin:0}
+.lede{margin:0 0 6px;font-size:clamp(16px,1.5vw,19px);color:#cfe6f3;max-width:54ch}
+.hint{margin:0;color:#a9cde0;font-size:15px}
+.map-wrap{max-width:1280px;margin:0 auto;padding:0 clamp(14px,3vw,32px)}
+#map{display:block;width:100%;height:auto;border-radius:24px;border:3px solid var(--ink);box-shadow:0 34px 70px -34px rgba(0,0,0,.75);background:var(--sage)}
+.spot{cursor:pointer;outline:none}
+.spot .art{transition:transform .18s ease;transform-box:fill-box;transform-origin:50% 92%}
+.spot:hover .art,.spot:focus-visible .art{transform:translateY(-5px) scale(1.05)}
+.spot .ring{fill:none;stroke:var(--amber);stroke-width:5;opacity:0;transition:opacity .15s}
+.spot:focus-visible .ring{opacity:1}
+.spot .pulse{fill:none;stroke:var(--amber);stroke-width:5;opacity:0;transform-box:fill-box;transform-origin:center}
+.spot.next .pulse{animation:pulse 1.9s ease-out infinite}
+@keyframes pulse{0%{opacity:.95;transform:scale(.72)}100%{opacity:0;transform:scale(1.3)}}
+.tag .tbg{fill:#fff8e6;stroke:var(--ink);stroke-width:2.4;transition:fill .15s}
+.spot:hover .tbg,.spot:focus-visible .tbg{fill:#ffe3a3}
+.tag .tb{fill:var(--navy);stroke:var(--ink);stroke-width:2}
+.spot.done .tb{fill:var(--green)}
+.tag .tn{font:800 15px var(--font-display);fill:#fff;text-anchor:middle}
+.tag .tname{font:700 15px var(--font-display);fill:var(--ink)}
+.tag .tsub{font:400 12px var(--font-body);fill:var(--ink-soft)}
+.cname{font:800 17px var(--font-display);fill:var(--ink)}
+.csub{font:400 12.5px var(--font-body);fill:var(--ink-soft)}
+.gull{animation:fly 58s linear infinite}
+.gull.two{animation-duration:74s;animation-delay:-30s}
+@keyframes fly{from{transform:translate(-90px,0)}to{transform:translate(1320px,-46px)}}
+.waves{animation:sway 7s ease-in-out infinite alternate}
+@keyframes sway{from{transform:translateX(-10px)}to{transform:translateX(12px)}}
+.foam{stroke-dasharray:16 12;animation:foam 9s linear infinite}
+@keyframes foam{to{stroke-dashoffset:-112}}
+
+.nextup{max-width:1280px;margin:16px auto 0;padding:0 clamp(14px,3vw,32px);display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:#cfe6f3}
+.nextup .btn{padding:7px 12px}
+.trail{list-style:none;margin:26px auto 0;padding:0 clamp(14px,3vw,32px);max-width:1280px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;position:relative}
+.trail::before{content:"";position:absolute;left:calc(clamp(14px,3vw,32px) + 6%);right:calc(clamp(14px,3vw,32px) + 6%);top:22px;border-top:3px dashed rgba(255,255,255,.3)}
+.stone{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;background:none;border:0;color:#fff;cursor:pointer;text-align:center;padding:0 4px 10px;font:inherit}
+.stone-n{position:relative;z-index:1;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#0b4d70;border:3px solid #7fd3f5;font:800 19px var(--font-display);transition:transform .15s}
+.stone:hover .stone-n{transform:scale(1.08)}
+.stone.next .stone-n{border-color:var(--amber);box-shadow:0 0 0 6px rgba(245,177,61,.28)}
+.stone.done .stone-n{background:var(--green);border-color:#8ee0b6}
+.stone-name{font:700 17px var(--font-display);margin-top:4px}
+.stone-sub{font-size:14px;color:#b7d7e8;line-height:1.3}
+.stone-meta{font-size:13px;color:#8fb8ce}
+.finale{max-width:1280px;margin:26px auto 0;padding:0 clamp(14px,3vw,32px)}
+.finale-in{display:flex;flex-wrap:wrap;align-items:center;gap:18px 28px;padding:22px 26px;border-radius:20px;background:#0b4d70;border:3px solid var(--amber)}
+.finale h2{margin:0;font:800 28px/1.1 var(--font-display)}
+.finale p{margin:4px 0 0;color:#d4ebf7}
+.finale-in>div{flex:1 1 320px}
+.tour-foot{height:70px}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:12px;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);color:#fff;font:700 15px var(--font-body);cursor:pointer;text-decoration:none}
+.btn:hover{background:rgba(255,255,255,.16)}
+.btn.primary{background:var(--amber);border-color:var(--amber);color:#1b2a36}
+.btn.primary:hover{background:#ffc45c}
+.btn[aria-pressed="true"]{background:rgba(255,255,255,.22)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---------- stage (full-screen stop) ---------- */
+body.stage-open{overflow:hidden}
+.stage{position:fixed;inset:0;z-index:40;display:grid;grid-template-rows:auto minmax(0,1fr);color:#fff;
+  background:radial-gradient(900px 520px at 12% 0,#0b5d86 0,transparent 62%),#06202f}
+.stage-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;padding:10px clamp(12px,2.4vw,28px);border-bottom:1px solid rgba(255,255,255,.14)}
+.stage-title{display:flex;align-items:center;gap:14px;margin-right:auto;min-width:0}
+.badge{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--navy);border:3px solid var(--sky);font:800 19px var(--font-display)}
+.stage-title h2{margin:0;font:800 clamp(20px,2.6vw,30px)/1.05 var(--font-display);letter-spacing:-.01em}
+.stage-title p{margin:2px 0 0;color:#b7d7e8;font-size:15px}
+.stage-nav{display:flex;gap:8px}
+.stage-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,380px);gap:clamp(14px,2vw,26px);padding:clamp(12px,2vw,24px);min-height:0}
+.stage.theatre .stage-body,.stage.cases .stage-body{grid-template-columns:minmax(0,1fr)}
+.stage.theatre .stage-info,.stage.cases .stage-info{display:none}
+.player-wrap{min-height:0;min-width:0;display:flex;align-items:center;justify-content:center}
+.player{position:relative;aspect-ratio:16/9;width:min(100%,calc((100dvh - 128px) * 16 / 9));background:#000;border-radius:16px;overflow:hidden;border:3px solid var(--ink)}
+.player video,.player iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.player.is-placeholder{background:#07344d}
+.ph{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:6px;text-align:center;padding:24px;background:linear-gradient(#0b4d70,#07344d);color:#dff3ff}
+.ph-peng{width:60px;height:87px;margin-bottom:6px}
+.ph-title{margin:0;font:800 clamp(20px,2.4vw,28px) var(--font-display)}
+.ph p{margin:0;max-width:46ch}
+.ph code{font:600 14px var(--font-code);background:rgba(255,255,255,.14);padding:2px 8px;border-radius:6px}
+.player.cases{aspect-ratio:auto;width:100%;height:100%;overflow:auto;background:transparent;border:0;border-radius:0;padding:2px}
+.stage-info{overflow:auto;min-height:0;padding-right:6px}
+.stage-info h3{margin:22px 0 8px;font:800 18px var(--font-display)}
+.stage-info h3:first-of-type{margin-top:10px}
+.stage-info p{margin:0 0 4px;color:#cfe6f3}
+.stage-info ul{margin:0;padding-left:1.15em}
+.stage-info li{margin:0 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-block;padding:3px 11px;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.24);font-size:14px}
+code.chip{font:600 13px var(--font-code);border-radius:8px}
+.stage-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.cases-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;padding-bottom:12px}
+.case{background:#fff8e6;color:var(--ink);border-radius:14px;padding:16px 18px;border:3px solid var(--ink);border-left-width:10px;border-left-color:var(--coral)}
+.case h3{margin:0 0 8px;font:800 18px/1.2 var(--font-display)}
+.case p{margin:0 0 6px;font-size:15px;line-height:1.45;color:var(--ink)}
+.case b{color:var(--blue)}
+.case .fix b{color:#1c7a4d}
+
+/* ---------- presenter panel ---------- */
+.presenter{position:fixed;top:0;right:0;bottom:0;width:min(360px,100vw);z-index:60;background:#fff;color:var(--ink);padding:16px 18px 24px;overflow:auto;border-left:3px solid var(--ink);box-shadow:-20px 0 50px -20px rgba(0,0,0,.6)}
+.presenter h2{margin:0;font:800 22px var(--font-display)}
+.pp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.pp-x{width:36px;height:36px;border-radius:10px;border:2px solid var(--ink);background:#fff;cursor:pointer;display:grid;place-items:center;color:var(--ink)}
+.pp-time{font:800 52px/1 var(--font-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.pp-bar{height:10px;border-radius:99px;background:#dbe8ee;margin:10px 0 6px;overflow:hidden}
+.pp-bar i{display:block;height:100%;width:0;background:var(--green);transition:width .3s,background .3s}
+.pp-status{margin:0 0 12px;font-weight:700}
+.pp-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.presenter .btn{color:var(--ink);border-color:var(--ink);background:#fff}
+.presenter .btn:hover{background:#e6f6ff}
+.presenter .btn.primary{background:var(--amber)}
+.presenter input{width:78px;padding:6px 8px;border-radius:8px;border:2px solid var(--ink);font:700 15px var(--font-body)}
+.pp-plan{color:var(--ink-soft);font-size:15px;margin:6px 0 12px}
+.pp-list{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:6px}
+.pp-list li{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:7px 10px;border-radius:10px;border:2px solid #cfe0e8}
+.pp-list li.now{border-color:var(--amber);background:#fff6e0}
+.pp-list li.done{background:#eaf7f0;border-color:#b6e2cb}
+.pp-list .n{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font:800 13px var(--font-display)}
+.pp-list li.done .n{background:var(--green)}
+.pp-list small{display:block;color:var(--ink-soft);font-size:13px;line-height:1.2}
+.pp-list .t{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px}
+
+/* ---------- help dialog ---------- */
+dialog{border:3px solid var(--ink);border-radius:18px;padding:22px 26px;max-width:min(560px,92vw);background:#fff;color:var(--ink)}
+dialog::backdrop{background:rgba(3,20,32,.7)}
+dialog h2{margin:0 0 12px;font:800 24px var(--font-display)}
+dialog dl{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;margin:0 0 16px}
+dialog dt{font-weight:700}
+dialog dd{margin:0;color:var(--ink-soft)}
+dialog .btn{color:var(--ink);border-color:var(--ink);background:#fff}
+
+/* ---------- README ---------- */
+.readme{max-width:1240px;margin:0 auto;padding:clamp(18px,3vw,38px) clamp(14px,3vw,32px) 90px;display:grid;grid-template-columns:210px minmax(0,1fr);gap:clamp(20px,4vw,56px)}
+.toc{position:sticky;top:84px;align-self:start;display:grid;gap:2px;font-size:15px}
+.toc b{font:800 15px var(--font-display);color:#a9cde0;margin-bottom:6px}
+.toc a{padding:5px 10px;border-radius:8px;text-decoration:none;color:#cfe6f3;border-left:3px solid transparent}
+.toc a:hover{background:rgba(255,255,255,.08)}
+.toc a.on{color:#fff;border-left-color:var(--amber);background:rgba(255,255,255,.08)}
+.doc{background:var(--paper);color:var(--ink);border-radius:26px;padding:clamp(20px,4vw,54px);border:3px solid var(--ink)}
+.doc h1{margin:0 0 6px;font:800 clamp(30px,4.4vw,52px)/1 var(--font-display);letter-spacing:-.02em}
+.doc h2{margin:2.3em 0 .5em;font:800 clamp(24px,3vw,32px)/1.1 var(--font-display);letter-spacing:-.01em;scroll-margin-top:84px}
+.doc h3{margin:1.4em 0 .4em;font:800 19px var(--font-display)}
+.doc p,.doc li{max-width:72ch;line-height:1.65}
+.doc .lead{font-size:19px;color:var(--ink-soft);max-width:60ch}
+.doc a{color:var(--blue);font-weight:700}
+.doc code{font:600 .88em var(--font-code);background:#e0edf3;padding:1px 6px;border-radius:6px}
+.doc pre{background:var(--ink);color:#dff3ff;padding:14px 16px;border-radius:12px;overflow:auto;font:500 14px/1.55 var(--font-code)}
+.doc pre code{background:none;padding:0;color:inherit;font-weight:500}
+.scroll{overflow-x:auto}
+.doc table{border-collapse:collapse;width:100%;min-width:520px}
+.doc th,.doc td{padding:.6em .8em;border-bottom:1px solid #cfe0e8;text-align:left;vertical-align:top}
+.doc th{font:800 15px var(--font-display);background:#e6f2f7}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px 30px}
+.people{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.people li{padding:10px 14px;border-left:6px solid var(--sky);background:#e9f5fa;border-radius:0 12px 12px 0}
+.people b{font:800 17px var(--font-display)}
+.diagram{display:block;width:100%;height:auto;background:#fff;border:3px solid var(--ink);border-radius:16px;margin:12px 0}
+.diagram text{font-family:var(--font-body)}
+.dn{font:700 17px var(--font-display);fill:var(--ink)}
+.dh{font:800 15px var(--font-display);fill:var(--blue)}
+.ds{font:400 13px var(--font-body);fill:var(--ink-soft)}
+.dl{font:700 12.5px var(--font-body);fill:var(--blue)}
+.doc .chips .chip{background:#e0edf3;border-color:#b7d3e0;color:var(--ink)}
+.linkbtn{background:none;border:0;padding:0;color:var(--blue);font:700 inherit;font-family:inherit;cursor:pointer;text-decoration:underline}
+.todo{color:#8a5a00;font-style:italic}
+.doc-foot{margin-top:3em;padding-top:1em;border-top:2px solid #cfe0e8;color:var(--ink-soft);font-size:15px}
+
+@media (max-width:980px){
+  .hero{grid-template-columns:1fr}
+  .readme{grid-template-columns:1fr}
+  .toc{position:static;grid-auto-flow:column;overflow:auto;gap:6px}
+  .toc b{display:none}
+  .toc a{white-space:nowrap}
+  .stage-body{grid-template-columns:minmax(0,1fr);overflow:auto}
+  .stage-info{overflow:visible}
+  .player{width:100%}
+}
+@media (max-width:860px){
+  .trail{grid-template-columns:1fr;gap:2px}
+  .trail::before{display:none}
+  .stone{flex-direction:row;text-align:left;gap:14px;align-items:center;padding:6px 4px}
+  .stone-name{margin-top:0}
+  .stone span:not(.stone-n){display:block}
+  .released-n,.tool span,.tool kbd{display:none}
+  .brand-text small{display:none}
+  .tag .tname,.tag .tsub,.tag .tbg{display:none}
+  .tag .tb{r:24;stroke-width:3}
+  .tag .tn{font-size:22px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+
+<!-- shared symbols -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="penguin" viewBox="0 0 40 58">
+      <path d="M7 27C1 34 2 43 6 45c3-4 4-10 4-17z" fill="#0f1f2b"/>
+      <path d="M33 27c6 7 5 16 1 18-3-4-4-10-4-17z" fill="#0f1f2b"/>
+      <path d="M20 2C10 2 6 14 6 30c0 16 4 24 14 24s14-8 14-24C34 14 30 2 20 2z" fill="#0f1f2b"/>
+      <path d="M20 12c-7 0-9 12-9 22 0 12 3 18 9 18s9-6 9-18c0-10-2-22-9-22z" fill="#fff"/>
+      <path d="M12.5 33Q20 22 27.5 33" fill="none" stroke="#0f1f2b" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M12 9.5Q15 6 18.5 8M28 9.5Q25 6 21.5 8" fill="none" stroke="#f08aa5" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="15.5" cy="13.5" r="2.2" fill="#fff"/><circle cx="24.5" cy="13.5" r="2.2" fill="#fff"/>
+      <circle cx="15.8" cy="13.7" r="1.1" fill="#0f1f2b"/><circle cx="24.2" cy="13.7" r="1.1" fill="#0f1f2b"/>
+      <path d="M17 17.5h6L20 23z" fill="#f2a63a"/>
+      <ellipse cx="14" cy="55.5" rx="5.5" ry="2.3" fill="#f2a63a"/><ellipse cx="26" cy="55.5" rx="5.5" ry="2.3" fill="#f2a63a"/>
+    </symbol>
+    <symbol id="gull" viewBox="0 0 40 20"><path d="M1 13C9 2 16 4 20 11 24 4 31 2 39 13 31 9 25 10 20 15 15 10 9 9 1 13z" fill="#fff" stroke="#6f93a8" stroke-width="1" stroke-linejoin="round"/></symbol>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#00567f"/></marker>
+    <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M9.5 9.5a2.6 2.6 0 115 0c0 1.8-2.5 2.2-2.5 4M12 17v.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top" id="top">
+  <a class="brand" href="#tour" aria-label="ConservaTech for SANCCOB, back to the tour">
+    <span class="brand-mark"><svg viewBox="0 0 40 58" aria-hidden="true"><use href="#penguin"/></svg></span>
+    <span class="brand-text"><b>ConservaTech</b><small>for SANCCOB</small></span>
+  </a>
+  <nav class="views" aria-label="Site sections">
+    <a href="#tour" id="nav-tour">Tour</a>
+    <a href="#readme" id="nav-readme">README</a>
+  </nav>
+  <div class="top-tools">
+    <div class="released" id="released" role="img" aria-label="0 of 7 stops visited"></div>
+    <span class="released-n" id="released-n" aria-hidden="true">0 of 7</span>
+    <button class="tool" id="btn-presenter" aria-pressed="false" aria-controls="presenter"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span>Presenter</span><kbd>P</kbd></button>
+    <button class="tool icon" id="btn-help" aria-label="Keyboard shortcuts"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg></button>
+  </div>
+</header>
+
+<main id="main">
+<noscript><p style="padding:24px">The interactive tour needs JavaScript. The README section below still works.</p></noscript>
+
+<!-- ============ TOUR ============ -->
+<section id="view-tour" aria-labelledby="tour-title">
+  <div class="hero">
+    <h1 id="tour-title">Rescue, rehabilitate, release</h1>
+    <div>
+      <p class="lede">A tour of the platform we built for SANCCOB's volunteers, trainers and coordinators. Follow the footpath from the front desk to the shoreline, one stop at a time.</p>
+      <p class="hint" id="hint">Click a stop on the map, or press 1 to 7. Press ? for every shortcut.</p>
+    </div>
+  </div>
+
+  <div class="map-wrap">
+<svg id="map" viewBox="0 0 1200 700" role="group" aria-label="Map of the rescue centre with seven numbered stops and one bonus stop" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7fd3f5"/><stop offset="1" stop-color="#1687b8"/></linearGradient>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="4" cy="6" r="1.6" fill="#a9c58a" opacity=".6"/><circle cx="17" cy="19" r="1.4" fill="#a9c58a" opacity=".5"/></pattern>
+  </defs>
+
+  <!-- land, beach, sea -->
+  <rect width="1200" height="700" fill="#d5e5bf"/>
+  <rect width="1200" height="700" fill="url(#dots)"/>
+  <path d="M1000 -10 C968 110 1004 210 972 310 S1000 500 968 710" fill="none" stroke="#f0dfb2" stroke-width="80"/>
+  <path d="M1000 -10 C968 110 1004 210 972 310 S1000 500 968 710 L1210 710 L1210 -10 Z" fill="url(#sea)"/>
+  <path class="foam" d="M1000 -10 C968 110 1004 210 972 310 S1000 500 968 710" fill="none" stroke="#ffffff" stroke-width="5" opacity=".85"/>
+  <g class="waves" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity=".55">
+    <path d="M1030 90q20-10 40 0t40 0t40 0"/>
+    <path d="M1050 200q20-10 40 0t40 0t40 0"/>
+    <path d="M1030 430q20-10 40 0t40 0t40 0"/>
+    <path d="M1040 560q20-10 40 0t40 0t40 0"/>
+    <path d="M1060 650q20-10 40 0t40 0"/>
+  </g>
+
+  <!-- footpath -->
+  <path d="M140 560 C150 460 210 400 270 330 C330 400 380 470 440 510 C470 430 470 330 500 240 C580 260 620 330 690 400 C770 430 860 400 930 330 C900 450 830 540 760 590"
+        fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" opacity=".55"/>
+  <path d="M140 560 C150 460 210 400 270 330 C330 400 380 470 440 510 C470 430 470 330 500 240 C580 260 620 330 690 400 C770 430 860 400 930 330 C900 450 830 540 760 590"
+        fill="none" stroke="#c9a978" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 12"/>
+
+  <!-- scenery -->
+  <g id="scenery">
+    <g fill="#7ea267" stroke="#0d2233" stroke-width="2">
+      <circle cx="70" cy="150" r="22"/><circle cx="92" cy="162" r="16"/>
+      <circle cx="204" cy="118" r="18"/><circle cx="224" cy="130" r="13"/>
+      <circle cx="92" cy="300" r="17"/><circle cx="392" cy="112" r="20"/><circle cx="412" cy="124" r="14"/>
+      <circle cx="640" cy="118" r="18"/><circle cx="762" cy="212" r="20"/><circle cx="782" cy="224" r="13"/>
+      <circle cx="850" cy="150" r="17"/><circle cx="604" cy="562" r="19"/><circle cx="640" cy="652" r="16"/>
+      <circle cx="882" cy="560" r="18"/><circle cx="60" cy="640" r="18"/>
+    </g>
+    <g fill="#f08aa5" stroke="#0d2233" stroke-width="1.6">
+      <circle cx="66" cy="144" r="5"/><circle cx="200" cy="114" r="4.5"/><circle cx="388" cy="108" r="5"/><circle cx="758" cy="208" r="5"/><circle cx="878" cy="556" r="4.5"/>
+    </g>
+    <g fill="#9aa8b3" stroke="#0d2233" stroke-width="2">
+      <ellipse cx="988" cy="128" rx="14" ry="10"/><ellipse cx="978" cy="470" rx="16" ry="11"/><ellipse cx="962" cy="606" rx="13" ry="9"/>
+    </g>
+    <use href="#penguin" x="326" y="440" width="22" height="32"/>
+    <use href="#penguin" x="548" y="298" width="22" height="32"/>
+    <use href="#penguin" x="838" y="452" width="22" height="32"/>
+  </g>
+  <g transform="translate(0 92)"><g class="gull"><use href="#gull" x="0" y="0" width="38" height="19"/></g></g>
+  <g transform="translate(0 262)"><g class="gull two"><use href="#gull" x="0" y="0" width="30" height="15"/></g></g>
+
+  <g transform="translate(22 22)">
+    <rect width="270" height="60" rx="12" fill="#fff8e6" stroke="#0d2233" stroke-width="2.4"/>
+    <text class="cname" x="16" y="26">The rescue centre</text>
+    <text class="csub" x="16" y="46">Follow the footpath from stop 1 to 7</text>
+  </g>
+
+  <!-- 1 Reception -->
+  <g class="spot" data-id="reception" data-tag-y="-112" transform="translate(140 560)" tabindex="0" role="button">
+    <circle class="hit" r="80" fill="transparent"/>
+    <circle class="pulse" r="72"/><ellipse class="ring" cx="0" cy="-4" rx="84" ry="70"/>
+    <g class="art">
+      <ellipse cx="0" cy="40" rx="72" ry="13" fill="#0d2233" opacity=".14"/>
+      <rect x="-48" y="-20" width="96" height="58" rx="6" fill="#fff8e6" stroke="#0d2233" stroke-width="2.6"/>
+      <path d="M-58 -18L0 -60L58 -18Z" fill="#00567f" stroke="#0d2233" stroke-width="2.6" stroke-linejoin="round"/>
+      <rect x="-11" y="6" width="22" height="32" rx="3" fill="#f5b13d" stroke="#0d2233" stroke-width="2.2"/>
+      <rect x="-40" y="-8" width="22" height="18" rx="2" fill="#bfe9ff" stroke="#0d2233" stroke-width="2"/>
+      <rect x="18" y="-8" width="22" height="18" rx="2" fill="#bfe9ff" stroke="#0d2233" stroke-width="2"/>
+      <path d="M34 -46V-84" stroke="#0d2233" stroke-width="2.4"/>
+      <path d="M34 -84L60 -76L34 -68Z" fill="#ff6b57" stroke="#0d2233" stroke-width="2"/>
+      <use href="#penguin" x="-86" y="8" width="20" height="29"/>
+    </g>
+  </g>
+
+  <!-- 2 Quarantine Zone: the brief -->
+  <g class="spot" data-id="brief" data-tag-y="-76" transform="translate(270 330)" tabindex="0" role="button">
+    <circle class="hit" r="80" fill="transparent"/>
+    <circle class="pulse" r="76"/><ellipse class="ring" cx="0" cy="2" rx="86" ry="58"/>
+    <g class="art">
+      <ellipse cx="0" cy="48" rx="76" ry="13" fill="#0d2233" opacity=".14"/>
+      <rect x="-64" y="-40" width="128" height="84" rx="8" fill="#fbeeb0" fill-opacity=".8"/>
+      <rect x="-64" y="-40" width="128" height="84" rx="8" fill="none" stroke="#0d2233" stroke-width="7"/>
+      <rect x="-64" y="-40" width="128" height="84" rx="8" fill="none" stroke="#f5b13d" stroke-width="7" stroke-dasharray="12 12"/>
+      <path d="M0 -32L14 -8H-14Z" fill="#f5b13d" stroke="#0d2233" stroke-width="2.2" stroke-linejoin="round"/>
+      <text x="0" y="-12" text-anchor="middle" font-size="16" font-weight="800" fill="#0d2233">!</text>
+      <rect x="-52" y="6" width="34" height="26" fill="#fff" stroke="#0d2233" stroke-width="2.2"/>
+      <path d="M-56 6L-35 -10L-14 6Z" fill="#ff6b57" stroke="#0d2233" stroke-width="2.2" stroke-linejoin="round"/>
+      <use href="#penguin" x="18" y="0" width="26" height="38"/>
+    </g>
+  </g>
+
+  <!-- 3 Pen A: volunteer app -->
+  <g class="spot" data-id="volunteer" data-tag-y="-76" transform="translate(440 510)" tabindex="0" role="button">
+    <circle class="hit" r="82" fill="transparent"/>
+    <circle class="pulse" r="78"/><ellipse class="ring" cx="0" cy="8" rx="86" ry="58"/>
+    <g class="art">
+      <ellipse cx="0" cy="46" rx="78" ry="13" fill="#0d2233" opacity=".14"/>
+      <ellipse cx="0" cy="8" rx="72" ry="44" fill="#ead9ac" stroke="#0d2233" stroke-width="2.6"/>
+      <ellipse cx="0" cy="12" rx="54" ry="30" fill="#5bc0eb" stroke="#0d2233" stroke-width="2.2"/>
+      <path d="M-30 8q10-8 20 0t20 0t20 0" fill="none" stroke="#fff" stroke-width="2.4" opacity=".85"/>
+      <path d="M-24 22q8-6 16 0t16 0" fill="none" stroke="#fff" stroke-width="2.2" opacity=".7"/>
+      <ellipse cx="-58" cy="-18" rx="11" ry="8" fill="#9aa8b3" stroke="#0d2233" stroke-width="2"/>
+      <ellipse cx="60" cy="-14" rx="9" ry="7" fill="#9aa8b3" stroke="#0d2233" stroke-width="2"/>
+      <use href="#penguin" x="-34" y="-36" width="22" height="32"/>
+      <use href="#penguin" x="14" y="-38" width="22" height="32"/>
+    </g>
+  </g>
+
+  <!-- 4 Aviary: admin dashboard -->
+  <g class="spot" data-id="admin" data-tag-y="-72" transform="translate(500 240)" tabindex="0" role="button">
+    <circle class="hit" r="82" fill="transparent"/>
+    <circle class="pulse" r="78"/><ellipse class="ring" cx="0" cy="4" rx="86" ry="62"/>
+    <g class="art">
+      <ellipse cx="0" cy="48" rx="76" ry="13" fill="#0d2233" opacity=".14"/>
+      <path d="M-66 40A66 78 0 0 1 66 40Z" fill="#dff3ff" fill-opacity=".8" stroke="#0d2233" stroke-width="2.6"/>
+      <path d="M-44 40A44 78 0 0 1 44 40" fill="none" stroke="#0d2233" stroke-width="1.6" opacity=".55"/>
+      <path d="M-22 40A22 78 0 0 1 22 40" fill="none" stroke="#0d2233" stroke-width="1.6" opacity=".55"/>
+      <path d="M0 40V-38M-56 14H56M-46 -8H46M-28 -26H28" fill="none" stroke="#0d2233" stroke-width="1.6" opacity=".45"/>
+      <use href="#gull" x="-36" y="-6" width="32" height="16"/>
+      <use href="#gull" x="8" y="-24" width="26" height="13"/>
+      <rect x="-70" y="38" width="140" height="9" rx="3" fill="#8a6a43" stroke="#0d2233" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- 5 ICU: under the hood -->
+  <g class="spot" data-id="hood" data-tag-y="-66" transform="translate(690 400)" tabindex="0" role="button">
+    <circle class="hit" r="80" fill="transparent"/>
+    <circle class="pulse" r="74"/><ellipse class="ring" cx="0" cy="4" rx="82" ry="56"/>
+    <g class="art">
+      <ellipse cx="0" cy="46" rx="72" ry="13" fill="#0d2233" opacity=".14"/>
+      <rect x="-56" y="-32" width="112" height="72" rx="9" fill="#ffffff" stroke="#0d2233" stroke-width="2.6"/>
+      <path d="M-56 -32H56V-20H-56Z" fill="#00567f" stroke="#0d2233" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M-9 -26H9V-9H26V9H9V26H-9V9H-26V-9H-9Z" transform="translate(0 4) scale(.62)" fill="#ff6b57" stroke="#0d2233" stroke-width="3.2" stroke-linejoin="round"/>
+      <polyline points="-46,30 -28,30 -20,19 -12,38 -4,23 2,30 46,30" fill="none" stroke="#00567f" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- 6 Release Point: pipeline -->
+  <g class="spot" data-id="pipeline" data-tag-y="-116" transform="translate(930 330)" tabindex="0" role="button">
+    <circle class="hit" r="84" fill="transparent"/>
+    <circle class="pulse" r="80"/><ellipse class="ring" cx="40" cy="-6" rx="120" ry="64"/>
+    <g class="art">
+      <rect x="-30" y="-16" width="150" height="32" rx="3" fill="#b78b57" stroke="#0d2233" stroke-width="2.6"/>
+      <path d="M0 -16V16M30 -16V16M60 -16V16M90 -16V16" stroke="#8a6a43" stroke-width="2"/>
+      <rect x="36" y="16" width="8" height="20" fill="#8a6a43" stroke="#0d2233" stroke-width="2"/>
+      <rect x="96" y="16" width="8" height="20" fill="#8a6a43" stroke="#0d2233" stroke-width="2"/>
+      <path d="M-42 -8V-60" stroke="#0d2233" stroke-width="3"/>
+      <rect x="-76" y="-88" width="66" height="32" rx="5" fill="#fff8e6" stroke="#0d2233" stroke-width="2.4"/>
+      <path d="M-66 -72h38m-9 -7l9 7-9 7" fill="none" stroke="#00567f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <use href="#penguin" x="92" y="-48" width="24" height="35"/>
+      <use href="#gull" x="26" y="-56" width="30" height="15"/>
+      <circle cx="150" cy="34" r="8" fill="#ff6b57" stroke="#0d2233" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- 7 Home Pen: lessons -->
+  <g class="spot" data-id="lessons" data-tag-y="-66" transform="translate(760 590)" tabindex="0" role="button">
+    <circle class="hit" r="80" fill="transparent"/>
+    <circle class="pulse" r="74"/><ellipse class="ring" cx="0" cy="4" rx="84" ry="56"/>
+    <g class="art">
+      <ellipse cx="0" cy="48" rx="76" ry="13" fill="#0d2233" opacity=".14"/>
+      <rect x="-66" y="-34" width="132" height="76" rx="14" fill="#f1e2b8" stroke="#0d2233" stroke-width="2.6"/>
+      <rect x="-66" y="-34" width="132" height="76" rx="14" fill="none" stroke="#8a6a43" stroke-width="6" stroke-dasharray="4 8" stroke-linecap="round"/>
+      <ellipse cx="-26" cy="20" rx="26" ry="12" fill="#e2c27a" stroke="#0d2233" stroke-width="2"/>
+      <rect x="20" y="0" width="38" height="34" fill="#fff8e6" stroke="#0d2233" stroke-width="2.2"/>
+      <path d="M14 2L39 -20L64 2Z" fill="#00567f" stroke="#0d2233" stroke-width="2.2" stroke-linejoin="round"/>
+      <use href="#penguin" x="-54" y="-26" width="22" height="32"/>
+      <use href="#penguin" x="-22" y="-32" width="22" height="32"/>
+    </g>
+  </g>
+
+  <!-- Bonus: Bug Rehab Ward -->
+  <g class="spot bonus" data-id="ward" data-tag-y="-70" transform="translate(290 636)" tabindex="0" role="button">
+    <circle class="hit" r="70" fill="transparent"/>
+    <circle class="pulse" r="60"/><ellipse class="ring" cx="0" cy="0" rx="70" ry="52"/>
+    <g class="art">
+      <ellipse cx="0" cy="34" rx="60" ry="10" fill="#0d2233" opacity=".14"/>
+      <path d="M-44 30L0 -34L44 30Z" fill="#ffffff" stroke="#0d2233" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M-22 30L0 -34L22 30Z" fill="#ff6b57" opacity=".9"/>
+      <path d="M-30 30L0 -34L44 30Z" fill="none" stroke="#0d2233" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M-10 30L0 8L10 30Z" fill="#0d2233"/>
+      <use href="#penguin" x="30" y="2" width="20" height="29"/>
+      <rect x="32" y="9" width="16" height="5" rx="2" fill="#ffffff" stroke="#0d2233" stroke-width="1.4" transform="rotate(-18 40 11)"/>
+    </g>
+  </g>
+</svg>
+  </div>
+
+  <div class="nextup" id="nextup"></div>
+  <ol class="trail" id="trail" aria-label="Tour stops in order"></ol>
+
+  <div class="finale" id="finale" hidden>
+    <div class="finale-in">
+      <div>
+        <h2>Every bird is back in the water</h2>
+        <p>That was all seven stops. Thank you for taking the tour. Questions?</p>
+      </div>
+      <button class="btn primary" id="finale-reset">Replay the tour</button>
+    </div>
+  </div>
+  <div class="tour-foot"></div>
+</section>
+
+<!-- ============ README ============ -->
+<section id="view-readme" hidden aria-label="README">
+  <div class="readme">
+    <nav class="toc" id="toc" aria-label="On this page">
+      <b>On this page</b>
+      <a href="#readme-overview">Overview</a>
+      <a href="#readme-links">Links</a>
+      <a href="#readme-team">Team</a>
+      <a href="#readme-built">What we built</a>
+      <a href="#readme-architecture">Architecture</a>
+      <a href="#readme-data">Data model</a>
+      <a href="#readme-security">Security</a>
+      <a href="#readme-devops">DevOps</a>
+      <a href="#readme-run">Run it locally</a>
+      <a href="#readme-limits">Choices and limits</a>
+      <a href="#readme-rubric">Marking guide</a>
+    </nav>
+
+    <article class="doc">
+      <h1 id="readme-overview">SANCCOB Volunteer Management System</h1>
+      <p class="lead">A mobile app for volunteers and trainers, a web dashboard for coordinators, and one secure API behind both. Built by ConservaTech for the Southern African Foundation for the Conservation of Coastal Birds (SANCCOB), which rehabilitates injured and oiled seabirds, especially African penguins.</p>
+      <p>This page is both our presentation and our README. The <a href="#tour">Tour</a> walks through the same material as short clips. Module: INSY7315 Work Integrated Learning, The Independent Institute of Education. Team of five.</p>
+
+      <h2 id="readme-links">Links</h2>
+      <div class="scroll"><table><thead><tr><th>What</th><th>Where</th><th>Notes</th></tr></thead><tbody id="links-body"></tbody></table></div>
+      <p>Demo logins are given in our submission notes. They are never stored in this repository.</p>
+
+      <h2 id="readme-team">Team</h2>
+      <ul class="people" id="team-list"></ul>
+
+      <h2 id="readme-built">What we built</h2>
+      <div class="cols">
+        <div><h3>Volunteers</h3><ul>
+          <li>Activate an account from an emailed code, then sign in</li>
+          <li>Reset a forgotten password by email</li>
+          <li>Share availability on a Monday to Sunday grid</li>
+          <li>See upcoming shifts and ask to change or cancel one</li>
+          <li>Track hours worked and training progress</li>
+          <li>Edit their own profile</li>
+        </ul></div>
+        <div><h3>Coordinators (admins)</h3><ul>
+          <li>Dashboard with today's shifts, new volunteers by age, shift split and conservation numbers</li>
+          <li>Create volunteers, which sends the activation email</li>
+          <li>Schedule shifts, generate a weekly roster and publish it</li>
+          <li>Approve or decline change requests, and see open vacancies</li>
+          <li>Reports and staff training progress</li>
+        </ul></div>
+        <div><h3>Trainers</h3><ul>
+          <li>Unlock the trainer screens with the staff PIN on a shared device</li>
+          <li>Choose their own name from the trainer list</li>
+          <li>Sign off a volunteer's skill</li>
+        </ul></div>
+      </div>
+      <h3>Rules the system enforces</h3>
+      <ul>
+        <li>A volunteer must be signed off on every skill a shift needs</li>
+        <li>No more than 40 hours a week, 5 days a week or 4 days in a row</li>
+        <li>Supporting areas must be completed before pen routines</li>
+        <li>An approved cancellation makes the shift vacant again, and the history is kept</li>
+        <li>Pen shifts are staffed at one volunteer per 30 birds</li>
+      </ul>
+
+      <h2 id="readme-architecture">Architecture</h2>
+      <p>Two clients talk to one API. The API is the only thing that touches the database, so every rule and every permission check lives in one place.</p>
+      <svg class="diagram" viewBox="0 0 960 400" role="img" aria-labelledby="arch-t arch-d">
+        <title id="arch-t">System architecture</title>
+        <desc id="arch-d">The mobile app and the admin dashboard call the ASP.NET Core API over HTTPS with a JWT. Inside the API, requests pass a JWT check, then controllers, services, and repositories with Entity Framework Core. The API reads and writes a Neon PostgreSQL database over TLS and sends email through Azure Communication Services.</desc>
+        <rect x="12" y="60" width="270" height="104" rx="14" fill="#e6f6ff" stroke="#0d2233" stroke-width="2.4"/>
+        <text class="dn" x="147" y="100" text-anchor="middle">Volunteer and trainer app</text>
+        <text class="ds" x="147" y="124" text-anchor="middle">React Native with Expo</text>
+        <text class="ds" x="147" y="144" text-anchor="middle">TestFlight and Android APK</text>
+        <rect x="12" y="232" width="270" height="104" rx="14" fill="#e6f6ff" stroke="#0d2233" stroke-width="2.4"/>
+        <text class="dn" x="147" y="272" text-anchor="middle">Admin dashboard</text>
+        <text class="ds" x="147" y="296" text-anchor="middle">Next.js</text>
+        <text class="ds" x="147" y="316" text-anchor="middle">Hosted on Vercel</text>
+
+        <rect x="364" y="24" width="300" height="352" rx="18" fill="#fff8e6" stroke="#0d2233" stroke-width="2.6"/>
+        <text class="dn" x="514" y="56" text-anchor="middle">ASP.NET Core 8 Web API</text>
+        <text class="ds" x="514" y="76" text-anchor="middle">Azure App Service</text>
+        <rect x="388" y="94" width="252" height="48" rx="10" fill="#fde3df" stroke="#0d2233" stroke-width="2"/>
+        <text class="ds" x="514" y="114" text-anchor="middle" style="font-weight:700;fill:#0d2233">JWT check on every request</text>
+        <text class="ds" x="514" y="132" text-anchor="middle">signature, expiry, revoked token id</text>
+        <rect x="388" y="164" width="252" height="52" rx="10" fill="#e6f6ff" stroke="#0d2233" stroke-width="2"/>
+        <text class="ds" x="514" y="186" text-anchor="middle" style="font-weight:700;fill:#0d2233">Controllers</text>
+        <text class="ds" x="514" y="204" text-anchor="middle">routes, roles, validation</text>
+        <rect x="388" y="240" width="252" height="52" rx="10" fill="#e6f6ff" stroke="#0d2233" stroke-width="2"/>
+        <text class="ds" x="514" y="262" text-anchor="middle" style="font-weight:700;fill:#0d2233">Services</text>
+        <text class="ds" x="514" y="280" text-anchor="middle">business rules</text>
+        <rect x="388" y="316" width="252" height="52" rx="10" fill="#e6f6ff" stroke="#0d2233" stroke-width="2"/>
+        <text class="ds" x="514" y="338" text-anchor="middle" style="font-weight:700;fill:#0d2233">Repositories and EF Core</text>
+        <text class="ds" x="514" y="356" text-anchor="middle">data access</text>
+        <path d="M514 142V162M514 216V238M514 292V314" stroke="#00567f" stroke-width="3" fill="none" marker-end="url(#arw)"/>
+
+        <path d="M750 92v100c0 16 40 26 90 26s90-10 90-26V92" fill="#e8f5e0" stroke="#0d2233" stroke-width="2.4"/>
+        <ellipse cx="840" cy="92" rx="90" ry="24" fill="#f3fbec" stroke="#0d2233" stroke-width="2.4"/>
+        <text class="dn" x="840" y="150" text-anchor="middle">Neon PostgreSQL</text>
+        <text class="ds" x="840" y="172" text-anchor="middle">relational data</text>
+        <rect x="728" y="262" width="224" height="92" rx="14" fill="#e8f5e0" stroke="#0d2233" stroke-width="2.4"/>
+        <text class="dn" x="840" y="298" text-anchor="middle">Azure Communication</text>
+        <text class="dn" x="840" y="318" text-anchor="middle">Services</text>
+        <text class="ds" x="840" y="340" text-anchor="middle">activation and reset emails</text>
+
+        <g stroke="#00567f" stroke-width="3" fill="none">
+          <path d="M282 112H364" marker-start="url(#arw)" marker-end="url(#arw)"/>
+          <path d="M282 284H364" marker-start="url(#arw)" marker-end="url(#arw)"/>
+          <path d="M664 150H746" marker-start="url(#arw)" marker-end="url(#arw)"/>
+          <path d="M664 308H726" marker-end="url(#arw)"/>
+        </g>
+        <text class="dl" x="323" y="98" text-anchor="middle">HTTPS</text>
+        <text class="dl" x="323" y="270" text-anchor="middle">HTTPS</text>
+        <text class="dl" x="705" y="138" text-anchor="middle">TLS</text>
+        <text class="dl" x="695" y="296" text-anchor="middle">HTTPS</text>
+      </svg>
+      <ul>
+        <li><b>Layered API.</b> Controllers handle HTTP and authorization, services hold the business rules, repositories and Entity Framework Core handle data.</li>
+        <li><b>Repository pattern.</b> Core entities such as users, volunteers and change requests sit behind interfaces, so services can be tested on their own.</li>
+        <li><b>Dependency injection.</b> Every service and repository is registered once and injected where it is needed.</li>
+        <li><b>DTOs.</b> The API returns purpose-built shapes and never exposes database entities directly.</li>
+      </ul>
+      <h3>Technology choices</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Layer</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Mobile</td><td>React Native with Expo</td><td>One codebase for iOS and Android, fast testing with Expo Go, EAS for builds and over-the-air updates</td></tr>
+          <tr><td>Web</td><td>Next.js on Vercel</td><td>React components with deployments straight from Git</td></tr>
+          <tr><td>API</td><td>ASP.NET Core 8</td><td>Strongly typed, built-in authorization middleware, familiar from coursework</td></tr>
+          <tr><td>Database</td><td>PostgreSQL on Neon</td><td>Rosters, assignments and skills are relational, and the free serverless tier fits a student project</td></tr>
+          <tr><td>Authentication</td><td>Custom JWT</td><td>Full control over roles and token revocation</td></tr>
+          <tr><td>Email</td><td>Azure Communication Services</td><td>Sends activation and password reset codes</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="readme-data">Data model</h2>
+      <div class="chips" style="display:flex;flex-wrap:wrap;gap:6px">
+        <code class="chip">User</code><code class="chip">Volunteer</code><code class="chip">VolunteerAvailability</code><code class="chip">Shift</code><code class="chip">Roster</code><code class="chip">RosterAssignment</code><code class="chip">ShiftChangeRequest</code><code class="chip">Attendance</code><code class="chip">Skill</code><code class="chip">VolunteerSkillProgress</code><code class="chip">Trainer</code><code class="chip">Notification</code><code class="chip">RevokedToken</code><code class="chip">ConservationStats</code>
+      </div>
+      <p>A roster holds assignments, and each assignment links one volunteer to one shift. Change requests and attendance hang off an assignment. Shifts require skills, and a trainer signs off each skill per volunteer. The full ERD is in our Task 1 documentation.</p>
+
+      <h2 id="readme-security">Security</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>Threat</th><th>How we handle it</th></tr></thead>
+        <tbody>
+          <tr><td>Stolen or reused token</td><td>Signed JWTs with an expiry. Logging out revokes the token id on the server, and every request checks it.</td></tr>
+          <tr><td>Weak or leaked passwords</td><td>Passwords are hashed with ASP.NET's password hasher and must meet complexity rules. Activation codes expire after 48 hours and reset codes after 1 hour.</td></tr>
+          <tr><td>Finding out who has an account</td><td>The forgot-password endpoint gives the same answer whether or not the email exists.</td></tr>
+          <tr><td>Acting as someone else</td><td>Volunteer identity is read from the token, never from the request body. Trainer identity comes from a signed claim set when a trainer picks their name.</td></tr>
+          <tr><td>Access to the wrong data</td><td>Role-based authorization on endpoints, with admin-only writes.</td></tr>
+          <tr><td>Injection</td><td>Entity Framework Core parameterises every query. Times, days and age brackets are checked against fixed lists.</td></tr>
+          <tr><td>Cross-site scripting</td><td>Both front ends are React, which escapes rendered values by default, and the API returns JSON only.</td></tr>
+          <tr><td>Cross-origin abuse</td><td>CORS allows only the dashboard origin and local development.</td></tr>
+          <tr><td>Guessing the trainer PIN</td><td>The PIN endpoint is rate limited.</td></tr>
+          <tr><td>Exposed secrets and traffic</td><td>Keys and connection strings live in Azure settings and user secrets, not in source control. Everything is served over HTTPS, and the database connection uses TLS.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="readme-devops">DevOps</h2>
+      <p>Every change goes through a pull request. Tests run automatically, and deployment only happens after they pass.</p>
+      <svg class="diagram" viewBox="0 0 1000 356" role="img" aria-labelledby="ci-t ci-d">
+        <title id="ci-t">Delivery pipeline</title>
+        <desc id="ci-d">Backend: a feature branch becomes a pull request, then the CI job restores, builds and runs xUnit tests, then merges to main, then a deploy job publishes to Azure App Service. Web dashboard: a push to main is built and deployed by Vercel. Mobile: EAS builds binaries for TestFlight and APK, and EAS Update sends JavaScript and UI changes over the air.</desc>
+        <text class="dh" x="12" y="22">Backend with GitHub Actions</text>
+        <g stroke="#0d2233" stroke-width="2.4">
+          <rect x="12" y="34" width="176" height="76" rx="12" fill="#e6f6ff"/>
+          <rect x="212" y="34" width="176" height="76" rx="12" fill="#e6f6ff"/>
+          <rect x="412" y="34" width="176" height="76" rx="12" fill="#e8f5e0"/>
+          <rect x="612" y="34" width="176" height="76" rx="12" fill="#e6f6ff"/>
+          <rect x="812" y="34" width="176" height="76" rx="12" fill="#fff0cf"/>
+        </g>
+        <text class="dn" x="100" y="68" text-anchor="middle">Feature branch</text><text class="ds" x="100" y="90" text-anchor="middle">one change at a time</text>
+        <text class="dn" x="300" y="68" text-anchor="middle">Pull request</text><text class="ds" x="300" y="90" text-anchor="middle">reviewed before merge</text>
+        <text class="dn" x="500" y="60" text-anchor="middle">CI job</text><text class="ds" x="500" y="80" text-anchor="middle">restore, build,</text><text class="ds" x="500" y="97" text-anchor="middle">run xUnit tests</text>
+        <text class="dn" x="700" y="68" text-anchor="middle">Merge to main</text><text class="ds" x="700" y="90" text-anchor="middle">only if CI is green</text>
+        <text class="dn" x="900" y="60" text-anchor="middle">Deploy job</text><text class="ds" x="900" y="80" text-anchor="middle">publish to Azure</text><text class="ds" x="900" y="97" text-anchor="middle">App Service</text>
+        <g stroke="#00567f" stroke-width="3" fill="none" marker-end="url(#arw)">
+          <path d="M188 72H212"/><path d="M388 72H412"/><path d="M588 72H612"/><path d="M788 72H812"/>
+        </g>
+
+        <text class="dh" x="12" y="150">Web dashboard with Vercel</text>
+        <g stroke="#0d2233" stroke-width="2.4" fill="#e6f6ff">
+          <rect x="12" y="162" width="176" height="64" rx="12"/><rect x="212" y="162" width="176" height="64" rx="12"/><rect x="412" y="162" width="176" height="64" rx="12" fill="#e8f5e0"/>
+        </g>
+        <text class="dn" x="100" y="200" text-anchor="middle">Push to main</text>
+        <text class="dn" x="300" y="192" text-anchor="middle">Vercel builds</text><text class="ds" x="300" y="212" text-anchor="middle">and deploys</text>
+        <text class="dn" x="500" y="200" text-anchor="middle">Live dashboard</text>
+        <g stroke="#00567f" stroke-width="3" fill="none" marker-end="url(#arw)"><path d="M188 194H212"/><path d="M388 194H412"/></g>
+
+        <text class="dh" x="12" y="262">Mobile app with Expo EAS</text>
+        <g stroke="#0d2233" stroke-width="2.4" fill="#e6f6ff">
+          <rect x="12" y="274" width="176" height="70" rx="12"/><rect x="212" y="274" width="176" height="70" rx="12" fill="#e8f5e0"/><rect x="412" y="274" width="176" height="70" rx="12"/><rect x="612" y="274" width="176" height="70" rx="12" fill="#e8f5e0"/>
+        </g>
+        <text class="dn" x="100" y="304" text-anchor="middle">eas build</text><text class="ds" x="100" y="326" text-anchor="middle">iOS and Android</text>
+        <text class="dn" x="300" y="304" text-anchor="middle">TestFlight or APK</text><text class="ds" x="300" y="326" text-anchor="middle">installed by testers</text>
+        <text class="dn" x="500" y="304" text-anchor="middle">eas update</text><text class="ds" x="500" y="326" text-anchor="middle">JavaScript and UI fixes</text>
+        <text class="dn" x="700" y="304" text-anchor="middle">Over the air</text><text class="ds" x="700" y="326" text-anchor="middle">reaches installed apps</text>
+        <g stroke="#00567f" stroke-width="3" fill="none" marker-end="url(#arw)"><path d="M188 309H212"/><path d="M388 309H412"/><path d="M588 309H612"/></g>
+      </svg>
+      <ul>
+        <li><b>Branching.</b> Feature branches merge to <code>main</code> through pull requests.</li>
+        <li><b>Automated tests.</b> The xUnit project runs on every push and pull request, using an in-memory database for service tests.</li>
+        <li><b>Gated deployment.</b> The deploy job needs the test job to pass and only runs on a push to <code>main</code>.</li>
+        <li><b>Mobile.</b> Each build profile has its own update channel, so a JavaScript or UI fix reaches installed apps without a new build.</li>
+      </ul>
+
+      <h2 id="readme-run">Run it locally</h2>
+      <h3>API</h3>
+      <p>Add these keys to your user secrets (in Visual Studio, right-click the project and choose Manage User Secrets), then run it from the solution folder.</p>
+<pre><code>{
+  "ConnectionStrings": { "DefaultConnection": "&lt;Neon connection string&gt;" },
+  "Jwt": { "Key": "&lt;long random string&gt;", "Issuer": "&lt;issuer&gt;", "Audience": "&lt;audience&gt;" },
+  "Acs": { "ConnectionString": "&lt;Azure Communication Services&gt;", "SenderAddress": "&lt;sender email&gt;" },
+  "TrainerAccess": { "Pin": "&lt;6 digits&gt;" }
+}</code></pre>
+<pre><code>dotnet run     # start the API
+dotnet test    # run the xUnit tests</code></pre>
+      <p>On Azure, the same keys are application settings, with a double underscore in place of the colon (for example <code>Jwt__Key</code>).</p>
+      <h3>Web dashboard</h3>
+<pre><code>cd web-app
+npm install
+# .env.local
+NEXT_PUBLIC_API_URL=https://&lt;your-api-host&gt;
+npm run dev</code></pre>
+      <h3>Mobile app</h3>
+<pre><code>cd volunteer-mobile-app
+npm install
+# .env
+EXPO_PUBLIC_API_URL=https://&lt;your-api-host&gt;
+npx expo start</code></pre>
+      <p>Scan the QR code with Expo Go. On Android, you can also install the APK from the links above.</p>
+
+      <h2 id="readme-limits">Choices and limits</h2>
+      <ul>
+        <li><b>Trainer access.</b> A shared staff PIN unlocks the trainer screens, then each trainer picks their name. It suits a shared device with no confidential data, and sign-offs still carry a verified trainer id.</li>
+        <li><b>Availability.</b> Volunteers resubmit availability each week instead of keeping a permanent pattern.</li>
+        <li><b>Conservation numbers.</b> These are entered by an admin, not calculated from bird records.</li>
+        <li><b>Hosting.</b> Free tiers on Azure and Neon are fine for a demonstration. Real use needs paid tiers.</li>
+        <li><b>Distribution.</b> iOS testers use TestFlight and Android testers use an APK. Public store release would need an organization developer account and store review.</li>
+        <li><b>Sessions.</b> There is no token refresh yet, so users sign in again when a token expires.</li>
+        <li><b>Testing.</b> The API has automated xUnit tests. Front-end tests are still being added.</li>
+        <li><b>Privacy.</b> The system holds personal information, so production use would need a POPIA review.</li>
+      </ul>
+
+      <h2 id="readme-rubric">Marking guide</h2>
+      <p>Where the presentation criteria are covered in the tour. Select a stop to open it.</p>
+      <div class="scroll"><table>
+        <thead><tr><th>Criterion</th><th>Where we cover it</th></tr></thead>
+        <tbody>
+          <tr><td>Technical demo and implementation</td><td><button class="linkbtn" data-open="volunteer">Pen A, the volunteer app</button> and <button class="linkbtn" data-open="admin">Aviary, the admin dashboard</button>, running against the hosted API</td></tr>
+          <tr><td>Architecture and system design</td><td><button class="linkbtn" data-open="hood">ICU, architecture and security</button> and <button class="linkbtn" data-open="pipeline">Release Point, the engine room</button>, plus Architecture above</td></tr>
+          <tr><td>GitHub and version control</td><td><button class="linkbtn" data-open="hood">ICU</button>, plus DevOps above</td></tr>
+          <tr><td>Requirements alignment</td><td><button class="linkbtn" data-open="brief">Quarantine Zone, the brief and data model</button>, plus What we built above</td></tr>
+          <tr><td>Communication and professionalism</td><td>The whole tour, with a different team member presenting each stop</td></tr>
+        </tbody>
+      </table></div>
+
+      <p class="doc-foot">Built by ConservaTech for INSY7315, The Independent Institute of Education.</p>
+    </article>
+  </div>
+</section>
+</main>
+
+<!-- ============ STAGE ============ -->
+<div class="stage" id="stage" role="dialog" aria-modal="true" aria-labelledby="stage-title" hidden>
+  <div class="stage-bar">
+    <button class="btn" id="stage-back"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Back to the map</span><kbd>Esc</kbd></button>
+    <div class="stage-title">
+      <span class="badge" id="stage-num"></span>
+      <div><h2 id="stage-title"></h2><p id="stage-sub"></p></div>
+    </div>
+    <div class="stage-nav">
+      <button class="btn" id="stage-prev"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span id="stage-prev-l">Previous</span></button>
+      <button class="btn primary" id="stage-next"><span id="stage-next-l">Next stop</span><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></button>
+    </div>
+  </div>
+  <div class="stage-body">
+    <div class="player-wrap"><div class="player" id="player"></div></div>
+    <aside class="stage-info" id="stage-info" aria-label="About this stop">
+      <p>Presented by <b id="stage-speaker"></b></p>
+      <p>Planned clip length <b id="stage-dur"></b></p>
+      <h3>What this stop covers</h3>
+      <ul id="stage-points"></ul>
+      <div id="rub-block"><h3>Marking criteria covered</h3><div class="chips" id="stage-rubric"></div></div>
+      <div id="code-block"><h3>Where to look in the code</h3><div class="chips" id="stage-code"></div></div>
+      <div class="stage-actions">
+        <button class="btn" id="stage-theatre" aria-pressed="false">Theatre mode <kbd>T</kbd></button>
+        <button class="btn" id="stage-fs">Full-screen video <kbd>F</kbd></button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ============ PRESENTER PANEL ============ -->
+<aside class="presenter" id="presenter" aria-label="Presenter panel" hidden>
+  <div class="pp-head">
+    <h2>Presenter panel</h2>
+    <button class="pp-x" id="pp-close" aria-label="Close presenter panel"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+  </div>
+  <div class="pp-time" id="pp-time" aria-live="off">00:00</div>
+  <div class="pp-bar"><i id="pp-fill"></i></div>
+  <p class="pp-status" id="pp-status"></p>
+  <div class="pp-row">
+    <button class="btn primary" id="pp-toggle">Start clock</button>
+    <button class="btn" id="pp-reset-clock">Reset clock</button>
+  </div>
+  <div class="pp-row"><label for="pp-limit">Time limit</label><input id="pp-limit" type="number" min="1" max="120" step="0.5"><span>minutes</span></div>
+  <p class="pp-plan" id="pp-plan"></p>
+  <ol class="pp-list" id="pp-list"></ol>
+  <button class="btn" id="pp-reset-tour">Reset the tour</button>
+</aside>
+
+<!-- ============ HELP ============ -->
+<dialog id="help" aria-labelledby="help-title">
+  <h2 id="help-title">Keyboard shortcuts</h2>
+  <dl>
+    <dt>1 to 7</dt><dd>Open a stop</dd>
+    <dt>N</dt><dd>Open the next unvisited stop, or step forward inside a stop</dd>
+    <dt>B</dt><dd>Step back one stop</dd>
+    <dt>Left and right arrows</dt><dd>Previous and next stop</dd>
+    <dt>Space</dt><dd>Play or pause the clip</dd>
+    <dt>F</dt><dd>Full-screen video</dd>
+    <dt>T</dt><dd>Theatre mode, which hides the side notes</dd>
+    <dt>W</dt><dd>Open the Bug Rehab Ward</dd>
+    <dt>P</dt><dd>Presenter panel with the clock</dd>
+    <dt>Esc</dt><dd>Back to the map</dd>
+  </dl>
+  <button class="btn" id="help-close">Close</button>
+</dialog>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   EDIT THIS BLOCK. The tour, presenter panel and README are built from it.
+   ===================================================================== */
+const CONFIG = {
+  timeLimitMinutes: 15,   // can also be changed live in the presenter panel
+  autoplayOnOpen: true,   // a clip starts when a stop is opened, never on page load
+  autostartTimer: true    // the clock starts when the first stop opens
+};
+
+const TEAM = [
+  { name: "Funi",     role: "Backend developer",  detail: "Authentication and security, volunteer, change request, vacancy, dashboard and reporting APIs, CI/CD and cloud hosting" },
+  { name: "Max",      role: "Backend developer",  detail: "Attendance, shifts, vacancies, roster generation, trainer and notification services" },
+  { name: "TK",       role: "Database developer", detail: "PostgreSQL schema and data model" },
+  { name: "Pabi",     role: "Mobile developer",   detail: "Volunteer and trainer app in React Native with Expo" },
+  { name: "Lofentse", role: "Web developer",      detail: "Admin dashboard in Next.js on Vercel" }
+];
+
+const LINKS = [
+  { label: "Admin dashboard",             url: "https://sanccob-admin-dashboard.vercel.app/", note: "Next.js on Vercel" },
+  { label: "API base URL",                url: "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net", note: "ASP.NET Core on Azure App Service" },
+  { label: "API documentation (Swagger)", url: "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net/swagger/index.html", note: "Every endpoint, with a try-it panel" },
+  { label: "Mobile app for iOS",          url: "", note: "TestFlight invite link" },
+  { label: "Mobile app for Android",      url: "", note: "APK download link" },
+  { label: "Backend repository",          url: "", note: "" },
+  { label: "Frontend repository",         url: "", note: "Dashboard and mobile app" }
+];
+
+/* Stops, in tour order. video.file is tried first (works offline).
+   If it is missing, video.youtube is used (paste a full link or just the id).
+   If neither works, a friendly placeholder shows. Speakers are placeholders: change them. */
+const STOPS = [
+  { id: "reception", name: "Reception", sub: "Who we are", speaker: "The whole team", mins: 1.5,
+    video: { file: "videos/01-reception.mp4", youtube: "" },
+    points: [
+      "Who we are: five third-year students at The IIE, working together as ConservaTech.",
+      "Who we built it for: SANCCOB, which rehabilitates injured and oiled seabirds.",
+      "What we built: a volunteer app, an admin dashboard and one shared cloud API.",
+      "How the tour works: each stop on the map opens a short clip from one of us."
+    ],
+    rubric: ["Group dynamics and coordination", "Communication and professionalism"], code: [] },
+
+  { id: "brief", name: "Quarantine Zone", sub: "The brief and the data model", speaker: "TK", mins: 2,
+    video: { file: "videos/02-brief.mp4", youtube: "" },
+    points: [
+      "Three kinds of user: volunteers, coordinators (admins) and trainers.",
+      "Volunteers need to see their shifts, share their availability, ask for a change and track their hours and training.",
+      "Coordinators need to create shifts, generate and publish a weekly roster, approve change requests and see reports.",
+      "Trainers need a quick way to sign off skills on a shared device.",
+      "How the brief became the schema: User to Volunteer to Availability to Shift to Roster to RosterAssignment, with Skill and VolunteerSkillProgress gating which shifts a volunteer can take.",
+      "Which rules live in the database itself, and which are enforced in code above it."
+    ],
+    rubric: ["Requirements alignment"], code: ["AppDbContext", "Skill", "VolunteerSkillProgress"] },
+
+  { id: "volunteer", name: "Pen A", sub: "The volunteer app", speaker: "Pabi", mins: 3,
+    video: { file: "videos/03-volunteer-app.mp4", youtube: "" },
+    points: [
+      "Activate an account from the emailed code, then sign in, or reset a forgotten password.",
+      "Submit weekly availability on a Monday to Sunday grid.",
+      "See upcoming shifts and ask to change or cancel one.",
+      "Check hours worked and progress through the training skills.",
+      "Trainer mode: enter the staff PIN, choose your name, sign off a skill."
+    ],
+    rubric: ["Technical demo and implementation", "Requirements alignment"],
+    code: ["volunteer-mobile-app/src/app", "MyShiftsService", "VolunteerAvailabilityService", "MyTrainingStatsService"] },
+
+  { id: "admin", name: "Aviary", sub: "The admin dashboard", speaker: "Lofentse", mins: 3,
+    video: { file: "videos/04-admin-dashboard.mp4", youtube: "" },
+    points: [
+      "Dashboard overview: today's shifts, new volunteers by age, shift split and conservation numbers.",
+      "Create volunteers, which emails them an activation code.",
+      "Schedule shifts, generate a weekly roster and publish it.",
+      "Approve or decline change requests, and watch vacancies reopen.",
+      "Reports and staff training progress."
+    ],
+    rubric: ["Technical demo and implementation", "Requirements alignment"],
+    code: ["web-app/app/(admin)", "DashboardService", "RosterService", "ChangeRequestService", "ReportsService"] },
+
+  { id: "hood", name: "ICU", sub: "Architecture, security and CI/CD", speaker: "Funi", mins: 4,
+    video: { file: "videos/05-under-the-hood.mp4", youtube: "" },
+    points: [
+      "Three tiers: the apps and dashboard, an ASP.NET Core API on Azure, and PostgreSQL on Neon.",
+      "The API is layered: controllers, services for business rules, then repositories and Entity Framework Core.",
+      "Security: hashed passwords, emailed activation and reset codes, role-based access and signed JWTs.",
+      "Logging out revokes the token on the server, so a copied token stops working.",
+      "Trainer identity comes from a signed token claim, never from something the client sends: a shared PIN gets a general token, picking your name exchanges it for one carrying a verified trainer id.",
+      "Delivery: feature branches merge to main through pull requests. GitHub Actions runs the xUnit tests on every push, and deployment to Azure only happens after they pass.",
+      "Vercel deploys the dashboard on every push to main, and Expo EAS builds the mobile app and sends JavaScript and UI fixes over the air."
+    ],
+    rubric: ["Architecture and system design", "GitHub and version control"],
+    code: ["AuthService", "TokenService", "RevokedToken", "TrainerAccessService", "AppDbContext", ".github/workflows/backend-ci.yml", "SANCCOB_Backend_API.Tests"] },
+
+  { id: "pipeline", name: "Release Point", sub: "The engine room", speaker: "Max", mins: 3,
+    video: { file: "videos/06-engine-room.mp4", youtube: "" },
+    points: [
+      "Roster generation matches volunteers to shifts by availability and by skill sign-off, not availability alone.",
+      "Coverage logic: a Full Day availability slot covers a Morning or Afternoon shift, but an Afternoon-only slot does not cover a Morning shift.",
+      "Hard limits enforced: 40 hours a week, 5 days a week, 4 consecutive days, and a separate 3-day limit specifically for quarantine shifts.",
+      "Skill sequencing: supporting areas must be signed off before pen routines.",
+      "What happens end to end when a change request is approved: the shift assignment becomes vacant again and the roster reflects it immediately."
+    ],
+    rubric: ["Technical demo and implementation", "Architecture and system design"],
+    code: ["RosterService", "AssignVolunteerAsync", "ChangeRequestService"] },
+
+  { id: "lessons", name: "Home Pen", sub: "Lessons and what is next", speaker: "The whole team", mins: 1,
+    video: { file: "videos/07-lessons.mp4", youtube: "" },
+    points: [
+      "Agree the API contract early. Most integration bugs were mismatched names and shapes.",
+      "Test with realistic data. Seed data hid problems that real data exposed.",
+      "Add CI early. Tests find problems while the change is still fresh.",
+      "Next: token refresh, real push notifications, a roster review step and more front-end tests.",
+      "For real use: paid hosting tiers, store distribution and a privacy review under POPIA."
+    ],
+    rubric: ["Challenges overcome"], code: [] },
+
+  { id: "ward", name: "Bug Rehab Ward", sub: "Bonus stop", speaker: "Anyone", mins: 1, bonus: true, type: "cases",
+    points: ["Real bugs we found, diagnosed and fixed, written up as patient files."],
+    rubric: [], code: [] }
+];
+
+const CASES = [
+  { title: "Password reset crashed with a 500", symptom: "Asking for a reset code failed on the server.",
+    cause: "Timestamps were tagged as UTC, but the database columns store time without a zone, and Npgsql refuses to guess.",
+    fix: "Mapped the columns explicitly and stored expiry times without the UTC tag." },
+  { title: "Duplicate key errors on new rows", symptom: "Inserting test data failed with unique-constraint errors.",
+    cause: "Rows added by hand skipped the auto-increment, so the Postgres sequence fell behind.",
+    fix: "Reset each sequence to the current highest id." },
+  { title: "Cancelled shifts still looked filled", symptom: "A vacancy did not reopen after an approved cancellation.",
+    cause: "The new Vacant status was not excluded in the vacancy and my-shifts queries.",
+    fix: "Filtered Vacant assignments everywhere shifts are counted or listed." },
+  { title: "Trainer sign-offs trusted the client", symptom: "Any trainer id sent in a request was accepted.",
+    cause: "The trainer id came from the request body, not from a verified identity.",
+    fix: "Choosing a name now issues a signed token carrying the trainer id, and sign-off reads it from there." },
+  { title: "Trainer login bounced to sign-in", symptom: "The PIN worked, then the app returned to the login screen.",
+    cause: "The token from the PIN step was thrown away, and any 401 was treated as an expired session.",
+    fix: "Saved the PIN token, exchanged it when a name is chosen, and stopped trainer calls triggering the session redirect." },
+  { title: "Admin could not list trainers", symptom: "The dashboard got a 403 on the trainer list.",
+    cause: "The endpoint accepted only the PIN-issued token, not an admin login.",
+    fix: "Allowed the Admin and Trainer roles on the read endpoints." },
+  { title: "Apple rejected the iOS build", symptom: "The TestFlight submission failed.",
+    cause: "Build number 1 had already been used for that version.",
+    fix: "Turned on autoIncrement so every build gets a new number." },
+  { title: "Over-the-air updates never arrived", symptom: "Published updates did not reach the installed app.",
+    cause: "The build had no update channel, and a build without one cannot receive updates.",
+    fix: "Added a channel to every build profile and rebuilt." }
+];
+
+/* ===================================================================== */
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const NS = 'http://www.w3.org/2000/svg';
+const svgEl = (n, a = {}) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const MAIN = STOPS.filter(s => !s.bonus);
+const byId = Object.fromEntries(STOPS.map(s => [s.id, s]));
+const numOf = s => s.bonus ? '\u2605' : String(MAIN.indexOf(s) + 1);
+
+const state = { visited: new Set(), current: null, limit: CONFIG.timeLimitMinutes, lastFocus: null };
+const timer = { base: 0, t0: 0, running: false };
+const KEY = 'sanccob-tour-v1';
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || '{}');
+    (d.visited || []).forEach(id => { if (byId[id]) state.visited.add(id); });
+    if (d.limit > 0) state.limit = d.limit;
+  } catch (e) { /* storage unavailable: fine */ }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify({ visited: [...state.visited], limit: state.limit })); } catch (e) { /* ignore */ }
+}
+
+const els = {
+  header: $('#top'), main: $('#main'), tour: $('#view-tour'), readme: $('#view-readme'),
+  map: $('#map'), trail: $('#trail'), released: $('#released'), releasedN: $('#released-n'),
+  nextup: $('#nextup'), finale: $('#finale'),
+  stage: $('#stage'), player: $('#player'), back: $('#stage-back'), prev: $('#stage-prev'), next: $('#stage-next'),
+  prevL: $('#stage-prev-l'), nextL: $('#stage-next-l'),
+  presenter: $('#presenter'), btnPresenter: $('#btn-presenter'),
+  help: $('#help')
+};
+
+/* ---------- README data ---------- */
+function renderReadmeData() {
+  $('#links-body').innerHTML = LINKS.map(l => {
+    const where = l.url
+      ? `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.url.replace(/^https?:\/\//, ''))}</a>`
+      : `<span class="todo">Add the link in CONFIG</span>`;
+    return `<tr><td>${esc(l.label)}</td><td>${where}</td><td>${esc(l.note)}</td></tr>`;
+  }).join('');
+  $('#team-list').innerHTML = TEAM.map(t =>
+    `<li><b>${esc(t.name)}</b>, ${esc(t.role)}<br>${esc(t.detail)}</li>`).join('');
+}
+
+/* ---------- map tags ---------- */
+function measure(t) {
+  try { if (typeof t.getComputedTextLength === 'function') { const l = t.getComputedTextLength(); if (l > 0) return l; } } catch (e) { /* ignore */ }
+  return t.textContent.length * 8;
+}
+function buildTags() {
+  $$('#map .spot').forEach(spot => {
+    const stop = byId[spot.dataset.id]; if (!stop) return;
+    const tag = svgEl('g', { class: 'tag', transform: `translate(0 ${spot.dataset.tagY || -80})` });
+    tag.appendChild(svgEl('rect', { class: 'tbg', rx: 16, ry: 16, height: 44, y: -22 }));
+    tag.appendChild(svgEl('circle', { class: 'tb', r: 15, cy: 0 }));
+    tag.appendChild(svgEl('text', { class: 'tn', dy: '.35em' }));
+    const n = svgEl('text', { class: 'tname' }); n.textContent = stop.name; tag.appendChild(n);
+    const s = svgEl('text', { class: 'tsub' }); s.textContent = stop.sub; tag.appendChild(s);
+    spot.appendChild(tag);
+    spot.setAttribute('aria-label', '');
+    spot.addEventListener('click', () => openStop(stop.id));
+    spot.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openStop(stop.id); } });
+  });
+}
+function layoutTags() {
+  $$('#map .tag').forEach(tag => {
+    const nm = $('.tname', tag), sb = $('.tsub', tag);
+    const w = Math.max(measure(nm), measure(sb)) + 62, x0 = -w / 2;
+    const bg = $('.tbg', tag); bg.setAttribute('x', x0); bg.setAttribute('width', w);
+    $('.tb', tag).setAttribute('cx', x0 + 22);
+    $('.tn', tag).setAttribute('x', x0 + 22);
+    nm.setAttribute('x', x0 + 44); nm.setAttribute('y', -3);
+    sb.setAttribute('x', x0 + 44); sb.setAttribute('y', 14);
+  });
+}
+
+/* ---------- rendering ---------- */
+function nextStop() { return MAIN.find(s => !state.visited.has(s.id)); }
+
+function updateUI() {
+  const done = MAIN.filter(s => state.visited.has(s.id)).length;
+  const nxt = nextStop();
+
+  els.released.innerHTML = MAIN.map((s, i) =>
+    `<svg class="pg${state.visited.has(s.id) ? ' on' : ''}" viewBox="0 0 40 58" aria-hidden="true"><use href="#penguin"/></svg>`).join('');
+  els.released.setAttribute('aria-label', `${done} of ${MAIN.length} stops visited`);
+  els.releasedN.textContent = `${done} of ${MAIN.length}`;
+
+  $$('#map .spot').forEach(spot => {
+    const stop = byId[spot.dataset.id]; if (!stop) return;
+    const isDone = state.visited.has(stop.id);
+    spot.classList.toggle('done', isDone);
+    spot.classList.toggle('next', !!nxt && nxt.id === stop.id);
+    $('.tn', spot).textContent = isDone ? '\u2713' : numOf(stop);
+    spot.setAttribute('aria-label', stop.bonus
+      ? `Bonus stop: ${stop.name}${isDone ? ', visited' : ''}. Open.`
+      : `Stop ${numOf(stop)}: ${stop.name}, ${stop.sub}${isDone ? ', visited' : ''}. Open.`);
+  });
+
+  els.trail.innerHTML = MAIN.map(s => {
+    const cls = 'stone' + (state.visited.has(s.id) ? ' done' : '') + (nxt && nxt.id === s.id ? ' next' : '');
+    return `<li><button class="${cls}" data-id="${s.id}">
+      <span class="stone-n">${state.visited.has(s.id) ? '\u2713' : numOf(s)}</span>
+      <span class="stone-name">${esc(s.name)}</span>
+      <span class="stone-sub">${esc(s.sub)}</span>
+      <span class="stone-meta">${esc(s.speaker)}, ${fmtMins(s.mins)}</span>
+    </button></li>`;
+  }).join('');
+
+  if (nxt) {
+    els.nextup.innerHTML = `<span>Next up:</span><button class="btn" data-id="${nxt.id}">${esc(nxt.name)}: ${esc(nxt.sub.toLowerCase())}</button><span>presented by ${esc(nxt.speaker)}</span>`;
+  } else {
+    els.nextup.innerHTML = `<span>All ${MAIN.length} stops visited.</span>`;
+  }
+  els.finale.hidden = !(done === MAIN.length);
+  renderPresenterList();
+  updateStageNav();
+}
+
+function fmtMins(m) { const s = Math.round(m * 60); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+function fmtClock(sec) { sec = Math.max(0, Math.floor(sec)); return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0'); }
+
+/* ---------- stage ---------- */
+function ytEmbed(input) {
+  if (!input) return null;
+  let id = String(input).trim();
+  const m = id.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{6,})/);
+  if (m) id = m[1];
+  if (!/^[A-Za-z0-9_-]{6,}$/.test(id)) return null;
+  return 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1&playsinline=1' + (CONFIG.autoplayOnOpen ? '&autoplay=1' : '');
+}
+
+function showPlaceholder(stop) {
+  const box = els.player; box.textContent = ''; box.classList.add('is-placeholder');
+  const file = (stop.video && stop.video.file) || 'videos/your-clip.mp4';
+  box.innerHTML = `<div class="ph"><svg class="ph-peng" viewBox="0 0 40 58" aria-hidden="true"><use href="#penguin"/></svg>
+    <p class="ph-title">Clip not added yet</p>
+    <p>Save the recording as <code>${esc(file)}</code> next to this page, or paste a YouTube link into <code>STOPS</code> in the page's config.</p></div>`;
+}
+
+function renderCases(box) {
+  box.classList.add('cases');
+  box.innerHTML = '<div class="cases-grid">' + CASES.map(c =>
+    `<article class="case"><h3>${esc(c.title)}</h3>
+      <p><b>Symptom.</b> ${esc(c.symptom)}</p>
+      <p><b>Cause.</b> ${esc(c.cause)}</p>
+      <p class="fix"><b>Fix.</b> ${esc(c.fix)}</p></article>`).join('') + '</div>';
+}
+
+function mountPlayer(stop) {
+  const box = els.player;
+  box.textContent = ''; box.className = 'player';
+  if (stop.type === 'cases') { renderCases(box); return; }
+  const v = stop.video || {};
+  const useYouTube = () => {
+    if (state.current !== stop.id) return;
+    const src = ytEmbed(v.youtube);
+    if (!src) { showPlaceholder(stop); return; }
+    box.textContent = ''; box.classList.remove('is-placeholder');
+    const f = document.createElement('iframe');
+    f.src = src; f.title = stop.name + ' video'; f.allow = 'autoplay; fullscreen; picture-in-picture'; f.allowFullscreen = true;
+    box.appendChild(f);
+  };
+  if (v.file) {
+    const vid = document.createElement('video');
+    vid.controls = true; vid.playsInline = true; vid.preload = 'metadata';
+    vid.setAttribute('aria-label', stop.name + ' video');
+    vid.addEventListener('error', useYouTube, { once: true });
+    vid.addEventListener('ended', () => { markVisited(stop.id); });
+    vid.src = v.file;
+    box.appendChild(vid);
+    if (CONFIG.autoplayOnOpen) { const p = vid.play(); if (p && p.catch) p.catch(() => {}); }
+  } else { useYouTube(); }
+}
+
+function setInert(on) { els.header.inert = on; els.main.inert = on; }
+
+function openStop(id) {
+  const stop = byId[id]; if (!stop) return;
+  if (state.current && state.current !== id) markVisited(state.current);
+  else if (!state.current) state.lastFocus = document.activeElement;
+  state.current = id;
+
+  $('#stage-num').textContent = numOf(stop);
+  $('#stage-title').textContent = stop.name;
+  $('#stage-sub').textContent = stop.sub;
+  $('#stage-speaker').textContent = stop.speaker;
+  $('#stage-dur').textContent = fmtMins(stop.mins);
+  $('#stage-points').innerHTML = stop.points.map(p => `<li>${esc(p)}</li>`).join('');
+  $('#rub-block').hidden = !stop.rubric.length;
+  $('#stage-rubric').innerHTML = stop.rubric.map(r => `<span class="chip">${esc(r)}</span>`).join('');
+  $('#code-block').hidden = !stop.code.length;
+  $('#stage-code').innerHTML = stop.code.map(c => `<code class="chip">${esc(c)}</code>`).join('');
+  els.stage.classList.toggle('cases', stop.type === 'cases');
+  $('#stage-theatre').hidden = stop.type === 'cases';
+  $('#stage-fs').hidden = stop.type === 'cases';
+
+  els.stage.hidden = false;
+  document.body.classList.add('stage-open');
+  setInert(true);
+  mountPlayer(stop);
+  updateStageNav();
+  if (CONFIG.autostartTimer) startTimer();
+  requestAnimationFrame(() => els.back.focus());
+}
+
+function closeStage() {
+  if (!state.current) return;
+  const id = state.current;
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  els.player.textContent = '';
+  els.stage.hidden = true;
+  state.current = null;
+  document.body.classList.remove('stage-open');
+  setInert(false);
+  markVisited(id);
+  const f = state.lastFocus;
+  if (f && typeof f.focus === 'function' && document.contains(f)) f.focus();
+}
+
+function markVisited(id) {
+  if (!byId[id] || state.visited.has(id)) return;
+  state.visited.add(id); save(); updateUI();
+}
+
+function updateStageNav() {
+  const cur = state.current && byId[state.current];
+  if (!cur) return;
+  if (cur.bonus) {
+    els.prev.hidden = true;
+    els.nextL.textContent = 'Back to the map';
+    return;
+  }
+  els.prev.hidden = false;
+  const i = MAIN.indexOf(cur);
+  const p = MAIN[i - 1], n = MAIN[i + 1];
+  els.prev.disabled = !p;
+  els.prevL.textContent = p ? p.name : 'Previous';
+  els.nextL.textContent = n ? n.name : 'Finish the tour';
+}
+
+function step(dir) {
+  const cur = state.current && byId[state.current];
+  if (!cur) return;
+  if (cur.bonus) { closeStage(); return; }
+  const i = MAIN.indexOf(cur), t = MAIN[i + dir];
+  if (t) openStop(t.id); else if (dir > 0) closeStage();
+}
+
+/* ---------- presenter panel + clock ---------- */
+function elapsed() { return timer.base + (timer.running ? (Date.now() - timer.t0) / 1000 : 0); }
+function startTimer() { if (timer.running) return; timer.t0 = Date.now(); timer.running = true; renderTimer(); }
+function pauseTimer() { if (!timer.running) return; timer.base = elapsed(); timer.running = false; renderTimer(); }
+function resetTimer() { timer.base = 0; timer.running = false; renderTimer(); }
+
+function plannedTotal() { return MAIN.reduce((a, s) => a + s.mins, 0); }
+
+function renderTimer() {
+  const e = elapsed(), limit = state.limit * 60, ratio = limit ? e / limit : 0;
+  $('#pp-time').textContent = fmtClock(e);
+  const fill = $('#pp-fill');
+  fill.style.width = Math.min(100, ratio * 100) + '%';
+  fill.style.background = ratio > 1 ? '#d9483b' : ratio > .9 ? '#e39a1c' : '#2fa36b';
+  const left = limit - e;
+  $('#pp-status').textContent = left >= 0 ? `${fmtClock(left)} left of ${fmtClock(limit)}` : `Over the limit by ${fmtClock(-left)}`;
+  $('#pp-toggle').textContent = timer.running ? 'Pause clock' : (timer.base > 0 ? 'Resume clock' : 'Start clock');
+}
+
+function renderPresenterList() {
+  const plan = plannedTotal(), spare = state.limit * 60 - plan * 60;
+  $('#pp-plan').textContent = `Planned clips add up to ${fmtMins(plan)}. ` + (spare >= 0 ? `That leaves ${fmtClock(spare)} for hand-offs and questions.` : `That is ${fmtClock(-spare)} over the limit.`);
+  $('#pp-list').innerHTML = MAIN.map(s => {
+    const cls = (state.visited.has(s.id) ? 'done ' : '') + (state.current === s.id ? 'now' : '');
+    return `<li class="${cls}"><span class="n">${state.visited.has(s.id) ? '\u2713' : numOf(s)}</span>
+      <span>${esc(s.name)}<small>${esc(s.sub)}, ${esc(s.speaker)}</small></span><span class="t">${fmtMins(s.mins)}</span></li>`;
+  }).join('');
+}
+
+function togglePresenter(force) {
+  const open = typeof force === 'boolean' ? force : els.presenter.hidden;
+  els.presenter.hidden = !open;
+  els.btnPresenter.setAttribute('aria-pressed', String(open));
+  if (open) { renderTimer(); renderPresenterList(); }
+}
+
+function resetTour() { state.visited.clear(); save(); resetTimer(); updateUI(); }
+
+/* ---------- views + routing ---------- */
+function setView(v) {
+  els.tour.hidden = v !== 'tour';
+  els.readme.hidden = v !== 'readme';
+  $('#nav-tour').toggleAttribute('aria-current', v === 'tour');
+  $('#nav-readme').toggleAttribute('aria-current', v === 'readme');
+  if (v === 'tour') $('#nav-tour').setAttribute('aria-current', 'page'); else $('#nav-tour').removeAttribute('aria-current');
+  if (v === 'readme') $('#nav-readme').setAttribute('aria-current', 'page'); else $('#nav-readme').removeAttribute('aria-current');
+  if (v === 'tour') requestAnimationFrame(layoutTags);
+}
+function route() {
+  const h = location.hash.replace('#', '');
+  const isReadme = h === 'readme' || h.startsWith('readme-');
+  setView(isReadme ? 'readme' : 'tour');
+  if (h.startsWith('readme-')) { const t = document.getElementById(h); if (t) t.scrollIntoView(); }
+  else window.scrollTo(0, 0);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const t = e.target.closest ? e.target.closest('[data-id], [data-open]') : null;
+  if (!t) return;
+  if (t.matches('#trail .stone, #nextup .btn')) openStop(t.dataset.id);
+  else if (t.dataset.open) openStop(t.dataset.open);
+});
+els.back.addEventListener('click', closeStage);
+els.prev.addEventListener('click', () => step(-1));
+els.next.addEventListener('click', () => step(1));
+$('#stage-theatre').addEventListener('click', e => {
+  const on = els.stage.classList.toggle('theatre');
+  e.currentTarget.setAttribute('aria-pressed', String(on));
+});
+$('#stage-fs').addEventListener('click', toggleFullscreen);
+function toggleFullscreen() {
+  if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); }
+  else if (els.player.requestFullscreen) { els.player.requestFullscreen().catch(() => {}); }
+}
+els.btnPresenter.addEventListener('click', () => togglePresenter());
+$('#pp-close').addEventListener('click', () => togglePresenter(false));
+$('#pp-toggle').addEventListener('click', () => timer.running ? pauseTimer() : startTimer());
+$('#pp-reset-clock').addEventListener('click', resetTimer);
+$('#pp-reset-tour').addEventListener('click', resetTour);
+$('#finale-reset').addEventListener('click', () => { resetTour(); window.scrollTo(0, 0); });
+$('#pp-limit').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  if (v > 0) { state.limit = v; save(); renderTimer(); renderPresenterList(); }
+});
+function openHelp() { if (typeof els.help.showModal === 'function') els.help.showModal(); else els.help.setAttribute('open', ''); }
+function closeHelp() { if (typeof els.help.close === 'function') els.help.close(); else els.help.removeAttribute('open'); }
+$('#btn-help').addEventListener('click', openHelp);
+$('#help-close').addEventListener('click', closeHelp);
+els.help.addEventListener('click', e => { if (e.target === els.help) closeHelp(); });
+window.addEventListener('hashchange', route);
+
+document.addEventListener('keydown', e => {
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  if (t && t.closest && t.closest('input, textarea, select, [contenteditable="true"]')) return;
+  if (els.help.open) return;
+  const k = e.key, inStage = !!state.current;
+
+  if (/^[1-7]$/.test(k)) { e.preventDefault(); openStop(MAIN[+k - 1].id); return; }
+  switch (k.toLowerCase()) {
+    case 'escape':
+      if (inStage) { e.preventDefault(); closeStage(); }
+      else if (!els.presenter.hidden) { e.preventDefault(); togglePresenter(false); }
+      break;
+    case 'p': e.preventDefault(); togglePresenter(); break;
+    case '?': case 'h': e.preventDefault(); openHelp(); break;
+    case 'w': e.preventDefault(); openStop('ward'); break;
+    case 'n':
+      e.preventDefault();
+      if (inStage) step(1); else { const n = nextStop(); if (n) openStop(n.id); }
+      break;
+    case 'b': if (inStage) { e.preventDefault(); step(-1); } break;
+    case 'arrowright': if (inStage && !(t && t.tagName === 'VIDEO')) { e.preventDefault(); step(1); } break;
+    case 'arrowleft': if (inStage && !(t && t.tagName === 'VIDEO')) { e.preventDefault(); step(-1); } break;
+    case 't': if (inStage && !els.stage.classList.contains('cases')) { e.preventDefault(); $('#stage-theatre').click(); } break;
+    case 'f': if (inStage && !els.stage.classList.contains('cases')) { e.preventDefault(); toggleFullscreen(); } break;
+    case ' ':
+      if (inStage && !(t && t.closest && t.closest('button, a, video, iframe'))) {
+        const v = els.player.querySelector('video');
+        if (v) { e.preventDefault(); if (v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); } else v.pause(); }
+      }
+      break;
+  }
+});
+
+setInterval(() => { if (!els.presenter.hidden) renderTimer(); }, 250);
+
+/* README table of contents highlighting */
+if ('IntersectionObserver' in window) {
+  const links = $$('#toc a');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id));
+    });
+  }, { rootMargin: '-15% 0px -70% 0px' });
+  $$('.doc h1[id], .doc h2[id]').forEach(h => io.observe(h));
+}
+
+/* ---------- start ---------- */
+load();
+renderReadmeData();
+buildTags();
+layoutTags();
+$('#pp-limit').value = state.limit;
+updateUI();
+renderTimer();
+route();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutTags);
+window.addEventListener('resize', () => { /* SVG scales itself; nothing to recompute */ });
+})();
+</script>
+</body>
+</html>

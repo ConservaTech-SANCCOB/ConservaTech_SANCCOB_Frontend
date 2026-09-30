@@ -8,7 +8,15 @@
       "distribution": "internal"
     },
     "preview": {
+<<<<<<< Updated upstream
       "distribution": "internal"
+=======
+      "distribution": "internal",
+      "channel": "preview",
+      "android": {
+        "buildType": "apk"
+      }
+>>>>>>> Stashed changes
     },
     "production": {}
   },
