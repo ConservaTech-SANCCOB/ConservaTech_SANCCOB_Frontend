@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "../../app/lib/auth-context";
+import { getInitials, getDisplayName, getRoleLabel } from "../../app/lib/user-display";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: DashboardIcon },
@@ -18,6 +20,7 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const { user, role } = useAuth();
 
   return (
     <aside
@@ -26,34 +29,34 @@ export default function Sidebar() {
       } shrink-0 bg-[#0B2447] text-white flex flex-col transition-all duration-200 h-screen sticky top-0`}
     >
       {/* Logo + collapse toggle */}
-     <div className="flex items-center h-16 border-b border-white/10 px-4">
-  {collapsed ? (
-    <button
-      onClick={() => setCollapsed(false)}
-      className="p-1.5 rounded-md hover:bg-white/10 mx-auto"
-      aria-label="Expand sidebar"
-    >
-      <MenuIcon />
-    </button>
-  ) : (
-    <>
-      <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
-        CT
+      <div className="flex items-center h-16 border-b border-white/10 px-4">
+        {collapsed ? (
+          <button
+            onClick={() => setCollapsed(false)}
+            className="p-1.5 rounded-md hover:bg-white/10 mx-auto"
+            aria-label="Expand sidebar"
+          >
+            <MenuIcon />
+          </button>
+        ) : (
+          <>
+            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
+              CT
+            </div>
+            <div className="min-w-0 ml-3">
+              <p className="text-sm font-semibold truncate">ConservaTech</p>
+              <p className="text-xs text-white/60 truncate">SANCCOB Portal</p>
+            </div>
+            <button
+              onClick={() => setCollapsed(true)}
+              className="ml-auto p-1.5 rounded-md hover:bg-white/10 shrink-0"
+              aria-label="Collapse sidebar"
+            >
+              <MenuIcon />
+            </button>
+          </>
+        )}
       </div>
-      <div className="min-w-0 ml-3">
-        <p className="text-sm font-semibold truncate">ConservaTech</p>
-        <p className="text-xs text-white/60 truncate">SANCCOB Portal</p>
-      </div>
-      <button
-        onClick={() => setCollapsed(true)}
-        className="ml-auto p-1.5 rounded-md hover:bg-white/10 shrink-0"
-        aria-label="Collapse sidebar"
-      >
-        <MenuIcon />
-        </button>
-      </>
-      )}
-    </div>
 
       {/* Nav items */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
@@ -78,15 +81,18 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* User footer */}
+      {/* User footer — name/email come from the JWT claims via useAuth().user */}
       <div className="border-t border-white/10 px-4 py-4 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-semibold shrink-0">
-          CA
+        <div
+          className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-semibold shrink-0"
+          title={collapsed ? getDisplayName(user) : undefined}
+        >
+          {getInitials(user)}
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="text-sm font-medium truncate">Cathy Adams</p>
-            <p className="text-xs text-white/60 truncate">Administrator</p>
+            <p className="text-sm font-medium truncate">{getDisplayName(user)}</p>
+            <p className="text-xs text-white/60 truncate">{getRoleLabel(role)}</p>
           </div>
         )}
       </div>
