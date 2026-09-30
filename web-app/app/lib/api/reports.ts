@@ -2,7 +2,7 @@ export interface MonthlyHours {
   month: string;
   hours: number;
 }
-//pusj test
+
 export interface AttendancePoint {
   month: string;
   rate: number;
@@ -28,12 +28,8 @@ export interface ReportsData {
   topContributors: TopContributor[];
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// The backend doesn't return conservation impact data on this endpoint yet,
-// so this section stays mocked until that's added on the backend side.
 const MOCK_CONSERVATION = {
   totalReleased: 782,
   totalInCare: 205,
@@ -43,25 +39,28 @@ const MOCK_CONSERVATION = {
 export async function fetchReportsData(
   token: string | null,
   year: string,
-  department: string // kept in the signature for the UI, but not sent — the backend doesn't support a department filter yet
+  department: string
 ): Promise<ReportsData> {
-  const url = `${API_BASE_URL}/api/admin/reports?year=${encodeURIComponent(year)}`;
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
 
-  console.log("Fetching reports from:", url);
+  const url = `${API_URL}/api/admin/reports?year=${encodeURIComponent(year)}`;
 
-  const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
   });
 
-  if (!res.ok) {
-    throw new Error(`Reports request failed with status ${res.status}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Reports request failed with status ${response.status}`);
   }
 
-  const raw = await res.json();
+  const raw = await response.json();
 
-  console.log("REAL API RESPONSE:", raw);
-
-  const mapped: ReportsData = {
+  return {
     totalVolunteerHours: raw.totalVolunteerHours ?? 0,
     avgAttendanceRate: raw.averageAttendanceRate ?? 0,
     missedShifts: raw.missedShifts ?? 0,
@@ -80,6 +79,4 @@ export async function fetchReportsData(
       hours: c.totalHours,
     })),
   };
-
-  return mapped;
 }
