@@ -19,7 +19,6 @@ const shift: MyShift = {
   location: "Penguin Pens",
 };
 
-/** The fill of the nearest element behind the button's label that has one (the pill). */
 function cancelButtonColor() {
   let node = screen.getByText("Cancel").parent;
   while (node) {

@@ -31,6 +31,7 @@ export default function TrainerSelectScreen() {
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const selectionInProgress = useRef(false);
   useTrainerSignOut({ confirmOnBack: false });
 
   useEffect(() => {
@@ -59,6 +60,8 @@ export default function TrainerSelectScreen() {
   }, []);
 
   const handleSelect = async (trainer: Trainer) => {
+    if (selectionInProgress.current) return;
+    selectionInProgress.current = true;
     try {
       await selectTrainer(trainer.trainerId);
       router.push({
@@ -72,6 +75,8 @@ export default function TrainerSelectScreen() {
     } catch (error) {
       logError("Select trainer error", error);
       showErrorToast("Couldn't continue", getErrorMessage(error, "Something went wrong. Try again in a moment."));
+    } finally {
+      selectionInProgress.current = false;
     }
   };
 

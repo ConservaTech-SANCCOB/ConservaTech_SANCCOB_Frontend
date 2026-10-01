@@ -86,7 +86,7 @@ async function openRequestToCancel() {
 
 async function submitRequestToCancel() {
   await fireEvent.changeText(screen.getByLabelText("Reason for cancelling"), "Family emergency");
-  await fireEvent.press(screen.getByText("Cancel"));
+  await fireEvent.press(screen.getByText("Submit request"));
   const buttons: AlertButton[] = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2] ?? [];
   await act(async () => {
     buttons.find((button) => button.text === "OK")?.onPress?.();

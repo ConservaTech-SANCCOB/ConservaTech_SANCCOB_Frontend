@@ -11,7 +11,7 @@ import {
   TrainingSkillDto,
   TrainingVolunteerProfile,
 } from "../../services/training";
-import { getErrorMessage } from "../../utils/api";
+import { getErrorMessage, SessionExpiredError } from "../../utils/api";
 import { showErrorToast } from "../../utils/toast";
 import { logError } from "../../utils/logError";
 
@@ -68,10 +68,9 @@ export default function TrainerVolunteerScreen() {
     setSigningOffId(skill.skillId);
     try {
       await signOffTrainingSkill(userId, skill.skillId);
-      // Re-fetch rather than trust the optimistic response — confirms the sign-off
-      // actually persisted server-side and not just in local state.
       await load();
     } catch (error) {
+      if (error instanceof SessionExpiredError) return;
       logError("Sign off skill error", error);
       showErrorToast("Couldn't sign off", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     } finally {

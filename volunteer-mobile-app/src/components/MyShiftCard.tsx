@@ -15,7 +15,6 @@ export default function MyShiftCard({
   accentText = COLORS.white,
 }: {
   item: MyShift;
-  /** A pending cancellation request already exists for this shift — hides the cancel action. */
   cancellationPending?: boolean;
   /** Tints the Cancel button to match the screen this card is shown on (the rest follows the time slot). */
   accent?: string;
@@ -54,7 +53,7 @@ export default function MyShiftCard({
       onPressOut={pressOut}
       onPress={() =>
         Alert.alert(
-          `${formatTimeSlotLabel(item.timeSlot)} shift`,
+          item.timeSlot ? `${formatTimeSlotLabel(item.timeSlot)} shift` : "Shift",
           `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\nStatus: ${item.status}${
             cancellationPending ? "\nCancellation request pending review" : ""
           }`,

@@ -28,8 +28,6 @@ export async function verifyTrainerPin(pin: string) {
     );
     await saveToken(response.token, "trainer");
   } catch (error) {
-    // Surfaces the backend's message even on a 500 (e.g. "Trainer access PIN has not
-    // been configured."), so trainer-pin.tsx can show it instead of a generic failure.
     throw error instanceof ApiError && error.backendMessage ? new Error(error.backendMessage) : error;
   }
 }

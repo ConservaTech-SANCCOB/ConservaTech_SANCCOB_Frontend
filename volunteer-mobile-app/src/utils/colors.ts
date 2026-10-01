@@ -11,8 +11,6 @@ export const COLORS = {
   amberLight: "#b8891c",
   amberAccentLight: "#fff4cf",
   amberMid: "#a47a16",
-  // Lighter than amberMid for filled shapes (buttons, date badges, selected cells) —
-  // too light for small text on white, which stays amberMid.
   amberFill: "#c4962a",
   green: "#3fc920",
   greenDark: "#0d3305",
@@ -26,7 +24,6 @@ export const COLORS = {
   pinkMid: "#b52a6b",
   white: "#ffffff",
   red: "#EB5757",
-  // Request-to-cancel page theme (destructive action), same roles as the amber/green sets.
   redLight: "#b3261e",
   redDark: "#5c1310",
   redMid: "#c62828",

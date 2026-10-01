@@ -18,8 +18,6 @@ const mockedGetMyAvailability = jest.mocked(getMyAvailability);
 const mockedUpdateMyAvailability = jest.mocked(updateMyAvailability);
 
 const cell = (label: string) => screen.getByRole("button", { name: label });
-// "Submit Availability" is both the page title and the empty-grid button label;
-// the button is the last one rendered.
 const emptySubmitButton = async () => (await screen.findAllByText("Submit Availability")).at(-1)!;
 
 async function pressAlertButton(text: string) {
@@ -62,7 +60,6 @@ describe("Submit Availability", () => {
     await fireEvent.press(screen.getByText("Submit 3 blocks"));
 
     await waitFor(() => expect(mockedUpdateMyAvailability).toHaveBeenCalled());
-    // Always Monday -> Sunday, regardless of the order they were tapped in.
     expect(mockedUpdateMyAvailability).toHaveBeenCalledWith([
       { dayOfWeek: "Monday", timeSlot: "08:00-13:00" },
       { dayOfWeek: "Wednesday", timeSlot: "14:00-17:00" },
@@ -145,13 +142,19 @@ describe("Submit Availability", () => {
     await waitFor(() => expect(showErrorToast).toHaveBeenCalledWith("Couldn't save", "Invalid time slot."));
   });
 
-  it("falls back to a blank grid if saved availability can't be loaded", async () => {
-    mockedGetMyAvailability.mockRejectedValue(new Error("Network request failed"));
+  it("shows an error with Try again, and no grid to save, if saved availability can't be loaded", async () => {
+    mockedGetMyAvailability.mockRejectedValueOnce(new Error("Network request failed"));
+    mockedGetMyAvailability.mockResolvedValueOnce([{ dayOfWeek: "Monday", timeSlot: "08:00-13:00" }]);
 
     await render(<SubmitAvailabilityScreen />);
 
-    expect(await emptySubmitButton()).toBeOnTheScreen();
-    expect(cell("Monday Morning")).not.toBeSelected();
-    expect(showErrorToast).toHaveBeenCalledWith("Couldn't load availability", "Starting from a blank grid instead.");
+    expect(await screen.findByRole("button", { name: "Try again" })).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: "Monday Morning" })).toBeNull();
+    expect(screen.getAllByText("Submit Availability")).toHaveLength(1);
+
+    await fireEvent.press(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByRole("button", { name: "Monday Morning" })).toBeSelected();
+    expect(mockedUpdateMyAvailability).not.toHaveBeenCalled();
   });
 });

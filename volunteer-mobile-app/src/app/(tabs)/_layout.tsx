@@ -8,7 +8,6 @@ import { getTabBarStyle } from "../../constants/tabBar";
 
 const ACTIVE_COLOR = COLORS.blue;
 const INACTIVE_COLOR = COLORS.navy;
-// Tabs whose screens have their own accent colour; the rest fall back to ACTIVE_COLOR.
 const TAB_ACCENTS: Record<string, string> = {
   progress: COLORS.green,
   bookings: COLORS.amberMid,

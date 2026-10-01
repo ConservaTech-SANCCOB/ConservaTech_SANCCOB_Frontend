@@ -1,6 +1,4 @@
 export function parseLocalDate(dateStr: string): Date {
-  // Only the YYYY-MM-DD part: a "2026-09-28T00:00:00" datetime would otherwise parse
-  // the day as NaN, fall back to the 1st, and make an upcoming shift look past.
   const [y, m, d] = dateStr.slice(0, 10).split("-").map(Number);
   return new Date(y, (m || 1) - 1, d || 1);
 }

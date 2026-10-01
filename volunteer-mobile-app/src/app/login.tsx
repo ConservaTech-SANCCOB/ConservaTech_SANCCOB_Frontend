@@ -32,13 +32,13 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       Alert.alert("Missing details", "Enter your email and password.");
       return;
     }
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       resetTo("/(tabs)/home");
     } catch (error) {
       logError("Login error", error);
@@ -79,7 +79,6 @@ export default function LoginScreen() {
             style={StyleSheet.absoluteFill}
           />
 
-          {/* Stylized sweeping waves */}
           <Svg
             style={StyleSheet.absoluteFill}
             viewBox="0 0 400 380"
@@ -198,7 +197,6 @@ export default function LoginScreen() {
             <TouchableOpacity onPress={() => router.push("/forgot-password")}>
               <Text style={styles.helperText}>Forgot your password?</Text>
             </TouchableOpacity>
-            {/* An expired session lands here via resetTo (utils/api.ts), leaving nothing to go back to. */}
             <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}>
               <Text style={styles.helperText}>Back to options</Text>
             </TouchableOpacity>

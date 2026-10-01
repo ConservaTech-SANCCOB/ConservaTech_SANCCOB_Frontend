@@ -80,6 +80,11 @@ export default function TrainerDashboardScreen() {
     }, [load])
   );
 
+  const retryLoad = () => {
+    setIsLoading(true);
+    load().finally(() => setIsLoading(false));
+  };
+
   const handleLogout = useTrainerSignOut({ confirmOnBack: true });
 
   const filtered = useMemo(() => {
@@ -202,9 +207,21 @@ export default function TrainerDashboardScreen() {
             );
           }}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>
-              {loadError ? "Couldn't load volunteers. Go back and try again." : "No volunteers match your search."}
-            </Text>
+            loadError ? (
+              <View style={styles.loadErrorState}>
+                <Text style={styles.emptyText}>Couldn&apos;t load volunteers. Check your connection and try again.</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={retryLoad}
+                  accessibilityRole="button"
+                  accessibilityLabel="Try again"
+                >
+                  <Text style={styles.retryButtonText}>Try again</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>No volunteers match your search.</Text>
+            )
           }
         />
       )}
@@ -317,4 +334,13 @@ const styles = StyleSheet.create({
   },
   progressFill: { height: 5, borderRadius: 3 },
   emptyText: { textAlign: "center", color: COLORS.grey, marginTop: 40 },
+  loadErrorState: { alignItems: "center" },
+  retryButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 26,
+    borderRadius: 30,
+    backgroundColor: COLORS.blueMid,
+  },
+  retryButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15 },
 });

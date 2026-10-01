@@ -28,7 +28,6 @@ function monthLabelFor(dateStr: string): string {
   return parseLocalDate(dateStr).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
-/** Most recent first: by date, then by start time within a day. */
 function newestFirst(a: CompletedShift, b: CompletedShift): number {
   return b.shiftDate.localeCompare(a.shiftDate) || (b.timeSlot ?? "").localeCompare(a.timeSlot ?? "");
 }

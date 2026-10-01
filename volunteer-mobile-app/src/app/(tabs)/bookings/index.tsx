@@ -60,6 +60,7 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
   const slot = slotTheme(item.timeSlot);
   const scale = useRef(new Animated.Value(1)).current;
   const [booking, setBooking] = useState(false);
+  const confirmationOpen = useRef(false);
 
   const pressIn = () => {
     Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
@@ -72,20 +73,16 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
     setBooking(true);
     try {
       await bookVacancy(item.shiftId);
-      // The response has no updated vacancy count or shift details, so re-fetch: the
-      // shift drops out of Available (now assigned to this volunteer, or full) and the
-      // refreshed My Shifts data picks it up.
       await onChanged();
       Alert.alert("Shift booked", "It's now in your My Shifts.");
     } catch (error) {
-      if (error instanceof SessionExpiredError) return; // api.ts already redirected to /login
+      if (error instanceof SessionExpiredError) return;
       logError("Book shift error", error);
       if (error instanceof BookingRejectedError) {
         showErrorToast(
           "Couldn't book this shift",
           error.backendMessage ?? "It may have just filled up or is no longer available."
         );
-        // The list is stale (that's the likely cause), so refresh to drop the card.
         await onChanged();
       } else {
         showErrorToast("Couldn't book this shift", "Something went wrong. Try again in a moment.");
@@ -96,14 +93,25 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
   };
 
   const confirmBook = () => {
-    if (booking) return;
+    if (booking || confirmationOpen.current) return;
+    confirmationOpen.current = true;
+    const closeConfirmation = () => {
+      confirmationOpen.current = false;
+    };
     Alert.alert(
       "Book this shift?",
-      `${formatTimeSlotLabel(item.timeSlot)} · ${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\n${item.vacanciesAvailable} of ${item.capacity} spots open`,
+      `${item.timeSlot ? `${formatTimeSlotLabel(item.timeSlot)} · ` : ""}${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\n${item.vacanciesAvailable} of ${item.capacity} spots open`,
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "Book", onPress: book },
-      ]
+        { text: "Cancel", style: "cancel", onPress: closeConfirmation },
+        {
+          text: "Book",
+          onPress: () => {
+            closeConfirmation();
+            return book();
+          },
+        },
+      ],
+      { onDismiss: closeConfirmation }
     );
   };
 
@@ -242,7 +250,6 @@ export default function BookingsScreen() {
         if (tab === "mine") {
           const [shifts, pending] = await Promise.all([
             getMyShifts(),
-            // A failure here must not break My Shifts — keep the last known pending set.
             getPendingCancellationIds().catch((error) => {
               logError("Load pending cancellations error", error);
               return null;
@@ -252,8 +259,6 @@ export default function BookingsScreen() {
           if (pending) setPendingCancellationIds(pending);
         } else {
           const [vacancies, myShiftsForExclusion] = await Promise.all([getVacancies(), getMyShifts()]);
-          // Already fetched for the exclusion below, so keep My Shifts in sync for free
-          // (otherwise it stays stale until the tab is switched back to).
           setMyShifts(myShiftsForExclusion);
           const assignedShiftIds = new Set(myShiftsForExclusion.map((s) => s.shiftId));
           setAvailableShifts(
