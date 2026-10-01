@@ -1,5 +1,7 @@
 import { api, clearToken, saveToken } from "../utils/api";
 import { logError } from "../utils/logError";
+import { getExpoPushToken } from "./pushNotifications";
+import { registerPushToken } from "./notifications";
 
 interface AuthResponse {
   token: string;
@@ -25,7 +27,21 @@ export async function login(email: string, password: string) {
     { email, password },
     { skipSessionRedirect: true }
   );
+
+  // Save JWT first so the push-token endpoint is authenticated.
   await saveToken(result.token);
+
+  try {
+    const pushToken = await getExpoPushToken();
+
+    if (pushToken) {
+      await registerPushToken(pushToken);
+      console.log("Push token registered successfully.");
+    }
+  } catch (error) {
+    logError("Push token registration failed", error);
+  }
+
   return result;
 }
 

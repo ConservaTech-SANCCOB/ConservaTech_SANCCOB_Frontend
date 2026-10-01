@@ -1,9 +1,16 @@
 import * as Notifications from "expo-notifications";
+import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 export async function getExpoPushToken(): Promise<string | null> {
   try {
+    // Remote push notifications require a physical device.
+    if (!Device.isDevice) {
+      console.log("Push notifications require a physical device.");
+      return null;
+    }
+
     // Android requires a notification channel.
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("default", {
@@ -12,13 +19,13 @@ export async function getExpoPushToken(): Promise<string | null> {
       });
     }
 
-    // Check current notification permission.
+    // Check existing permission.
     const existingPermissions =
       await Notifications.getPermissionsAsync();
 
     let finalStatus = existingPermissions.status;
 
-    // Ask the user if permission has not already been granted.
+    // Request permission if needed.
     if (finalStatus !== "granted") {
       const requestedPermissions =
         await Notifications.requestPermissionsAsync();
@@ -31,7 +38,7 @@ export async function getExpoPushToken(): Promise<string | null> {
       return null;
     }
 
-    // Get the Expo/EAS project ID.
+    // Get the EAS project ID from app.json.
     const projectId =
       Constants.expoConfig?.extra?.eas?.projectId ??
       Constants.easConfig?.projectId;
@@ -41,11 +48,10 @@ export async function getExpoPushToken(): Promise<string | null> {
       return null;
     }
 
-    // Generate the Expo push token for this device.
-    const pushToken =
-      await Notifications.getExpoPushTokenAsync({
-        projectId,
-      });
+    // Generate this device's Expo push token.
+    const pushToken = await Notifications.getExpoPushTokenAsync({
+      projectId,
+    });
 
     console.log("Expo Push Token:", pushToken.data);
 
