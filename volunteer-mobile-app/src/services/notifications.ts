@@ -5,6 +5,7 @@ export interface AppNotification {
   message: string;
   type: string | null;
   isRead: boolean;
+  createdAt: string;
 }
 
 export async function getMyNotifications() {
