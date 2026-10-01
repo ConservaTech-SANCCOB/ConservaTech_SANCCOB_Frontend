@@ -65,5 +65,7 @@ describe("MyShiftCard cancel button", () => {
   it("is hidden once a cancellation is already pending", async () => {
     await render(<MyShiftCard item={shift} cancellationPending />);
     expect(screen.queryByText("Cancel")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Cancel shift" })).toBeNull();
+    expect(screen.queryByLabelText("Cancellation pending")).toBeNull();
   });
 });
