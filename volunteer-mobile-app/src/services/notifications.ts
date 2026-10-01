@@ -7,8 +7,9 @@ export interface AppNotification {
   isRead: boolean;
 }
 
-export function getMyNotifications() {
-  return api.get<AppNotification[]>("/api/notifications");
+export async function getMyNotifications() {
+  const notifications = await api.get<AppNotification[]>("/api/notifications");
+  return [...notifications].sort((a, b) => b.notificationId - a.notificationId);
 }
 
 export function markNotificationRead(id: number) {
