@@ -35,19 +35,16 @@ export default function MyShiftCard({
   };
 
   const requestChange = () => {
-    router.push(
-      {
-        pathname: "/(tabs)/bookings/request-change",
-        params: {
-          bookingId: String(item.rosterAssignmentId),
-          shiftDate: item.shiftDate,
-          timeSlot: item.timeSlot,
-          location: item.location ?? "",
-          status: item.status,
-        },
+    router.push({
+      pathname: "/request-change",
+      params: {
+        bookingId: String(item.rosterAssignmentId),
+        shiftDate: item.shiftDate,
+        timeSlot: item.timeSlot,
+        location: item.location ?? "",
+        status: item.status,
       },
-      { withAnchor: true }
-    );
+    });
   };
 
   return (

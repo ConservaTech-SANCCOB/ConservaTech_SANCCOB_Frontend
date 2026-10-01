@@ -73,6 +73,7 @@ export default function RootLayout() {
         <Stack.Screen name="activate" />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="request-change" />
         <Stack.Screen name="trainer-pin" />
         <Stack.Screen name="trainer-select" />
         <Stack.Screen name="trainer-dashboard" />

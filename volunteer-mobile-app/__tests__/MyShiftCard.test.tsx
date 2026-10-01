@@ -56,10 +56,9 @@ describe("MyShiftCard cancel button", () => {
 
     expect(mockPush).toHaveBeenCalledWith(
       expect.objectContaining({
-        pathname: "/(tabs)/bookings/request-change",
+        pathname: "/request-change",
         params: expect.objectContaining({ bookingId: "42", shiftDate: "2099-01-10" }),
-      }),
-      { withAnchor: true }
+      })
     );
   });
 
