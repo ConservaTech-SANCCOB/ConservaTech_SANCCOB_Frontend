@@ -1,8 +1,5 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// Flip to true once the backend team confirms the dashboard stats endpoint is ready
-const USE_REAL_API = false;
-
 export interface DashboardStats {
   volunteersByAge: { age: string; count: number }[];
   totalNewRecruits: number;
@@ -38,64 +35,62 @@ export interface DashboardStats {
 }
 
 export async function fetchDashboardStats(token: string | null): Promise<DashboardStats> {
-  if (USE_REAL_API) {
-    const response = await fetch(`${API_URL}/dashboard/stats`, {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const currentYear = new Date().getFullYear().toString();
+
+  const conservationRes = await fetch(
+    `${API_URL}/api/admin/dashboard/conservation-impact?year=${encodeURIComponent(currentYear)}`,
+    {
       method: "GET",
+      cache: "no-store",
       headers: {
-        "Content-Type": "application/json",
+        Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to load dashboard data");
     }
+  );
 
-    return response.json();
+  if (!conservationRes.ok) {
+    const errorData = await conservationRes.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to load conservation impact data");
   }
-//----------------------------------- END OF FILE ---------------------------------//
 
-  // --- MOCK (remove once USE_REAL_API is permanently true) ---
-  await new Promise((resolve) => setTimeout(resolve, 600));
+  const conservationRaw = await conservationRes.json();
 
+  // TODO: volunteersByAge, totalNewRecruits, shifts, todaysShifts, and
+  // trainingSessions each need their own confirmed backend endpoint before
+  // they can show real data. Ask the backend team whether a single combined
+  // /dashboard/stats endpoint exists, or whether each section needs its own
+  // call (similar to how conservation-impact works above). Until then these
+  // stay empty/zeroed rather than showing fake numbers.
   return {
     volunteersByAge: [
-      { age: "18-24", count: 3 },
-      { age: "25-34", count: 19 },
-      { age: "35-44", count: 27 },
-      { age: "45-54", count: 13 },
-      { age: "55-64", count: 9 },
-      { age: "65+", count: 4 },
+      { age: "18-24", count: 0 },
+      { age: "25-34", count: 0 },
+      { age: "35-44", count: 0 },
+      { age: "45-54", count: 0 },
+      { age: "55-64", count: 0 },
+      { age: "65+", count: 0 },
     ],
-    totalNewRecruits: 75,
+    totalNewRecruits: 0,
 
     conservation: {
-      totalRescued: 987,
-      totalReleased: 782,
-      percentReleased: 79,
+      totalRescued: conservationRaw.totalRescued ?? 0,
+      totalReleased: conservationRaw.totalReleased ?? 0,
+      percentReleased: conservationRaw.percentReleased ?? 0,
     },
 
     shifts: {
-      totalShifts: 559,
-      morningCount: 324,
-      afternoonCount: 235,
-      morningPercent: 58,
-      afternoonPercent: 42,
+      totalShifts: 0,
+      morningCount: 0,
+      afternoonCount: 0,
+      morningPercent: 0,
+      afternoonPercent: 0,
     },
 
-    todaysShifts: [
-      { area: "African Penguin Pen A", status: "Confirmed", time: "07:00–13:00", people: "Amahle Dlamini, Fatima Patel +1" },
-      { area: "Food Preparation", status: "Pending", time: "07:00–13:00", people: "Kwame Asante" },
-      { area: "Aviary 1", status: "Confirmed", time: "13:00–18:00", people: "Pieter van der Merwe, Chloe Anderson" },
-      { area: "Quarantine Zone", status: "Confirmed", time: "13:00–18:00", people: "Thabo Sithole" },
-      { area: "Home Pen", status: "Pending", time: "07:00–13:00", people: "James Mitchell" },
-    ],
+    todaysShifts: [],
 
-    trainingSessions: [
-      { name: "Amahle Dlamini", initials: "AD", status: "In Progress", trainer: "Dr. Nadia Rousseau · Stage 2", progress: 80 },
-      { name: "Pieter van der Merwe", initials: "PV", status: "In Progress", trainer: "Brandon Kleinhans · Stage 2", progress: 50 },
-      { name: "Zanele Mokoena", initials: "ZM", status: "Completed", trainer: "Dr. Nadia Rousseau · Completed", progress: 100 },
-      { name: "James Mitchell", initials: "JM", status: "In Progress", trainer: "Mara Visser · Stage 1", progress: 10 },
-    ],
+    trainingSessions: [],
   };
 }
