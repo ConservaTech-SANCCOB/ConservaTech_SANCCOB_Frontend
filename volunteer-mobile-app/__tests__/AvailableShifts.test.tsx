@@ -11,7 +11,6 @@ jest.mock("expo-router", () => {
   return {
     router: { replace: jest.fn() },
     useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }),
-    // No navigator in tests: treat "screen focused" as "mounted".
     useFocusEffect: (effect: () => void) => useEffect(effect, [effect]),
   };
 });
@@ -28,7 +27,6 @@ const mockedGetVacancies = jest.mocked(getVacancies);
 const mockedBookVacancy = jest.mocked(bookVacancy);
 const mockedGetMyShifts = jest.mocked(getMyShifts);
 
-/** YYYY-MM-DD for today + n days, in local time (matching how the app parses dates). */
 function daysFromToday(n: number) {
   const d = new Date();
   d.setDate(d.getDate() + n);
@@ -50,7 +48,6 @@ function vacancy(overrides: Partial<Vacancy>): Vacancy {
   };
 }
 
-/** Presses a button in the most recent Alert.alert() call, the way a user would. */
 async function pressAlertButton(text: string) {
   const buttons = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2] ?? [];
   const button = buttons.find((b) => b.text === text);
@@ -93,9 +90,9 @@ describe("Available Shifts", () => {
     await openAvailableTab();
 
     expect(await screen.findByText("Penguin Pens")).toBeOnTheScreen();
-    expect(screen.queryByText("Full Pool")).toBeNull(); // no spots left
-    expect(screen.queryByText("Yesterday Wash Bay")).toBeNull(); // already over
-    expect(screen.queryByText("Clinic")).toBeNull(); // already assigned to it
+    expect(screen.queryByText("Full Pool")).toBeNull();
+    expect(screen.queryByText("Yesterday Wash Bay")).toBeNull();
+    expect(screen.queryByText("Clinic")).toBeNull();
     expect(screen.getByText("OPEN SHIFTS")).toBeOnTheScreen();
   });
 
@@ -115,7 +112,7 @@ describe("Available Shifts", () => {
     await openAvailableTab();
     await fireEvent.press(await screen.findByText("Book"));
 
-    expect(Alert.alert).toHaveBeenLastCalledWith("Book this shift?", expect.any(String), expect.any(Array));
+    expect(Alert.alert).toHaveBeenLastCalledWith("Book this shift?", expect.any(String), expect.any(Array), expect.any(Object));
     expect(mockedBookVacancy).not.toHaveBeenCalled();
 
     await pressAlertButton("Book");
@@ -146,7 +143,6 @@ describe("Available Shifts", () => {
     await waitFor(() =>
       expect(showErrorToast).toHaveBeenCalledWith("Couldn't book this shift", "This shift is already full.")
     );
-    // The list was probably stale, so it re-fetches to drop the card.
     expect(mockedGetVacancies).toHaveBeenCalledTimes(2);
   });
 

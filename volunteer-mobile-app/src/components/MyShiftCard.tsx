@@ -15,7 +15,6 @@ export default function MyShiftCard({
   accentText = COLORS.white,
 }: {
   item: MyShift;
-  /** A pending cancellation request already exists for this shift — hides the cancel action. */
   cancellationPending?: boolean;
   /** Tints the Cancel button to match the screen this card is shown on (the rest follows the time slot). */
   accent?: string;
@@ -36,7 +35,7 @@ export default function MyShiftCard({
 
   const requestChange = () => {
     router.push({
-      pathname: "/(tabs)/bookings/request-change",
+      pathname: "/request-change",
       params: {
         bookingId: String(item.rosterAssignmentId),
         shiftDate: item.shiftDate,
@@ -54,7 +53,7 @@ export default function MyShiftCard({
       onPressOut={pressOut}
       onPress={() =>
         Alert.alert(
-          `${formatTimeSlotLabel(item.timeSlot)} shift`,
+          item.timeSlot ? `${formatTimeSlotLabel(item.timeSlot)} shift` : "Shift",
           `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\nStatus: ${item.status}${
             cancellationPending ? "\nCancellation request pending review" : ""
           }`,
@@ -74,9 +73,6 @@ export default function MyShiftCard({
         <View style={SHIFT_CARD_STYLES.topNotch} />
         <View style={styles.titleRow}>
           <SlotChip slot={item.timeSlot} />
-          {!ended && cancellationPending && (
-            <View style={styles.pendingDot} accessible accessibilityLabel="Cancellation pending" />
-          )}
         </View>
         <View style={SHIFT_CARD_STYLES.badgeRow}>
           <DateBadge dateStr={item.shiftDate} size={56} color={slot.soft} textColor={slot.ink} />
@@ -99,7 +95,19 @@ export default function MyShiftCard({
             </View>
           </View>
         </View>
-        {!ended && !cancellationPending && <View style={SHIFT_CARD_STYLES.divider} />}
+        {!ended && <View style={SHIFT_CARD_STYLES.divider} />}
+        {!ended && cancellationPending && (
+          <View
+            style={[SHIFT_CARD_STYLES.actionWrap, styles.hidden]}
+            pointerEvents="none"
+            aria-hidden
+          >
+            <View style={SHIFT_CARD_STYLES.action}>
+              <Ionicons name="close-circle-outline" size={14} />
+              <Text style={SHIFT_CARD_STYLES.actionText}>Cancel</Text>
+            </View>
+          </View>
+        )}
         {!ended && !cancellationPending && (
           <TouchableOpacity
             style={SHIFT_CARD_STYLES.actionWrap}
@@ -121,6 +129,5 @@ export default function MyShiftCard({
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-  // Same 8px round dot as the unread indicator in notifications.tsx, in amber for "pending".
-  pendingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.amber },
+  hidden: { opacity: 0 },
 });

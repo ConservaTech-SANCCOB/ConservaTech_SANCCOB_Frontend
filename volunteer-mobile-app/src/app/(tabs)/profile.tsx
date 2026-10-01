@@ -1,24 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
+import { AboveBannerFill } from "../../components/BannerOverscroll";
 import KeyboardAvoidingScreen from "../../components/KeyboardAvoidingScreen";
 import SelectDropdown from "../../components/SelectDropdown";
 import { AGE_BRACKETS, isAgeBracket } from "../../constants/ageBrackets";
 import { logout } from "../../services/auth";
-import { getErrorMessage } from "../../utils/api";
+import { getErrorMessage, SessionExpiredError } from "../../utils/api";
 import { COLORS } from "../../utils/colors";
 import { getMyProfile, updateMyProfile } from "../../services/profile";
 import { showErrorToast } from "../../utils/toast";
 import { logError } from "../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../constants/glassCard";
 import { BannerBirds, BannerPenguin } from "../../components/Wildlife";
+import { resetTo } from "../../utils/navigation";
 
 export default function ProfileScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -32,27 +32,33 @@ export default function ProfileScreen() {
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    getMyProfile()
-      .then((profile) => {
-        setFirstName(profile.firstName ?? "");
-        setLastName(profile.lastName ?? "");
-        setEmail(profile.email ?? "");
-        setPhone(profile.phoneNumber ?? "");
-        setNationality(profile.nationality ?? "");
-        // A legacy free-text value the backend would now reject shows as unselected.
-        setAgeBracket(isAgeBracket(profile.ageBracket) ? profile.ageBracket : "");
-        setEmergencyName(profile.emergencyContactName ?? "");
-        setEmergencyPhone(profile.emergencyContactPhone ?? "");
-      })
-      .catch((error) => {
-        logError("Load profile error", error);
-        setLoadError(true);
-      })
-      .finally(() => setLoading(false));
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const profile = await getMyProfile();
+      setFirstName(profile.firstName ?? "");
+      setLastName(profile.lastName ?? "");
+      setEmail(profile.email ?? "");
+      setPhone(profile.phoneNumber ?? "");
+      setNationality(profile.nationality ?? "");
+      setAgeBracket(isAgeBracket(profile.ageBracket) ? profile.ageBracket : "");
+      setEmergencyName(profile.emergencyContactName ?? "");
+      setEmergencyPhone(profile.emergencyContactPhone ?? "");
+    } catch (error) {
+      logError("Load profile error", error);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
   const handleSave = async () => {
+    if (loading || loadError) return;
     if (!email.trim()) {
       Alert.alert("Email required", "Please enter your email address.");
       return;
@@ -69,6 +75,7 @@ export default function ProfileScreen() {
       });
       Alert.alert("Saved", "Your profile has been updated.");
     } catch (error) {
+      if (error instanceof SessionExpiredError) return;
       logError("Save profile error", error);
       showErrorToast("Couldn't save", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     } finally {
@@ -84,7 +91,7 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: async () => {
           await logout();
-          router.replace("/");
+          resetTo("/");
         },
       },
     ]);
@@ -99,6 +106,7 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <AboveBannerFill color={COLORS.pinkLight} />
         <LinearGradient
           colors={[COLORS.pinkLight, COLORS.pinkDark]}
           style={[styles.banner, { paddingTop: 16 + insets.top }]}
@@ -146,12 +154,21 @@ export default function ProfileScreen() {
               <View style={styles.loadingRow}>
                 <ActivityIndicator color={COLORS.pinkMid} />
               </View>
+            ) : loadError ? (
+              <View style={styles.loadErrorState}>
+                <Ionicons name="warning-outline" size={26} color={COLORS.grey} />
+                <Text style={styles.loadErrorText}>Couldn&apos;t load your profile. Check your connection and try again.</Text>
+                <TouchableOpacity
+                  style={styles.saveButtonWrap}
+                  onPress={loadProfile}
+                  accessibilityRole="button"
+                  accessibilityLabel="Try again"
+                >
+                  <Text style={styles.saveButtonText}>Try again</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               <>
-                {loadError && (
-                  <Text style={styles.loadErrorText}>Couldn&apos;t load your profile. Try again in a moment.</Text>
-                )}
-
                 <Text style={styles.fieldLabel}>FIRST NAME</Text>
                 <View style={styles.inputRow}>
                   <Ionicons name="person-outline" size={18} color={COLORS.grey} />
@@ -171,6 +188,7 @@ export default function ProfileScreen() {
                     style={styles.input}
                     value={email}
                     onChangeText={setEmail}
+                    keyboardType="email-address"
                     autoCapitalize="none"
                   />
                 </View>
@@ -290,7 +308,6 @@ const styles = StyleSheet.create({
     textShadowRadius: 6,
   },
   titleGroup: {
-    // Lines the eyebrow up with the name inside the badge: banner gutter + badge padding + its border.
     paddingLeft: 41,
     paddingRight: 20,
   },
@@ -334,7 +351,8 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "700", color: COLORS.grey },
   loadingRow: { paddingVertical: 20, alignItems: "center" },
-  loadErrorText: { fontSize: 12, color: COLORS.red, marginBottom: 8 },
+  loadErrorState: { alignItems: "center", paddingVertical: 12, gap: 8 },
+  loadErrorText: { fontSize: 13, color: COLORS.grey, textAlign: "center" },
   saveButtonWrap: {
     marginTop: 22,
     alignSelf: "center",

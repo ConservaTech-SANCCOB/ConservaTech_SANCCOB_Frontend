@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,14 +9,14 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
 import { logError } from "../utils/logError";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../constants/glassCard";
-import { logout } from "../services/auth";
 import { getTrainingVolunteers, TrainingVolunteerSummary } from "../services/training";
+import { useTrainerSignOut } from "../utils/useTrainerSignOut";
 
 type StatusFilter = "all" | "not-started" | "in-progress" | "completed";
 
@@ -57,25 +57,35 @@ export default function TrainerDashboardScreen() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setIsLoading(true);
-        setVolunteers(await getTrainingVolunteers());
-      } catch (error) {
-        logError("Load training volunteers error", error);
-        setLoadError(true);
-      } finally {
-        setIsLoading(false);
-      }
+  const load = useCallback(async () => {
+    try {
+      setVolunteers(await getTrainingVolunteers());
+      setLoadError(false);
+    } catch (error) {
+      logError("Load training volunteers error", error);
+      setLoadError(true);
     }
-    load();
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace("/");
+  const hasLoadedRef = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasLoadedRef.current) {
+        hasLoadedRef.current = true;
+        load().finally(() => setIsLoading(false));
+      } else {
+        load();
+      }
+    }, [load])
+  );
+
+  const retryLoad = () => {
+    setIsLoading(true);
+    load().finally(() => setIsLoading(false));
   };
+
+  const handleLogout = useTrainerSignOut({ confirmOnBack: true });
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -197,9 +207,21 @@ export default function TrainerDashboardScreen() {
             );
           }}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>
-              {loadError ? "Couldn't load volunteers. Go back and try again." : "No volunteers match your search."}
-            </Text>
+            loadError ? (
+              <View style={styles.loadErrorState}>
+                <Text style={styles.emptyText}>Couldn&apos;t load volunteers. Check your connection and try again.</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={retryLoad}
+                  accessibilityRole="button"
+                  accessibilityLabel="Try again"
+                >
+                  <Text style={styles.retryButtonText}>Try again</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>No volunteers match your search.</Text>
+            )
           }
         />
       )}
@@ -312,4 +334,13 @@ const styles = StyleSheet.create({
   },
   progressFill: { height: 5, borderRadius: 3 },
   emptyText: { textAlign: "center", color: COLORS.grey, marginTop: 40 },
+  loadErrorState: { alignItems: "center" },
+  retryButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 26,
+    borderRadius: 30,
+    backgroundColor: COLORS.blueMid,
+  },
+  retryButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15 },
 });

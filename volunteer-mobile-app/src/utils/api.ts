@@ -1,5 +1,5 @@
 import * as SecureStore from "expo-secure-store";
-import { router } from "expo-router";
+import { resetTo } from "./navigation";
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 if (!BASE_URL) {
@@ -11,8 +11,6 @@ if (!BASE_URL) {
 const TOKEN_KEY = "auth_token";
 const SESSION_ROLE_KEY = "session_role";
 
-/** Who the stored token belongs to. Trainer sessions come from the PIN flow on a
- * shared device, so they are never restored on the next launch (see _layout.tsx). */
 export type SessionRole = "volunteer" | "trainer";
 
 export class SessionExpiredError extends Error {
@@ -22,10 +20,6 @@ export class SessionExpiredError extends Error {
   }
 }
 
-/** Thrown by request() for any non-2xx response (other than a redirected 401).
- * The message keeps the "API error <status>: <body>" format that getErrorStatus()
- * relies on; `backendMessage` is the human-readable `message` from the backend's
- * JSON body, when there is one. */
 export class ApiError extends Error {
   status: number;
   backendMessage: string | null;
@@ -38,9 +32,6 @@ export class ApiError extends Error {
   }
 }
 
-/** Pulls a displayable message out of an error response body: `message` first
- * (the backend's own convention), then ASP.NET ProblemDetails' `detail`, then the
- * first model-validation error. Returns null for non-JSON or message-less bodies. */
 export function parseBackendMessage(body: string): string | null {
   try {
     const parsed = JSON.parse(body);
@@ -52,7 +43,6 @@ export function parseBackendMessage(body: string): string | null {
       if (typeof first === "string" && first.trim()) return first.trim();
     }
   } catch {
-    // not JSON — nothing to show
   }
   return null;
 }
@@ -74,8 +64,9 @@ async function request<T>(path: string, options: RequestInit = {}, config: Reque
   });
 
   if (response.status === 401 && !config.skipSessionRedirect) {
+    const role = await getSessionRole();
     await clearToken();
-    router.replace("/login");
+    resetTo(role === "trainer" ? "/" : "/login");
     throw new SessionExpiredError();
   }
 
@@ -84,8 +75,6 @@ async function request<T>(path: string, options: RequestInit = {}, config: Reque
     throw new ApiError(response.status, body);
   }
 
-  // Several endpoints (profile/availability saves, sign-off, logout) answer a bare
-  // 200 with no body, which response.json() would reject as invalid JSON.
   if (response.status === 204) return undefined as T;
   const text = await response.text();
   return (text ? JSON.parse(text) : undefined) as T;
@@ -101,18 +90,12 @@ export const api = {
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
 };
 
-/** Extracts the HTTP status from an Error thrown by request() above, so callers
- * can map known status codes (e.g. 401) to a specific human-readable message
- * instead of showing the raw "API error 401: <body>" text to the user. */
 export function getErrorStatus(error: unknown): number | null {
   if (!(error instanceof Error)) return null;
   const match = error.message.match(/^API error (\d+):/);
   return match ? Number(match[1]) : null;
 }
 
-/** The message to show the user for a failed request: the backend's own message
- * for 4xx responses (validation, bad input — written for users), otherwise the
- * caller's fallback. 5xx bodies are never shown, since they can carry internals. */
 export function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError && error.status >= 400 && error.status < 500 && error.backendMessage) {
     return error.backendMessage;

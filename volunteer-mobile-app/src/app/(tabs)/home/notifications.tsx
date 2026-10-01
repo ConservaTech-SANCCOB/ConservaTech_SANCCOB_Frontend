@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { AppNotification, getMyNotifications, markNotificationRead } from "../../../services/notifications";
 import { COLORS } from "../../../utils/colors";
+import { AboveBannerFill } from "../../../components/BannerOverscroll";
+import { formatTimestamp } from "../../../utils/dateBuckets";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 import { BannerBirds } from "../../../components/Wildlife";
@@ -60,6 +62,7 @@ export default function NotificationsScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <>
+            <AboveBannerFill color={COLORS.blueLight} />
             <LinearGradient
               colors={[COLORS.blueLight, COLORS.blueDark]}
               style={[styles.banner, { paddingTop: 16 + insets.top }]}
@@ -108,17 +111,23 @@ export default function NotificationsScreen() {
             <View style={styles.sheetTop} />
           </>
         }
-        renderItem={({ item }) => (
-          <View style={styles.rowWrap}>
-            <TouchableOpacity
-              style={[styles.notificationCard, !item.isRead && styles.notificationCardUnread]}
-              onPress={() => handlePress(item)}
-            >
-              {!item.isRead && <View style={styles.unreadDot} />}
-              <Text style={styles.message}>{item.message}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        renderItem={({ item }) => {
+          const timestamp = formatTimestamp(item.createdAt);
+          return (
+            <View style={styles.rowWrap}>
+              <TouchableOpacity
+                style={[styles.notificationCard, !item.isRead && styles.notificationCardUnread]}
+                onPress={() => handlePress(item)}
+              >
+                {!item.isRead && <View style={styles.unreadDot} />}
+                <View style={styles.body}>
+                  <Text style={styles.message}>{item.message}</Text>
+                  {timestamp && <Text style={styles.timestamp}>{timestamp}</Text>}
+                </View>
+              </TouchableOpacity>
+            </View>
+          );
+        }}
         ListEmptyComponent={
           <View style={[styles.rowWrap, styles.emptyWrap]}>
             {loadError ? (
@@ -210,5 +219,7 @@ const styles = StyleSheet.create({
   },
   notificationCardUnread: { borderLeftWidth: 3, borderLeftColor: COLORS.blueMid },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.blueMid, marginTop: 5 },
-  message: { flex: 1, fontSize: 14, fontWeight: "600", color: "#1b2a33" },
+  body: { flex: 1, gap: 4 },
+  message: { fontSize: 14, fontWeight: "600", color: "#1b2a33" },
+  timestamp: { fontSize: 12, fontWeight: "600", color: COLORS.grey },
 });

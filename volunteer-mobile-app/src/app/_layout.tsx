@@ -1,6 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -12,12 +12,15 @@ import { logError } from "../utils/logError";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+export { default as ErrorBoundary } from "../components/ErrorFallback";
+
 type SessionCheck = "checking" | "authenticated" | "unauthenticated";
 
 export default function RootLayout() {
   const router = useRouter();
   const [showCustomSplash, setShowCustomSplash] = useState(true);
   const [sessionCheck, setSessionCheck] = useState<SessionCheck>("checking");
+  const hideCustomSplash = useCallback(() => setShowCustomSplash(false), []);
 
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
@@ -28,8 +31,6 @@ export default function RootLayout() {
     (async () => {
       try {
         let token = await getToken();
-        // A trainer session left over from the PIN flow (app closed mid-session) must
-        // not be restored as a volunteer session — sign it out and start fresh.
         if (token && (await getSessionRole()) === "trainer") {
           await clearToken();
           token = null;
@@ -57,7 +58,7 @@ export default function RootLayout() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.white }}>
           <ActivityIndicator color={COLORS.blue} />
         </View>
-        {showCustomSplash && <AnimatedSplash onFinish={() => setShowCustomSplash(false)} />}
+        {showCustomSplash && <AnimatedSplash onFinish={hideCustomSplash} />}
         <Toast config={toastConfig} />
       </SafeAreaProvider>
     );
@@ -71,12 +72,13 @@ export default function RootLayout() {
         <Stack.Screen name="activate" />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="request-change" />
         <Stack.Screen name="trainer-pin" />
         <Stack.Screen name="trainer-select" />
         <Stack.Screen name="trainer-dashboard" />
         <Stack.Screen name="trainer-volunteer/[volunteerId]" />
       </Stack>
-      {showCustomSplash && <AnimatedSplash onFinish={() => setShowCustomSplash(false)} />}
+      {showCustomSplash && <AnimatedSplash onFinish={hideCustomSplash} />}
       <Toast config={toastConfig} />
     </SafeAreaProvider>
   );

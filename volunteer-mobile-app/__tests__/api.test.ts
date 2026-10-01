@@ -11,7 +11,7 @@ import {
   SessionExpiredError,
 } from "../src/utils/api";
 
-jest.mock("expo-router", () => ({ router: { replace: jest.fn() } }));
+jest.mock("expo-router", () => ({ router: { replace: jest.fn(), canDismiss: () => false, dismissAll: jest.fn() } }));
 
 function mockFetchResponse(status: number, body = "") {
   const fetchMock = jest.fn().mockResolvedValue({

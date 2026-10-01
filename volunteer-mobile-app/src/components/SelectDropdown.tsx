@@ -12,8 +12,6 @@ interface SelectDropdownProps {
   accessibilityLabel: string;
 }
 
-/** A closed set of choices styled like the app's pill text inputs. Tapping opens a
- * modal list, so only the given options can ever be picked. */
 export default function SelectDropdown({
   value,
   options,

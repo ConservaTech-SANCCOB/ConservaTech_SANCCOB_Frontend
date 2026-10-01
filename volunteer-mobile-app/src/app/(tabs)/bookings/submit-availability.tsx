@@ -1,15 +1,16 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRouter } from "expo-router";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../../../utils/colors";
+import { AboveBannerFill } from "../../../components/BannerOverscroll";
 import { getTabBarStyle } from "../../../constants/tabBar";
 import { TIME_SLOT_LABELS } from "../../../utils/timeSlot";
 import { getMyAvailability, updateMyAvailability, AvailabilitySlot, TimeBlock } from "../../../services/availability";
-import { getErrorMessage } from "../../../utils/api";
+import { getErrorMessage, SessionExpiredError } from "../../../utils/api";
 import { showErrorToast, showInfoToast } from "../../../utils/toast";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
@@ -38,29 +39,38 @@ export default function SubmitAvailabilityScreen() {
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    getMyAvailability()
-      .then((slots) => {
-        const keys = new Set(slots.map((s) => slotKey(s.dayOfWeek, s.timeSlot)));
-        DAYS.forEach((day) => mergeHalfDays(keys, day));
-        setSelected(keys);
-      })
-      .catch((error) => {
-        logError("Load availability error", error);
-        showErrorToast("Couldn't load availability", "Starting from a blank grid instead.");
-      })
-      .finally(() => setLoading(false));
+  const loadAvailability = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const slots = await getMyAvailability();
+      const keys = new Set(slots.map((s) => slotKey(s.dayOfWeek, s.timeSlot)));
+      DAYS.forEach((day) => mergeHalfDays(keys, day));
+      setSelected(keys);
+    } catch (error) {
+      logError("Load availability error", error);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    const parent = navigation.getParent();
-    parent?.setOptions({ tabBarStyle: { display: "none" } });
-    return () => {
-      parent?.setOptions({ tabBarStyle: getTabBarStyle(insets.bottom) });
-    };
-  }, [navigation, insets.bottom]);
+    loadAvailability();
+  }, [loadAvailability]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const parent = navigation.getParent();
+      parent?.setOptions({ tabBarStyle: { display: "none" } });
+      return () => {
+        parent?.setOptions({ tabBarStyle: getTabBarStyle(insets.bottom) });
+      };
+    }, [navigation, insets.bottom])
+  );
 
   const toggle = (day: string, slot: TimeBlock) => {
     const next = new Set(selected);
@@ -97,6 +107,7 @@ export default function SubmitAvailabilityScreen() {
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (error) {
+      if (error instanceof SessionExpiredError) return;
       logError("Save availability error", error);
       showErrorToast("Couldn't save", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     } finally {
@@ -105,6 +116,7 @@ export default function SubmitAvailabilityScreen() {
   };
 
   const handleSave = () => {
+    if (loading || loadError) return;
     if (selected.size === 0) {
       Alert.alert(
         "No availability selected",
@@ -130,6 +142,7 @@ export default function SubmitAvailabilityScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+        <AboveBannerFill color={COLORS.pastelYellowLight} />
         <LinearGradient
           colors={[COLORS.pastelYellowLight, COLORS.pastelYellowDeep]}
           style={[styles.banner, { paddingTop: 16 + insets.top }]}
@@ -177,76 +190,99 @@ export default function SubmitAvailabilityScreen() {
         </LinearGradient>
 
         <View style={styles.sheet}>
-          <View style={styles.infoBannerWrap}>
-            <View style={styles.infoBanner}>
-              <Ionicons name="information-circle-outline" size={20} color={COLORS.amberMid} />
-              <Text style={styles.infoText}>
-                Your availability and completed skills drive automatic shift assignment. You can also book an open shift directly from the Available Shifts tab.
+          {loadError ? (
+            <View style={styles.loadErrorState}>
+              <Ionicons name="warning-outline" size={26} color={COLORS.grey} />
+              <Text style={styles.loadErrorText}>
+                Couldn&apos;t load your availability. Check your connection and try again.
               </Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={loadAvailability}
+                accessibilityRole="button"
+                accessibilityLabel="Try again"
+              >
+                <Text style={styles.retryButtonText}>Try again</Text>
+              </TouchableOpacity>
             </View>
-            <Svg width={18} height={10} viewBox="0 0 18 10" style={styles.infoBannerTail}>
-              <Path d="M0,0 L18,0 L18,10 Z" fill={COLORS.pastelYellowBg} />
-            </Svg>
-          </View>
-
-          <View style={styles.gridHeaderRow}>
-            <View style={styles.dayLabelSpacer} />
-            {SLOTS.map((slot) => (
-              <View key={slot} style={styles.colHead}>
-                <Text style={styles.colHeadLabel}>{TIME_SLOT_LABELS[slot]}</Text>
-                <Text style={styles.colHeadTime}>{slot}</Text>
+          ) : (
+            <>
+              <View style={styles.infoBannerWrap}>
+                <View style={styles.infoBanner}>
+                  <Ionicons name="information-circle-outline" size={20} color={COLORS.amberMid} />
+                  <Text style={styles.infoText}>
+                    Your availability and completed skills drive automatic shift assignment. You can also book an open shift directly from the Available Shifts tab.
+                  </Text>
+                </View>
+                <Svg width={18} height={10} viewBox="0 0 18 10" style={styles.infoBannerTail}>
+                  <Path d="M0,0 L18,0 L18,10 Z" fill={COLORS.pastelYellowBg} />
+                </Svg>
               </View>
-            ))}
-          </View>
 
-          {DAYS.map((day, dayIndex) => (
-            <View key={day} style={[styles.dayRow, dayIndex < DAYS.length - 1 && styles.dayRowDivider]}>
-              <Text style={styles.dayLabel}>{day.slice(0, 3)}</Text>
-              {SLOTS.map((slot) => {
-                const active = selected.has(slotKey(day, slot));
-                return (
-                  <TouchableOpacity
-                    key={slot}
-                    style={[styles.cell, active && styles.cellActive]}
-                    onPress={() => toggle(day, slot)}
-                    activeOpacity={0.7}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={`${day} ${TIME_SLOT_LABELS[slot]}`}
-                  >
-                    {active && <Ionicons name="checkmark" size={18} color={COLORS.pastelInk} />}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ))}
+              <View style={styles.gridHeaderRow}>
+                <View style={styles.dayLabelSpacer} />
+                {SLOTS.map((slot) => (
+                  <View key={slot} style={styles.colHead}>
+                    <Text style={styles.colHeadLabel}>{TIME_SLOT_LABELS[slot]}</Text>
+                    <Text style={styles.colHeadTime}>{slot}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {DAYS.map((day, dayIndex) => (
+                <View key={day} style={[styles.dayRow, dayIndex < DAYS.length - 1 && styles.dayRowDivider]}>
+                  <Text style={styles.dayLabel}>{day.slice(0, 3)}</Text>
+                  {SLOTS.map((slot) => {
+                    const active = selected.has(slotKey(day, slot));
+                    return (
+                      <TouchableOpacity
+                        key={slot}
+                        style={[styles.cell, active && styles.cellActive]}
+                        onPress={() => toggle(day, slot)}
+                        activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                        accessibilityLabel={`${day} ${TIME_SLOT_LABELS[slot]}`}
+                      >
+                        {active && <Ionicons name="checkmark" size={18} color={COLORS.pastelInk} />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ))}
+            </>
+          )}
         </View>
       </ScrollView>
 
-      <LinearGradient
-        colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.95)"]}
-        style={styles.bottomScrim}
-        pointerEvents="none"
-      />
+      {!loadError && (
+        <>
+          <LinearGradient
+            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.95)"]}
+            style={styles.bottomScrim}
+            pointerEvents="none"
+          />
 
-      <TouchableOpacity
-        style={[styles.bottomBarButtonWrap, { bottom: 12 + insets.bottom }]}
-        onPress={handleSave}
-        disabled={saving}
-        activeOpacity={0.85}
-      >
-        <View style={styles.bottomBarButton}>
-          {saving ? (
-            <ActivityIndicator size="small" color={COLORS.pastelInk} />
-          ) : (
-            <Text style={styles.bottomBarButtonText}>
-              {selected.size > 0
-                ? `Submit ${selected.size} block${selected.size === 1 ? "" : "s"}`
-                : "Submit Availability"}
-            </Text>
-          )}
-        </View>
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.bottomBarButtonWrap, { bottom: 12 + insets.bottom }]}
+            onPress={handleSave}
+            disabled={saving}
+            activeOpacity={0.85}
+          >
+            <View style={styles.bottomBarButton}>
+              {saving ? (
+                <ActivityIndicator size="small" color={COLORS.pastelInk} />
+              ) : (
+                <Text style={styles.bottomBarButtonText}>
+                  {selected.size > 0
+                    ? `Submit ${selected.size} block${selected.size === 1 ? "" : "s"}`
+                    : "Submit Availability"}
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
@@ -385,5 +421,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.pastelYellowBorder,
   },
+  loadErrorState: { alignItems: "center", paddingVertical: 24, gap: 8 },
+  loadErrorText: { fontSize: 13, color: COLORS.grey, textAlign: "center" },
+  retryButton: {
+    marginTop: 14,
+    alignSelf: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 26,
+    borderRadius: 30,
+    backgroundColor: COLORS.pastelYellowDeep,
+  },
+  retryButtonText: { color: COLORS.pastelInk, fontWeight: "600", fontSize: 15 },
   bottomBarButtonText: { color: COLORS.pastelInk, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
 });

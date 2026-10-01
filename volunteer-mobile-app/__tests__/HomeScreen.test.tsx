@@ -20,7 +20,6 @@ jest.mock("../src/services/profile");
 
 const mockedGetMyShifts = jest.mocked(getMyShifts);
 
-// Fixed "now": Friday 25 Sept 2026, 12:00 local. advanceTimers keeps animations running.
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date(2026, 8, 25, 12, 0, 0), advanceTimers: true });
   jest.clearAllMocks();
@@ -87,8 +86,8 @@ describe("Home — this week's shifts", () => {
   it("only shows the notification badge when something is unread", async () => {
     mockedGetMyShifts.mockResolvedValue([]);
     jest.mocked(getMyNotifications).mockResolvedValue([
-      { notificationId: 1, message: "Shift assigned", type: "Assignment", isRead: false },
-      { notificationId: 2, message: "Reminder", type: "Reminder", isRead: true },
+      { notificationId: 1, message: "Shift assigned", type: "Assignment", isRead: false, createdAt: "2026-09-25T08:00:00Z" },
+      { notificationId: 2, message: "Reminder", type: "Reminder", isRead: true, createdAt: "2026-09-24T08:00:00Z" },
     ]);
 
     await render(<HomeScreen />);

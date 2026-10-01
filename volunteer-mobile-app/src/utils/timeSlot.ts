@@ -31,8 +31,6 @@ export function hasShiftEnded(shiftDate: string, timeSlot: string): boolean {
   return end.getTime() <= Date.now();
 }
 
-/** Soonest first: by date, then by the time slot's start (so a morning shift sorts
- * above an afternoon one on the same day). */
 export function compareShiftsByStart(
   a: { shiftDate: string; timeSlot: string | null },
   b: { shiftDate: string; timeSlot: string | null }

@@ -1,25 +1,24 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import KeyboardAvoidingScreen from "../../../components/KeyboardAvoidingScreen";
-import { DateBadge } from "../../../components/ShiftCardParts";
-import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
-import { getTabBarStyle } from "../../../constants/tabBar";
-import { submitChangeRequest } from "../../../services/changeRequests";
-import { getErrorMessage } from "../../../utils/api";
-import { COLORS } from "../../../utils/colors";
-import { getRelativeLabel } from "../../../utils/dateBuckets";
-import { logError } from "../../../utils/logError";
-import { formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
-import { showErrorToast } from "../../../utils/toast";
+import { AboveBannerFill } from "../components/BannerOverscroll";
+import KeyboardAvoidingScreen from "../components/KeyboardAvoidingScreen";
+import { DateBadge } from "../components/ShiftCardParts";
+import { SHEET_TOP_SHADOW } from "../constants/glassCard";
+import { submitChangeRequest } from "../services/changeRequests";
+import { getErrorMessage, SessionExpiredError } from "../utils/api";
+import { COLORS } from "../utils/colors";
+import { getRelativeLabel } from "../utils/dateBuckets";
+import { logError } from "../utils/logError";
+import { formatTimeSlotLabel, hasShiftEnded } from "../utils/timeSlot";
+import { showErrorToast } from "../utils/toast";
 
 export default function RequestChangeScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     bookingId?: string;
@@ -34,16 +33,6 @@ export default function RequestChangeScreen() {
   const rosterAssignmentId = params.bookingId ? Number(params.bookingId) : NaN;
   const hasShift = Boolean(params.bookingId) && Number.isFinite(rosterAssignmentId) && Boolean(params.shiftDate);
   const ended = hasShift && hasShiftEnded(params.shiftDate as string, params.timeSlot ?? "");
-
-  // Same as Submit Availability: the floating tab bar would otherwise sit over the
-  // bottom of the form (and the submit button while the keyboard is open).
-  useEffect(() => {
-    const parent = navigation.getParent();
-    parent?.setOptions({ tabBarStyle: { display: "none" } });
-    return () => {
-      parent?.setOptions({ tabBarStyle: getTabBarStyle(insets.bottom) });
-    };
-  }, [navigation, insets.bottom]);
 
   const handleSubmit = async () => {
     if (!reason.trim()) {
@@ -60,6 +49,7 @@ export default function RequestChangeScreen() {
         [{ text: "OK", onPress: () => router.back() }]
       );
     } catch (error) {
+      if (error instanceof SessionExpiredError) return;
       logError("Request change error", error);
       showErrorToast("Couldn't submit", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     } finally {
@@ -74,6 +64,7 @@ export default function RequestChangeScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <AboveBannerFill color={COLORS.redLight} />
         <LinearGradient
           colors={[COLORS.redLight, COLORS.redDark]}
           style={[styles.banner, { paddingTop: 16 + insets.top }]}
@@ -189,7 +180,7 @@ export default function RequestChangeScreen() {
                   {submitting ? (
                     <ActivityIndicator size="small" color={COLORS.white} />
                   ) : (
-                    <Text style={styles.submitButtonText}>Cancel</Text>
+                    <Text style={styles.submitButtonText}>Submit request</Text>
                   )}
                 </View>
               </TouchableOpacity>

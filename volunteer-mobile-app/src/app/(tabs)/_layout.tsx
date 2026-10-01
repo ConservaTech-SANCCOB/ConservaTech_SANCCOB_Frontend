@@ -8,7 +8,6 @@ import { getTabBarStyle } from "../../constants/tabBar";
 
 const ACTIVE_COLOR = COLORS.blue;
 const INACTIVE_COLOR = COLORS.navy;
-// Tabs whose screens have their own accent colour; the rest fall back to ACTIVE_COLOR.
 const TAB_ACCENTS: Record<string, string> = {
   progress: COLORS.green,
   bookings: COLORS.amberMid,
@@ -48,10 +47,14 @@ function TabIcon({
 }
 
 function TabButton({
+  label,
+  focused,
   onPress,
   onLayout,
   children,
 }: {
+  label: string;
+  focused: boolean;
   onPress: () => void;
   onLayout: (event: LayoutChangeEvent) => void;
   children: React.ReactNode;
@@ -66,7 +69,16 @@ function TabButton({
   };
 
   return (
-    <Pressable style={styles.tabButton} onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} onLayout={onLayout}>
+    <Pressable
+      style={styles.tabButton}
+      onPress={onPress}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+      onLayout={onLayout}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: focused }}
+    >
       <Animated.View style={[styles.tabButtonInner, { transform: [{ scale }] }]}>{children}</Animated.View>
     </Pressable>
   );
@@ -145,7 +157,13 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         };
 
         return (
-          <TabButton key={route.key} onPress={onPress} onLayout={(e) => handleButtonLayout(index, e)}>
+          <TabButton
+            key={route.key}
+            label={options.title ?? route.name}
+            focused={focused}
+            onPress={onPress}
+            onLayout={(e) => handleButtonLayout(index, e)}
+          >
             {options.tabBarIcon?.({ focused, color, size: 20 })}
           </TabButton>
         );
@@ -164,7 +182,11 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="home"
-        options={{ title: "Home", tabBarIcon: ({ color, size, focused }) => <TabIcon name="home" color={color} size={size} focused={focused} /> }}
+        options={{
+          title: "Home",
+          popToTopOnBlur: true,
+          tabBarIcon: ({ color, size, focused }) => <TabIcon name="home" color={color} size={size} focused={focused} />,
+        }}
       />
       <Tabs.Screen
         name="bookings"
@@ -180,7 +202,11 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="progress"
-        options={{ title: "Training", tabBarIcon: ({ color, size, focused }) => <TabIcon name="school" color={color} size={size} focused={focused} /> }}
+        options={{
+          title: "Training",
+          popToTopOnBlur: true,
+          tabBarIcon: ({ color, size, focused }) => <TabIcon name="school" color={color} size={size} focused={focused} />,
+        }}
       />
       <Tabs.Screen
         name="profile"

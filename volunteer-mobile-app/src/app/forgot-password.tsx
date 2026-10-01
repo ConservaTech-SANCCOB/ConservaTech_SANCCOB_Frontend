@@ -9,6 +9,7 @@ import { forgotPassword, resetPassword } from "../services/auth";
 import { getErrorMessage, getErrorStatus } from "../utils/api";
 import { showErrorToast } from "../utils/toast";
 import { logError } from "../utils/logError";
+import { resetTo } from "../utils/navigation";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -20,13 +21,13 @@ export default function ForgotPasswordScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleRequestCode = async () => {
-    if (!email) {
+    if (!email.trim()) {
       Alert.alert("Email required", "Enter your email address.");
       return;
     }
     setLoading(true);
     try {
-      await forgotPassword(email);
+      await forgotPassword(email.trim());
       Alert.alert("Check your email", "If an account exists with this email, a reset code has been sent.", [
         { text: "OK", onPress: () => setStep("reset") },
       ]);
@@ -45,8 +46,8 @@ export default function ForgotPasswordScreen() {
     }
     setLoading(true);
     try {
-      await resetPassword(email, resetCode, newPassword);
-      router.replace("/(tabs)/home");
+      await resetPassword(email.trim(), resetCode, newPassword);
+      resetTo("/(tabs)/home");
     } catch (error) {
       logError("Reset password error", error);
       const status = getErrorStatus(error);

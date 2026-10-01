@@ -21,6 +21,7 @@ import { login } from "../services/auth";
 import { getErrorMessage, getErrorStatus } from "../utils/api";
 import { COLORS } from "../utils/colors";
 import { logError } from "../utils/logError";
+import { resetTo } from "../utils/navigation";
 import { showErrorToast } from "../utils/toast";
 
 export default function LoginScreen() {
@@ -31,14 +32,14 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       Alert.alert("Missing details", "Enter your email and password.");
       return;
     }
     setLoading(true);
     try {
-      await login(email, password);
-      router.replace("/(tabs)/home");
+      await login(email.trim(), password);
+      resetTo("/(tabs)/home");
     } catch (error) {
       logError("Login error", error);
       const status = getErrorStatus(error);
@@ -78,7 +79,6 @@ export default function LoginScreen() {
             style={StyleSheet.absoluteFill}
           />
 
-          {/* Stylized sweeping waves */}
           <Svg
             style={StyleSheet.absoluteFill}
             viewBox="0 0 400 380"
@@ -197,7 +197,7 @@ export default function LoginScreen() {
             <TouchableOpacity onPress={() => router.push("/forgot-password")}>
               <Text style={styles.helperText}>Forgot your password?</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.replace("/")}>
+            <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}>
               <Text style={styles.helperText}>Back to options</Text>
             </TouchableOpacity>
           </View>

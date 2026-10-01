@@ -12,11 +12,14 @@ import { getMyNotifications } from "../../../services/notifications";
 import { getMyProfile } from "../../../services/profile";
 import { getMyShifts, MyShift } from "../../../services/shifts";
 import { COLORS } from "../../../utils/colors";
+import { AboveBannerFill, BelowContentFill, refreshableBannerScrollStyles } from "../../../components/BannerOverscroll";
 import { bucketForDate, getRelativeLabel } from "../../../utils/dateBuckets";
 import { logError } from "../../../utils/logError";
 import { compareShiftsByStart, formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 import { BannerBirds, BannerPenguin, EmptyStatePenguin } from "../../../components/Wildlife";
+
+const BANNER_SCROLL = refreshableBannerScrollStyles(COLORS.blueLight);
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -39,14 +42,12 @@ export default function HomeScreen() {
 
   const initials = (`${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "SV");
 
-  // Only shifts still ahead: a shift earlier today that has already finished isn't "upcoming".
   const futureShifts = shifts.filter((s) => !hasShiftEnded(s.shiftDate, s.timeSlot)).sort(compareShiftsByStart);
   const thisWeeksShifts = futureShifts.filter((s) => {
     const bucket = bucketForDate(s.shiftDate);
     return bucket === "Today" || bucket === "This Week";
   });
   const upcoming = thisWeeksShifts.slice(0, 2);
-  // Nothing this week doesn't mean nothing at all — point to the next one if there is one.
   const nextLaterShift = futureShifts.find((s) => bucketForDate(s.shiftDate) === "Later");
 
   const loadUnreadCount = useCallback(async () => {
@@ -73,7 +74,6 @@ export default function HomeScreen() {
     try {
       const [myShifts, pending] = await Promise.all([
         getMyShifts(),
-        // A failure here must not break the shifts list — keep the last known pending set.
         getPendingCancellationIds().catch((error) => {
           logError("Load pending cancellations error", error);
           return null;
@@ -116,12 +116,19 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 150 }}
+        style={BANNER_SCROLL.scroll}
+        contentContainerStyle={[{ paddingBottom: 150 }, BANNER_SCROLL.content]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.blueMid} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.white}
+            colors={[COLORS.blueMid]}
+          />
         }
       >
+        <AboveBannerFill />
         <LinearGradient
           colors={[COLORS.blueLight, COLORS.blueDark]}
           style={[styles.banner, { paddingTop: 16 + insets.top }]}
@@ -168,7 +175,7 @@ export default function HomeScreen() {
 
           <View style={styles.titleGroup}>
             <Text style={styles.greeting}>{getGreeting()}</Text>
-            <Text style={styles.title}>{firstName || "Your Name"}</Text>
+            {!!firstName && <Text style={styles.title}>{firstName}</Text>}
             <Text style={styles.tagline}>Here&apos;s what your week looks like</Text>
           </View>
 
@@ -248,6 +255,7 @@ export default function HomeScreen() {
           <Text style={[styles.sectionChipText, styles.spotlightHeading]}>MEET THE SEABIRDS</Text>
           <SeabirdSpotlight />
         </View>
+        <BelowContentFill />
       </ScrollView>
     </View>
   );

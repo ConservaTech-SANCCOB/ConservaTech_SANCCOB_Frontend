@@ -10,6 +10,7 @@ import { activate } from "../services/auth";
 import { getErrorMessage, getErrorStatus } from "../utils/api";
 import { showErrorToast } from "../utils/toast";
 import { logError } from "../utils/logError";
+import { resetTo } from "../utils/navigation";
 
 export default function ActivateScreen() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function ActivateScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleActivate = async () => {
-    if (!email || !otp || !newPassword) {
+    if (!email.trim() || !otp || !newPassword) {
       Alert.alert("Missing details", "Fill in your email, PIN, and a new password.");
       return;
     }
@@ -30,8 +31,8 @@ export default function ActivateScreen() {
     }
     setLoading(true);
     try {
-      await activate(email, otp, newPassword);
-      router.replace("/(tabs)/home");
+      await activate(email.trim(), otp, newPassword);
+      resetTo("/(tabs)/home");
     } catch (error) {
       logError("Activation error", error);
       const status = getErrorStatus(error);
@@ -52,7 +53,6 @@ export default function ActivateScreen() {
             style={StyleSheet.absoluteFill}
           />
 
-          {/* Stylized sweeping waves */}
           <Svg style={StyleSheet.absoluteFill} viewBox="0 0 400 380" preserveAspectRatio="none" pointerEvents="none">
             <Path d="M-20,40 C60,15 120,55 200,35 C280,15 340,45 420,25 L420,380 L-20,380 Z" fill="#ffffff" opacity={0.03} />
             <Path d="M-20,85 C70,110 140,70 220,90 C300,110 350,80 420,95 L420,380 L-20,380 Z" fill="#7dd3fc" opacity={0.04} />

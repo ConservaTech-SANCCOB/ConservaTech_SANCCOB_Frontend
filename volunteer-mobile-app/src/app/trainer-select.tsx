@@ -18,6 +18,7 @@ import { getErrorMessage } from "../utils/api";
 import { COLORS } from "../utils/colors";
 import { showErrorToast } from "../utils/toast";
 import { logError } from "../utils/logError";
+import { useTrainerSignOut } from "../utils/useTrainerSignOut";
 
 function initialsFor(trainer: Trainer) {
   return `${trainer.firstName?.[0] ?? ""}${trainer.lastName?.[0] ?? ""}`.toUpperCase();
@@ -30,6 +31,8 @@ export default function TrainerSelectScreen() {
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const selectionInProgress = useRef(false);
+  useTrainerSignOut({ confirmOnBack: false });
 
   useEffect(() => {
     Animated.parallel([
@@ -57,6 +60,8 @@ export default function TrainerSelectScreen() {
   }, []);
 
   const handleSelect = async (trainer: Trainer) => {
+    if (selectionInProgress.current) return;
+    selectionInProgress.current = true;
     try {
       await selectTrainer(trainer.trainerId);
       router.push({
@@ -70,6 +75,8 @@ export default function TrainerSelectScreen() {
     } catch (error) {
       logError("Select trainer error", error);
       showErrorToast("Couldn't continue", getErrorMessage(error, "Something went wrong. Try again in a moment."));
+    } finally {
+      selectionInProgress.current = false;
     }
   };
 
