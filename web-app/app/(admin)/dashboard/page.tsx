@@ -13,6 +13,7 @@ import {
   Cell,
 } from "recharts";
 import { useAuth } from "../../lib/auth-context";
+import { getFirstName } from "../../lib/user-display";
 import { isUnauthorized } from "../../lib/api/http";
 import {
   ConservationStats,
@@ -94,7 +95,7 @@ function peopleLabel(names: string[] | null) {
 }
 
 export default function DashboardPage() {
-  const { token, logout } = useAuth();
+  const { token, logout, user } = useAuth();
   const [ageYear, setAgeYear] = useState(CURRENT_YEAR);
   const [conservationYear, setConservationYear] = useState(CURRENT_YEAR);
 
@@ -187,7 +188,7 @@ export default function DashboardPage() {
   return (
     <div className="bg-slate-100/80 p-6 min-h-screen rounded-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Welcome back, Cathy </h1>
+        <h1 className="text-2xl font-bold text-slate-900">Welcome back,{getFirstName(user)} </h1>
         <p className="text-slate-500 mt-1">
           Here&apos;s what&apos;s happening at SANCCOB today.
         </p>

@@ -15,6 +15,7 @@ import {
   Trainer,
 } from "../../lib/api/training_staff";
 import { isUnauthorized } from "../../lib/api/http";
+import { ModalOverlay } from "@/components/shifts/ShiftFormModal";
 
 type Tab = "progress" | "trainers";
 type TrainerStatus = "Active" | "Inactive";
@@ -381,68 +382,103 @@ export default function TrainingStaffPage() {
         <TrainingHistoryModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
       )}
 
-      {/* Create Trainer modal */}
+     {/* Create Trainer modal */}
       {showCreateTrainer && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">Create Trainer</h2>
-            {createTrainerError && (
-              <div className="mb-3 p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-600">
-                {createTrainerError}
-              </div>
-            )}
-            <form onSubmit={handleCreateTrainer} className="space-y-3">
+        <ModalOverlay onClose={() => setShowCreateTrainer(false)}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-bold text-black">Create Trainer</h2>
+            <button
+              type="button"
+              onClick={() => setShowCreateTrainer(false)}
+              className="text-slate-500 hover:text-slate-700"
+            >
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleCreateTrainer} className="space-y-4">
+            {/* First & Last name */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">First name</label>
+                <label
+                  htmlFor="trainer-first-name"
+                  className="block text-xs font-semibold text-black mb-1.5"
+                >
+                  First name
+                </label>
                 <input
+                  id="trainer-first-name"
+                  name="firstName"
                   required
                   value={trainerFirstName}
                   onChange={(e) => setTrainerFirstName(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Last name</label>
+                <label
+                  htmlFor="trainer-last-name"
+                  className="block text-xs font-semibold text-black mb-1.5"
+                >
+                  Last name
+                </label>
                 <input
+                  id="trainer-last-name"
+                  name="lastName"
                   required
                   value={trainerLastName}
                   onChange={(e) => setTrainerLastName(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Contact details</label>
-                <input
-                  value={trainerContact}
-                  onChange={(e) => setTrainerContact(e.target.value)}
-                  placeholder="Phone number or email"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-400"
-                />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateTrainer(false)}
-                  className="flex-1 rounded-lg border border-slate-200 py-2 text-sm font-semibold text-slate-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingTrainer}
-                  className="flex-1 rounded-lg bg-blue-900 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                >
-                  {isSavingTrainer ? "Saving..." : "Create"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <label
+                htmlFor="trainer-contact"
+                className="block text-xs font-semibold text-black mb-1.5"
+              >
+                Contact details
+              </label>
+              <input
+                id="trainer-contact"
+                name="contact"
+                value={trainerContact}
+                onChange={(e) => setTrainerContact(e.target.value)}
+                placeholder="Phone number or email"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+              />
+            </div>
+
+            {createTrainerError && (
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {createTrainerError}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCreateTrainer(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingTrainer}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-60"
+              >
+                {isSavingTrainer ? "Saving..." : "Create"}
+              </button>
+            </div>
+          </form>
+        </ModalOverlay>
       )}
     </div>
   );
 }
-
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub: string }) {
   return (
     <div className="rounded-2xl bg-white border border-slate-100 p-5">

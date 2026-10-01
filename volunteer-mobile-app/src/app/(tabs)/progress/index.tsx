@@ -32,6 +32,31 @@ function signOffDetail(skill: Skill): string {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
+type SectionTheme = {
+  /** Nodes, track, bar fill and the icon bubble. */
+  main: string;
+  /** Bar fill once every skill in the section is done. */
+  complete: string;
+  /** Section title and completed skill names. */
+  dark: string;
+  /** Panel background behind the section. */
+  soft: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
+
+/** Each training section gets its own colour so the three read as distinct stages. */
+const SECTION_THEMES = {
+  supporting: {
+    main: COLORS.greenMid,
+    complete: COLORS.green,
+    dark: COLORS.greenLight,
+    soft: "#f0f8ec",
+    icon: "layers-outline",
+  },
+  pen: { main: "#1f7fb8", complete: "#2aa3e0", dark: COLORS.blueMid, soft: "#ebf5fb", icon: "water-outline" },
+  seasonal: { main: COLORS.pinkMid, complete: "#d6408a", dark: COLORS.pinkLight, soft: "#fcf0f5", icon: "leaf-outline" },
+} satisfies Record<string, SectionTheme>;
+
 /**
  * Penguin-themed levels for overall progress, from egg to fully fledged: a light
  * nod to the chicks SANCCOB hand-rears, and a friendlier read than a bare number.
@@ -133,7 +158,17 @@ function StagePill({ percent }: { percent: number }) {
   );
 }
 
-function SectionProgressBar({ done, total, locked }: { done: number; total: number; locked?: boolean }) {
+function SectionProgressBar({
+  done,
+  total,
+  locked,
+  theme,
+}: {
+  done: number;
+  total: number;
+  locked?: boolean;
+  theme: SectionTheme;
+}) {
   const fill = useRef(new Animated.Value(0)).current;
   const ratio = total > 0 ? done / total : 0;
 
@@ -153,8 +188,8 @@ function SectionProgressBar({ done, total, locked }: { done: number; total: numb
       <Animated.View
         style={[
           styles.barFill,
+          { backgroundColor: ratio === 1 ? theme.complete : theme.main },
           locked && styles.barFillLocked,
-          ratio === 1 && styles.barFillComplete,
           { width: fill.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) },
         ]}
       />
@@ -184,23 +219,33 @@ function SectionHeader({
   locked,
   done,
   total,
+  theme,
 }: {
   title: string;
   subtitle: string;
   locked?: boolean;
   done: number;
   total: number;
+  theme: SectionTheme;
 }) {
   const complete = !locked && total > 0 && done === total;
   return (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionTitleRow}>
-        {locked && <Ionicons name="lock-closed" size={14} color="#8a938b" />}
-        <Text style={[styles.sectionTitle, locked && styles.sectionTitleLocked]}>{title}</Text>
-        {complete && <CompleteBadge />}
+        <View style={[styles.sectionIcon, { backgroundColor: locked ? "#c3cac1" : theme.main }]}>
+          <Ionicons name={locked ? "lock-closed" : theme.icon} size={15} color={COLORS.white} />
+        </View>
+        <View style={styles.sectionTitleText}>
+          <View style={styles.sectionTitleLine}>
+            <Text style={[styles.sectionTitle, { color: theme.dark }, locked && styles.sectionTitleLocked]}>{title}</Text>
+            {complete && <CompleteBadge />}
+          </View>
+          <Text style={[styles.sectionSubtitle, { color: theme.main }, locked && styles.sectionSubtitleLocked]}>
+            {subtitle}
+          </Text>
+        </View>
       </View>
-      <Text style={[styles.sectionSubtitle, locked && styles.sectionSubtitleLocked]}>{subtitle}</Text>
-      {total > 0 && <SectionProgressBar done={done} total={total} locked={locked} />}
+      {total > 0 && <SectionProgressBar done={done} total={total} locked={locked} theme={theme} />}
     </View>
   );
 }
@@ -210,11 +255,13 @@ function SkillRow({
   index,
   skills,
   locked,
+  theme,
 }: {
   skill: Skill;
   index: number;
   skills: Skill[];
   locked?: boolean;
+  theme: SectionTheme;
 }) {
   const isFirst = index === 0;
   const isLast = index === skills.length - 1;
@@ -266,10 +313,12 @@ function SkillRow({
       >
         <View style={styles.pathTrack}>
           {!isFirst && (
-            <View style={[styles.trackSeg, styles.trackSegTop, skills[index - 1].completed && styles.trackSegDone]} />
+            <View
+              style={[styles.trackSeg, styles.trackSegTop, skills[index - 1].completed && { backgroundColor: theme.main }]}
+            />
           )}
           {!isLast && (
-            <View style={[styles.trackSeg, styles.trackSegBottom, skill.completed && styles.trackSegDone]} />
+            <View style={[styles.trackSeg, styles.trackSegBottom, skill.completed && { backgroundColor: theme.main }]} />
           )}
 
           {isCurrent && (
@@ -277,6 +326,7 @@ function SkillRow({
               style={[
                 styles.nodeHalo,
                 {
+                  backgroundColor: theme.main,
                   opacity: halo.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] }),
                   transform: [{ scale: halo.interpolate({ inputRange: [0, 1], outputRange: [1, 1.8] }) }],
                 },
@@ -286,15 +336,15 @@ function SkillRow({
           <Animated.View
             style={[
               styles.node,
-              skill.completed && styles.nodeDone,
-              isCurrent && styles.nodeCurrent,
+              skill.completed && { backgroundColor: theme.main, borderColor: theme.main },
+              isCurrent && [styles.nodeCurrent, { borderColor: theme.main }],
               { transform: [{ scale: nodePop }] },
             ]}
           >
             {skill.completed ? (
               <Ionicons name="checkmark" size={15} color={COLORS.white} />
             ) : isCurrent ? (
-              <View style={styles.nodeDot} />
+              <View style={[styles.nodeDot, { backgroundColor: theme.main }]} />
             ) : locked ? (
               <Ionicons name="lock-closed" size={11} color="#b5bdb3" />
             ) : null}
@@ -304,14 +354,14 @@ function SkillRow({
         <View style={styles.pathBody}>
           <View style={styles.skillNameWrap}>
             <Text
-              style={[styles.pathName, skill.completed && styles.pathNameDone, isCurrent && styles.pathNameCurrent]}
+              style={[styles.pathName, skill.completed && { color: theme.dark }, isCurrent && styles.pathNameCurrent]}
               numberOfLines={1}
             >
               {skill.name}
             </Text>
           </View>
           {skill.completed && <Text style={styles.pathStatusDone}>Completed</Text>}
-          {isCurrent && <Text style={styles.pathStatusNext}>Up next</Text>}
+          {isCurrent && <Text style={[styles.pathStatusNext, { color: theme.main }]}>Up next</Text>}
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -449,9 +499,10 @@ export default function TrainingScreen() {
               </View>
             ) : (
               <>
-                <View style={styles.sectionBlock}>
+                <View style={[styles.sectionBlock, { backgroundColor: SECTION_THEMES.supporting.soft }]}>
                   <SectionHeader
                     title="Supporting Areas"
+                    theme={SECTION_THEMES.supporting}
                     subtitle="Must be completed before moving to Pen Routines"
                     done={supportingCompletedCount}
                     total={supportingAreas.length}
@@ -459,7 +510,7 @@ export default function TrainingScreen() {
                   {supportingAreas.length > 0 ? (
                     <View style={styles.skillList}>
                       {supportingAreas.map((skill, i) => (
-                        <SkillRow key={skill.id} skill={skill} index={i} skills={supportingAreas} />
+                        <SkillRow key={skill.id} skill={skill} index={i} skills={supportingAreas} theme={SECTION_THEMES.supporting} />
                       ))}
                     </View>
                   ) : (
@@ -467,9 +518,10 @@ export default function TrainingScreen() {
                   )}
                 </View>
 
-                <View style={styles.sectionBlock}>
+                <View style={[styles.sectionBlock, { backgroundColor: penLocked ? "#f4f5f4" : SECTION_THEMES.pen.soft }]}>
                   <SectionHeader
                     title="Pen Routines"
+                    theme={SECTION_THEMES.pen}
                     subtitle={
                       penLocked
                         ? "Complete Supporting Areas to unlock these skills"
@@ -482,7 +534,14 @@ export default function TrainingScreen() {
                   {penRoutines.length > 0 ? (
                     <View style={styles.skillList}>
                       {penRoutines.map((skill, i) => (
-                        <SkillRow key={skill.id} skill={skill} index={i} skills={penRoutines} locked={penLocked} />
+                        <SkillRow
+                          key={skill.id}
+                          skill={skill}
+                          index={i}
+                          skills={penRoutines}
+                          locked={penLocked}
+                          theme={SECTION_THEMES.pen}
+                        />
                       ))}
                     </View>
                   ) : (
@@ -490,9 +549,10 @@ export default function TrainingScreen() {
                   )}
                 </View>
 
-                <View style={styles.sectionBlock}>
+                <View style={[styles.sectionBlock, { backgroundColor: SECTION_THEMES.seasonal.soft }]}>
                   <SectionHeader
                     title="Seasonal Skills"
+                    theme={SECTION_THEMES.seasonal}
                     subtitle={`${seasonalCompletedCount} of ${seasonalSkills.length} completed`}
                     done={seasonalCompletedCount}
                     total={seasonalSkills.length}
@@ -500,7 +560,7 @@ export default function TrainingScreen() {
                   {seasonalSkills.length > 0 ? (
                     <View style={styles.skillList}>
                       {seasonalSkills.map((skill, i) => (
-                        <SkillRow key={skill.id} skill={skill} index={i} skills={seasonalSkills} />
+                        <SkillRow key={skill.id} skill={skill} index={i} skills={seasonalSkills} theme={SECTION_THEMES.seasonal} />
                       ))}
                     </View>
                   ) : (
@@ -619,13 +679,26 @@ const styles = StyleSheet.create({
   ringLabelWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2 },
   ringPercent: { fontWeight: "900", color: COLORS.green },
   sectionBlock: {
-    marginBottom: 18,
+    marginBottom: 16,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingBottom: 6,
   },
   sectionHeader: {
-    paddingVertical: 14,
+    paddingTop: 14,
+    paddingBottom: 10,
   },
-  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  sectionTitle: { fontSize: 15.5, fontWeight: "700", color: COLORS.greenLight },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  sectionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionTitleText: { flex: 1 },
+  sectionTitleLine: { flexDirection: "row", alignItems: "center", gap: 6 },
+  sectionTitle: { fontSize: 15.5, fontWeight: "700" },
   completeBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -640,15 +713,14 @@ const styles = StyleSheet.create({
   barTrack: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#e8efe6",
-    marginTop: 10,
+    backgroundColor: "rgba(0,0,0,0.07)",
+    marginTop: 12,
     overflow: "hidden",
   },
-  barFill: { height: "100%", borderRadius: 4, backgroundColor: COLORS.greenMid },
+  barFill: { height: "100%", borderRadius: 4 },
   barFillLocked: { backgroundColor: "#c3cac1" },
-  barFillComplete: { backgroundColor: COLORS.green },
   sectionTitleLocked: { color: "#8a938b" },
-  sectionSubtitle: { fontSize: 12, color: COLORS.greenMid, fontWeight: "700", marginTop: 2 },
+  sectionSubtitle: { fontSize: 12, fontWeight: "700", marginTop: 2 },
   sectionSubtitleLocked: { color: "#a8aeaa" },
   skillList: {
     paddingBottom: 4,
@@ -680,13 +752,11 @@ const styles = StyleSheet.create({
   },
   trackSegTop: { top: 0 },
   trackSegBottom: { bottom: 0 },
-  trackSegDone: { backgroundColor: COLORS.greenMid },
   nodeHalo: {
     position: "absolute",
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.greenMid,
   },
   node: {
     width: 28,
@@ -698,14 +768,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  nodeDone: { backgroundColor: COLORS.greenMid, borderColor: COLORS.greenMid },
-  nodeCurrent: { borderColor: COLORS.greenMid, borderWidth: 3 },
-  nodeDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: COLORS.greenMid },
+  nodeCurrent: { borderWidth: 3 },
+  nodeDot: { width: 9, height: 9, borderRadius: 5 },
   pathBody: { flex: 1, justifyContent: "center", gap: 2 },
   skillNameWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
   pathName: { fontSize: 15, fontWeight: "600", color: "#6b736a", flexShrink: 1 },
   pathNameCurrent: { color: "#1c2b1a", fontWeight: "700" },
-  pathNameDone: { color: COLORS.greenLight },
   pathStatusDone: { fontSize: 12, color: "#7f8a7c", fontWeight: "500" },
-  pathStatusNext: { fontSize: 12, color: COLORS.greenMid, fontWeight: "700" },
+  pathStatusNext: { fontSize: 12, fontWeight: "700" },
 });

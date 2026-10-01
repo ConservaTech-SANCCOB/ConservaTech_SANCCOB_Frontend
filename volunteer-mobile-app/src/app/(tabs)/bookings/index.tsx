@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import MyShiftCard from "../../../components/MyShiftCard";
-import { DateBadge, SHIFT_CARD_STYLES } from "../../../components/ShiftCardParts";
+import { DateBadge, SHIFT_CARD_STYLES, SlotChip, slotTheme } from "../../../components/ShiftCardParts";
 import { BannerBirds, BannerPenguin, EmptyStatePenguin } from "../../../components/Wildlife";
 import { getPendingCancellationIds } from "../../../services/changeRequests";
 import { getMyShifts, MyShift } from "../../../services/shifts";
@@ -54,6 +54,7 @@ function groupMyShifts(shifts: MyShift[]): ListRow[] {
 
 function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () => Promise<void> }) {
   const limited = item.vacanciesAvailable === 1;
+  const slot = slotTheme(item.timeSlot);
   const scale = useRef(new Animated.Value(1)).current;
   const [booking, setBooking] = useState(false);
 
@@ -105,14 +106,16 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
 
   return (
     <TouchableOpacity activeOpacity={0.9} onPressIn={pressIn} onPressOut={pressOut} onPress={confirmBook}>
-      <Animated.View style={[SHIFT_CARD_STYLES.card, { transform: [{ scale }] }]}>
+      <Animated.View
+        style={[SHIFT_CARD_STYLES.card, { borderLeftColor: slot.accent, transform: [{ scale }] }]}
+      >
         <View style={[SHIFT_CARD_STYLES.notch, SHIFT_CARD_STYLES.notchBottomLeft]} />
         <View style={SHIFT_CARD_STYLES.topNotch} />
-        <Text style={[SHIFT_CARD_STYLES.timeLabel, styles.availableTimeLabel]}>
-          {formatTimeSlotLabel(item.timeSlot)}
-        </Text>
+        <View style={styles.availableTitleRow}>
+          <SlotChip slot={item.timeSlot} />
+        </View>
         <View style={SHIFT_CARD_STYLES.badgeRow}>
-          <DateBadge dateStr={item.shiftDate} size={68} color={COLORS.pastelYellowDeep} textColor={COLORS.pastelInk} />
+          <DateBadge dateStr={item.shiftDate} size={68} color={slot.soft} textColor={slot.ink} />
           <View style={SHIFT_CARD_STYLES.metaColumn}>
             <View style={SHIFT_CARD_STYLES.metaRow}>
               <Ionicons name="time-outline" size={14} color={COLORS.grey} />
@@ -576,7 +579,7 @@ const styles = StyleSheet.create({
   emptyArtRow: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
   emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.amberLight },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
-  availableTimeLabel: { marginBottom: 12 },
+  availableTitleRow: { marginBottom: 12 },
   bookAction: { backgroundColor: COLORS.pastelYellowDeep },
   bookActionText: { color: COLORS.pastelInk },
   limitedTag: {
