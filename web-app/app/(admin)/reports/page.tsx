@@ -78,6 +78,7 @@ export default function ReportsPage() {
         ["Active Volunteers", data.activeVolunteers],
         [],
         ["Conservation Impact"],
+        ["Total Rescued", data.conservation.totalRescued],
         ["Total Released", data.conservation.totalReleased],
         ["Total In Care", data.conservation.totalInCare],
         ["Percent Released (%)", data.conservation.percentReleased],
@@ -315,6 +316,10 @@ export default function ReportsPage() {
                 <div className="flex items-center justify-between text-sm">
                   <LegendDot color={BLUE} label="In Care" />
                   <span className="font-semibold text-slate-900">{data.conservation.totalInCare}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm pt-2 border-t border-slate-100">
+                  <span className="text-slate-500">Total Rescued</span>
+                  <span className="font-semibold text-slate-900">{data.conservation.totalRescued}</span>
                 </div>
               </div>
             </div>
