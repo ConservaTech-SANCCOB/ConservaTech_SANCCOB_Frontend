@@ -36,6 +36,13 @@ function newestFirst(a: CompletedShift, b: CompletedShift): number {
   return b.shiftDate.localeCompare(a.shiftDate) || (b.timeSlot ?? "").localeCompare(a.timeSlot ?? "");
 }
 
+// ------------------------------------------------------------ //
+
+// Whole numbers show without a decimal but half hours stay
+function formatStat(value: number): string {
+  return String(Number(value.toFixed(1)));
+}
+
 export default function HoursWorkedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -66,8 +73,8 @@ export default function HoursWorkedScreen() {
   const completedShifts = [...(stats?.completedShifts ?? [])].sort(newestFirst);
   const months = Array.from(new Set(completedShifts.map((s) => monthLabelFor(s.shiftDate))));
   // Show a dash not 0 when loading failed
-  const statValue = (value: number | undefined, decimals: number) =>
-    loadError || value === undefined ? "—" : value.toFixed(decimals);
+  const statValue = (value: number | undefined) =>
+    loadError || value === undefined ? "—" : formatStat(value);
 
   if (loading) {
     return (
@@ -142,18 +149,18 @@ export default function HoursWorkedScreen() {
             <View style={styles.statCard}>
               <Ionicons name="time-outline" size={18} color={COLORS.greenMid} />
               <Text style={styles.statValue}>
-                {statValue(stats?.totalHours, 1)}
+                {statValue(stats?.totalHours)}
               </Text>
               <Text style={styles.statLabel}>Total Hours</Text>
             </View>
             <View style={styles.statCard}>
               <Ionicons name="calendar-outline" size={18} color={COLORS.greenMid} />
-              <Text style={styles.statValue}>{statValue(stats?.shiftsCompleted, 0)}</Text>
+              <Text style={styles.statValue}>{statValue(stats?.shiftsCompleted)}</Text>
               <Text style={styles.statLabel}>Shifts Done</Text>
             </View>
             <View style={styles.statCard}>
               <Ionicons name="trending-up-outline" size={18} color={COLORS.greenMid} />
-              <Text style={styles.statValue}>{statValue(stats?.hoursThisMonth, 1)}</Text>
+              <Text style={styles.statValue}>{statValue(stats?.hoursThisMonth)}</Text>
               <Text style={styles.statLabel}>This Month</Text>
             </View>
           </View>
@@ -184,7 +191,7 @@ export default function HoursWorkedScreen() {
                         </Text>
                       </View>
                       <View style={{ alignItems: "flex-end" }}>
-                        <Text style={styles.shiftHours}>{shift.hoursWorked.toFixed(1)} hrs</Text>
+                        <Text style={styles.shiftHours}>{formatStat(shift.hoursWorked)} hrs</Text>
                         <Text style={styles.shiftTime}>{formatTimeSlotLabel(shift.timeSlot ?? "")}</Text>
                       </View>
                     </View>

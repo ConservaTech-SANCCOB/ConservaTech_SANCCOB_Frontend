@@ -32,7 +32,7 @@ describe("Hours / Volunteering Stats", () => {
     expect(screen.getByText("3")).toBeOnTheScreen();
     expect(screen.getByText("4.5")).toBeOnTheScreen();
     expect(screen.getByText("4.5 hrs")).toBeOnTheScreen();
-    expect(screen.getByText("8.0 hrs")).toBeOnTheScreen();
+    expect(screen.getByText("8 hrs")).toBeOnTheScreen();
   });
 
   it("groups the log by month, newest first", async () => {
