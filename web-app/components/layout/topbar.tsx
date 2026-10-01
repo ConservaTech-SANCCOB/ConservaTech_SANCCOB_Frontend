@@ -2,8 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "../../app/lib/auth-context";
 import { getInitials, getDisplayName, getRoleLabel } from "../../app/lib/user-display";
+import { useNotifications } from "../../app/lib/use-notifications";
+import type { AdminNotification } from "../../app/lib/api/notifications";
 
 function getFormattedDate(): string {
   return new Date().toLocaleDateString("en-GB", {
@@ -14,11 +17,48 @@ function getFormattedDate(): string {
   });
 }
 
+const EVENT_LABELS: Record<string, string> = {
+  volunteer_registered: "New volunteer",
+  change_request_submitted: "Change request",
+  shift_vacant: "Shift vacant",
+};
+
+// Where a notification takes you when clicked. change_request_submitted has no
+// entry yet: we haven't confirmed which page handles change requests.
+const EVENT_ROUTES: Record<string, string> = {
+  volunteer_registered: "/volunteers",
+  shift_vacant: "/vacancies",
+};
+
+function eventLabel(eventType: string): string {
+  return EVENT_LABELS[eventType] ?? eventType.replace(/_/g, " ");
+}
+
+// createdAt can carry 7 fractional digits; trim to 3 so every browser parses it.
+function timeAgo(iso: string): string {
+  const then = new Date(iso.replace(/(\.\d{3})\d+/, "$1")).getTime();
+  if (isNaN(then)) return "";
+  const seconds = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} d ago`;
+}
+
+const MAX_SHOWN = 20;
+
 export function Topbar() {
   const { logout, user, role } = useAuth();
+  const router = useRouter();
+  const { items, unreadCount, connected, error, markRead, markAllRead } = useNotifications();
   const [today, setToday] = useState<string>("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Initial client-side set
@@ -52,14 +92,19 @@ export function Topbar() {
     };
   }, []);
 
-  // Close the profile menu on outside click or Escape.
+  // Close either menu on outside click or Escape.
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !bellOpen) return;
     const onClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+      const target = e.target as Node;
+      if (menuRef.current && !menuRef.current.contains(target)) setMenuOpen(false);
+      if (bellRef.current && !bellRef.current.contains(target)) setBellOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setBellOpen(false);
+      }
     };
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
@@ -67,7 +112,16 @@ export function Topbar() {
       document.removeEventListener("mousedown", onClick);
       document.removeEventListener("keydown", onKey);
     };
-  }, [menuOpen]);
+  }, [menuOpen, bellOpen]);
+
+  const handleNotificationClick = (n: AdminNotification) => {
+    if (!n.isRead) markRead(n.notificationId);
+    const route = EVENT_ROUTES[n.eventType];
+    if (route) {
+      setBellOpen(false);
+      router.push(route);
+    }
+  };
 
   const itemClass =
     "flex w-full items-center gap-2.5 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors";
@@ -88,14 +142,97 @@ export function Topbar() {
       <p className="text-sm text-slate-500 hidden md:block">{today}</p>
 
       <div className="flex items-center gap-4">
-        <button className="relative p-2 rounded-lg hover:bg-slate-100" aria-label="Notifications">
-          <BellIcon />
-        </button>
+        {/* Notification bell */}
+        <div className="relative" ref={bellRef}>
+          <button
+            onClick={() => {
+              setBellOpen((o) => !o);
+              setMenuOpen(false);
+            }}
+            className="relative p-2 rounded-lg hover:bg-slate-100"
+            aria-label={
+              unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"
+            }
+            aria-haspopup="menu"
+            aria-expanded={bellOpen}
+          >
+            <BellIcon />
+            {unreadCount > 0 && (
+              <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-semibold flex items-center justify-center">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {bellOpen && (
+            <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-3 border-b border-slate-100">
+                <p className="text-sm font-semibold text-slate-900">Notifications</p>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    className="text-xs font-medium text-blue-600 hover:underline"
+                  >
+                    Mark all as read
+                  </button>
+                )}
+              </div>
+
+              <div className="max-h-96 overflow-y-auto">
+                {error && (
+                  <p className="m-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    {error}
+                  </p>
+                )}
+                {items.length === 0 && !error ? (
+                  <p className="px-3 py-8 text-center text-sm text-slate-500">
+                    You&apos;re all caught up.
+                  </p>
+                ) : (
+                  items.slice(0, MAX_SHOWN).map((n) => (
+                    <button
+                      key={n.notificationId}
+                      onClick={() => handleNotificationClick(n)}
+                      className={`flex w-full items-start gap-2.5 px-3 py-3 text-left border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors ${
+                        n.isRead ? "" : "bg-blue-50/50"
+                      }`}
+                    >
+                      <span
+                        className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
+                          n.isRead ? "bg-transparent" : "bg-blue-600"
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-xs font-semibold text-slate-900">
+                          {eventLabel(n.eventType)}
+                        </span>
+                        <span className="block text-xs text-slate-600 mt-0.5">{n.message}</span>
+                        <span className="block text-[11px] text-slate-400 mt-1">
+                          {timeAgo(n.createdAt)}
+                        </span>
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {!connected && (
+                <p className="px-3 py-2 text-[11px] text-slate-500 bg-slate-50 border-t border-slate-100">
+                  Live updates aren&apos;t connected. Showing the latest saved notifications.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Profile dropdown */}
         <div className="relative pl-2 border-l border-slate-200" ref={menuRef}>
           <button
-            onClick={() => setMenuOpen((o) => !o)}
+            onClick={() => {
+              setMenuOpen((o) => !o);
+              setBellOpen(false);
+            }}
             className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-slate-100 transition-colors"
             aria-haspopup="menu"
             aria-expanded={menuOpen}
