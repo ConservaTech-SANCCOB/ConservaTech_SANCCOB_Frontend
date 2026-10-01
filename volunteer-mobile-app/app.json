@@ -8,7 +8,8 @@
     "scheme": "volunteermobileapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.conservatech.sanccob"
     },
     "android": {
       "adaptiveIcon": {
@@ -39,6 +40,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fa31c281-227b-4041-a0ad-fc8043420606"
+      }
+    },
+    "owner": "funimms-team"
   }
 }
