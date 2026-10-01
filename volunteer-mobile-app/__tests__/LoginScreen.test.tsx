@@ -5,9 +5,11 @@ import { ApiError } from "../src/utils/api";
 import { showErrorToast } from "../src/utils/toast";
 
 const mockReplace = jest.fn();
+const mockBack = jest.fn();
+const mockCanGoBack = jest.fn(() => true);
 jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
-  useRouter: () => ({ replace: mockReplace, push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ replace: mockReplace, push: jest.fn(), back: mockBack, canGoBack: mockCanGoBack }),
 }));
 jest.mock("../src/services/auth");
 jest.mock("../src/utils/toast");
@@ -59,5 +61,20 @@ describe("LoginScreen", () => {
     await render(<LoginScreen />);
     await fireEvent.press(screen.getByText("Log In"));
     expect(mockedLogin).not.toHaveBeenCalled();
+  });
+
+  it("goes back to the welcome screen when there's no history (e.g. after a session expired)", async () => {
+    mockCanGoBack.mockReturnValueOnce(false);
+    await render(<LoginScreen />);
+    await fireEvent.press(screen.getByText("Back to options"));
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith("/");
+  });
+
+  it("pops back normally when opened from the welcome screen", async () => {
+    await render(<LoginScreen />);
+    await fireEvent.press(screen.getByText("Back to options"));
+    expect(mockBack).toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });

@@ -122,7 +122,8 @@ export default function LoginScreen() {
             <TouchableOpacity onPress={() => router.push("/forgot-password")}>
               <Text style={styles.helperText}>Forgot your password?</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.back()}>
+            {/* An expired session lands here via router.replace (utils/api.ts), leaving nothing to go back to. */}
+            <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}>
               <Text style={styles.helperText}>Back to options</Text>
             </TouchableOpacity>
           </View>
