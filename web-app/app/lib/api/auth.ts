@@ -1,11 +1,9 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// Matches the exact backend Swagger response schema (AuthResponseDto).
-// Both fields are marked nullable in the spec — auth-context.tsx's login()
-// checks for both before trusting this response.
+// Matches the exact backend Swagger response schema
 export interface LoginResponse {
-  token: string | null;
-  role: string | null;
+  token: string;
+  role: string;
 }
 
 export async function loginRequest(
@@ -24,21 +22,37 @@ export async function loginRequest(
     },
     body: JSON.stringify({
       email: email.trim(),
-      password: password,
+      password: password.trim(),
     }),
   });
 
-    if (!response.ok) {
+  if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    console.error(`[Login] ${response.status}`, errorData);
-
-    if (response.status === 401 || response.status === 400) {
-      throw new Error(errorData.message || "Invalid email or password");
-    }
-    throw new Error(errorData.message || `Login failed (${response.status})`);
+    throw new Error(errorData.message || "Invalid email or password");
   }
+
   const data: LoginResponse = await response.json();
   
+  console.log("[Auth API Response]", data);
+
   return data;
 }
 
+
+
+//----------------------------------- END OF FILE ---------------------------------//
+    // Mock response for testing purposes
+//     if (email === "cathy@sanccob.co.za" && password === "password123") {
+//         return {
+//             token: "mock-jwt-token-123",
+//             user: {
+//                 id: "1",
+//                 name: "Cathy",
+//                 email: "cathy@sanccob.co.za",
+//                 role: "admin"
+//             }
+//         };
+//     } 
+//         throw new Error("Invalid email or password");
+    
+// }

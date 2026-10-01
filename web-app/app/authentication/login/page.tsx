@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../lib/auth-context";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, token, isLoading } = useAuth();
+  const { login } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -15,20 +15,14 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!isLoading && token) {
-      router.replace("/dashboard");
-    }
-  }, [isLoading, token, router]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsSubmitting(true);
-    
+
     try {
     // Trim whitespace before passing to login
-    await login(email.trim(), password, keepSignedIn);
+    await login(email.trim(), password.trim(), keepSignedIn);
     router.push("/dashboard");
   } catch (err: any) {
     console.error("[Login Error]:", err);
@@ -38,9 +32,7 @@ export default function LoginPage() {
   }
 };
  
-if (isLoading || token) 
-    return null; // Optionally, you can return a loading spinner here
-  
+
   return (
     <div className="min-h-screen flex bg-slate-50">
       {/* Left side — image panel */}
@@ -107,7 +99,13 @@ if (isLoading || token)
                     className="block text-sm font-semibold text-slate-800"
                   >
                     Password
-                   </label>
+                  </label>
+                  <a
+                    href="/authentication/forgot-password"
+                    className="text-sm font-medium text-blue-800 hover:underline"
+                  >
+                    Forgot password?
+                  </a>
                 </div>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
@@ -141,7 +139,7 @@ if (isLoading || token)
                   onChange={(e) => setKeepSignedIn(e.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-blue-800"
                 />
-                Keep me signed 
+                Keep me signed in for 30 days
               </label>
 
               {/* Submit */}
@@ -153,6 +151,13 @@ if (isLoading || token)
                 {isSubmitting ? "Signing in..." : "Sign In"}
               </button>
             </form>
+
+            <p className="mt-6 text-center text-xs text-black">
+              Hint: use{" "}
+              <span className="text-blue-800 font-medium">
+                cathy@sanccob.co.za / password123
+              </span>
+            </p>
           </div>
 
           <p className="mt-6 text-center text-xs text-slate-400">
