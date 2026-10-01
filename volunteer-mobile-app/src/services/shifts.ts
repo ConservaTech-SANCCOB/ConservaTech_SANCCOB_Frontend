@@ -14,6 +14,8 @@ export function getAllShifts() {
   return api.get<Shift[]>("/api/shifts");
 }
 
+// ------------------------------------------------------------ //
+
 export interface MyShift {
   rosterAssignmentId: number;
   status: string;
@@ -23,6 +25,9 @@ export interface MyShift {
   location: string | null;
 }
 
+// Includes past shifts so screens filter them
 export function getMyShifts() {
   return api.get<MyShift[]>("/api/volunteers/me/shifts");
 }
+
+//----------------------------------- END OF FILE ---------------------------------//

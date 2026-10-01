@@ -1,99 +1,81 @@
-import { Volunteer } from "../types/volunteer";
-import { SkillStatus } from "../types/training";
-import { TRAINING_CATALOG } from "../data/mockTrainingCatalog";
-import { mockVolunteers } from "../data/mockVolunteers";
+import { api } from "../utils/api";
 
-// TODO: replace with real endpoints (e.g. GET /api/volunteers, GET/POST a per-volunteer
-// training/sign-off endpoint) once the backend exposes Skill / VolunteerSkillProgress
-// data — see the README's "Current Integration Status" note on the progress tab.
+//--------------------TRAINER--------------------//
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export interface TrainingVolunteerSummary {
+  userId: number;
+  firstName: string | null;
+  lastName: string | null;
+  completedSkills: number;
+  totalRequiredSkills: number;
+  progressPercentage: number;
+  trainingStatus: string | null;
 }
 
-export async function getVolunteers(): Promise<Volunteer[]> {
-  await delay(300);
-  return mockVolunteers;
+export function getTrainingVolunteers() {
+  return api.get<TrainingVolunteerSummary[]>("/api/training/volunteers");
 }
 
-// --- MOCK in-memory store (remove once real endpoints exist) ---
-// Keyed by volunteerId -> that volunteer's status for every skill in TRAINING_CATALOG.
-const store = new Map<string, SkillStatus[]>();
+// ------------------------------------------------------------ //
 
-// Seed data so the dashboard demos with a realistic mix of complete/incomplete skills.
-const SEED: Record<string, { skillId: string; signedOffDate: string }[]> = {
-  v1: [
-    { skillId: "s1", signedOffDate: "2025-04-02" },
-    { skillId: "s2", signedOffDate: "2025-04-02" },
-    { skillId: "s3", signedOffDate: "2025-05-10" },
-    { skillId: "p1", signedOffDate: "2025-06-20" },
-  ],
-  v2: [
-    { skillId: "s1", signedOffDate: "2024-11-15" },
-    { skillId: "s2", signedOffDate: "2024-11-15" },
-  ],
-  v3: [
-    { skillId: "s1", signedOffDate: "2025-02-01" },
-    { skillId: "s2", signedOffDate: "2025-02-01" },
-    { skillId: "s3", signedOffDate: "2025-02-14" },
-    { skillId: "s4", signedOffDate: "2025-03-01" },
-    { skillId: "s5", signedOffDate: "2025-03-01" },
-    { skillId: "p1", signedOffDate: "2025-04-18" },
-    { skillId: "p2", signedOffDate: "2025-05-02" },
-  ],
-};
-
-function getOrSeed(volunteerId: string): SkillStatus[] {
-  if (!store.has(volunteerId)) {
-    const seed = SEED[volunteerId] ?? [];
-    const seedMap = new Map(seed.map((s) => [s.skillId, s.signedOffDate]));
-
-    store.set(
-      volunteerId,
-      TRAINING_CATALOG.map((skill) => {
-        const signedOffDate = seedMap.get(skill.id);
-        return signedOffDate
-          ? { skillId: skill.id, completed: true, signedOffBy: "Sarah Naidoo", signedOffDate }
-          : { skillId: skill.id, completed: false };
-      })
-    );
-  }
-  return store.get(volunteerId)!;
+export interface TrainingSkillDto {
+  skillId: number;
+  skillName: string | null;
+  category: string | null;
+  isSignedOff: boolean;
+  trainerId: number | null;
+  trainerName: string | null;
+  signedOffAt: string | null;
 }
 
-/** All skill statuses for one volunteer (both completed and outstanding). */
-export async function getVolunteerTraining(volunteerId: string): Promise<SkillStatus[]> {
-  await delay(250);
-  return getOrSeed(volunteerId).map((status) => ({ ...status }));
+export interface TrainingVolunteerProfile {
+  userId: number;
+  firstName: string | null;
+  lastName: string | null;
+  completedRequiredSkills: number;
+  totalRequiredSkills: number;
+  progressPercentage: number;
+  trainingStatus: string | null;
+  supportingAreas: TrainingSkillDto[] | null;
+  penRoutines: TrainingSkillDto[] | null;
+  seasonalSkills: TrainingSkillDto[] | null;
 }
 
-/** Trainer signs off that a volunteer has completed a specific piece of training. */
-export async function signOffSkill(
-  volunteerId: string,
-  skillId: string,
-  signedOffBy: string
-): Promise<SkillStatus> {
-  await delay(200);
-  const list = getOrSeed(volunteerId);
-  const updated: SkillStatus = {
-    skillId,
-    completed: true,
-    signedOffBy,
-    signedOffDate: new Date().toISOString().split("T")[0],
-  };
-  const idx = list.findIndex((s) => s.skillId === skillId);
-  if (idx >= 0) list[idx] = updated;
-  else list.push(updated);
-  return updated;
+export function getTrainingVolunteerProfile(userId: number) {
+  return api.get<TrainingVolunteerProfile>(`/api/training/volunteers/${userId}`);
 }
 
-/** Reverses a sign-off (e.g. it was recorded in error). */
-export async function revokeSignOff(volunteerId: string, skillId: string): Promise<SkillStatus> {
-  await delay(200);
-  const list = getOrSeed(volunteerId);
-  const updated: SkillStatus = { skillId, completed: false };
-  const idx = list.findIndex((s) => s.skillId === skillId);
-  if (idx >= 0) list[idx] = updated;
-  else list.push(updated);
-  return updated;
+// ------------------------------------------------------------ //
+
+// The backend takes the trainer from the token
+export function signOffTrainingSkill(userId: number, skillId: number) {
+  return api.post<void>(`/api/training/volunteers/${userId}/sign-off`, { skillId });
 }
+
+//--------------------VOLUNTEER--------------------//
+
+export function getMyTrainingProfile() {
+  return api.get<TrainingVolunteerProfile>("/api/volunteers/me/training/profile");
+}
+
+// ------------------------------------------------------------ //
+
+export interface CompletedShift {
+  shiftDate: string;
+  timeSlot: string | null;
+  location: string | null;
+  hoursWorked: number;
+}
+
+export interface MyTrainingStats {
+  totalHours: number;
+  shiftsCompleted: number;
+  hoursThisMonth: number;
+  completedShifts: CompletedShift[] | null;
+}
+
+export function getMyTrainingStats() {
+  return api.get<MyTrainingStats>("/api/volunteers/me/training/stats");
+}
+
+//----------------------------------- END OF FILE ---------------------------------//

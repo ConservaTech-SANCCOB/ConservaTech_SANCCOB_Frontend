@@ -3,10 +3,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   FlatList,
-  ImageBackground,
   RefreshControl,
   StyleSheet,
   Text,
@@ -14,24 +14,35 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../../constants/glassCard";
+import Svg, { Path } from "react-native-svg";
+import { AboveBannerFill, BelowContentFill, refreshableBannerScrollStyles } from "../../../components/BannerOverscroll";
 import MyShiftCard from "../../../components/MyShiftCard";
-import { DateBadge, ShiftMeta } from "../../../components/ShiftCardParts";
+import { DateBadge, SHIFT_CARD_STYLES, SlotChip, slotTheme } from "../../../components/ShiftCardParts";
+import { BannerBirds, BannerPenguin, EmptyStatePenguin } from "../../../components/Wildlife";
+import { getPendingCancellationIds } from "../../../services/changeRequests";
 import { getMyShifts, MyShift } from "../../../services/shifts";
-import { getVacancies, Vacancy } from "../../../services/vacancies";
+import { bookVacancy, BookingRejectedError, getVacancies, Vacancy } from "../../../services/vacancies";
+import { SessionExpiredError } from "../../../utils/api";
 import { COLORS } from "../../../utils/colors";
 import { bucketForDate, DateBucket, getRelativeLabel } from "../../../utils/dateBuckets";
-import { formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
+import { compareShiftsByStart, formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
+import { showErrorToast } from "../../../utils/toast";
+import { logError } from "../../../utils/logError";
+import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
+
+//--------------------HELPERS--------------------//
 
 type ListRow =
   | { type: "header"; key: string; title: string }
   | { type: "mine"; key: string; item: MyShift }
   | { type: "available"; key: string; item: Vacancy };
 
+const BANNER_SCROLL = refreshableBannerScrollStyles(COLORS.pastelYellowLight);
+
 function groupMyShifts(shifts: MyShift[]): ListRow[] {
   const order: DateBucket[] = ["Today", "This Week", "Later"];
   const buckets: Record<string, MyShift[]> = {};
-  shifts.forEach((item) => {
+  [...shifts].sort(compareShiftsByStart).forEach((item) => {
     const key = bucketForDate(item.shiftDate);
     if (!buckets[key]) buckets[key] = [];
     buckets[key].push(item);
@@ -46,9 +57,14 @@ function groupMyShifts(shifts: MyShift[]): ListRow[] {
   return rows;
 }
 
-function AvailableShiftCard({ item }: { item: Vacancy }) {
+//--------------------CARDS--------------------//
+
+function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () => Promise<void> }) {
   const limited = item.vacanciesAvailable === 1;
+  const slot = slotTheme(item.timeSlot);
   const scale = useRef(new Animated.Value(1)).current;
+  const [booking, setBooking] = useState(false);
+  const confirmationOpen = useRef(false);
 
   const pressIn = () => {
     Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
@@ -57,44 +73,115 @@ function AvailableShiftCard({ item }: { item: Vacancy }) {
     Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }).start();
   };
 
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPressIn={pressIn}
-      onPressOut={pressOut}
-      onPress={() =>
-        Alert.alert(
-          `${formatTimeSlotLabel(item.timeSlot)} shift`,
-          `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\n${item.vacanciesAvailable} of ${item.capacity} spots open`
-        )
+  const book = async () => {
+    setBooking(true);
+    try {
+      await bookVacancy(item.shiftId);
+      await onChanged();
+      Alert.alert("Shift booked", "It's now in your My Shifts.");
+    } catch (error) {
+      if (error instanceof SessionExpiredError) return;
+      logError("Book shift error", error);
+      if (error instanceof BookingRejectedError) {
+        showErrorToast(
+          "Couldn't book this shift",
+          error.backendMessage ?? "It may have just filled up or is no longer available."
+        );
+        // Refresh so a full shift drops off the list
+        await onChanged();
+      } else {
+        showErrorToast("Couldn't book this shift", "Something went wrong. Try again in a moment.");
       }
-    >
-      <Animated.View style={[styles.shiftCard, { transform: [{ scale }] }]}>
-        <DateBadge dateStr={item.shiftDate} />
-        <View style={styles.shiftCardBody}>
-          <View style={styles.topRow}>
-            <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
-            <Text style={styles.relativeLabel}>{getRelativeLabel(item.shiftDate)}</Text>
-          </View>
-          <ShiftMeta timeSlot={item.timeSlot} location={item.location} />
-          <View style={styles.capacityRow}>
-            <View style={styles.capacityChip}>
-              <Ionicons name="people-outline" size={16} color={COLORS.navy} />
-              <Text style={styles.capacityChipText}>
-                {item.vacanciesAvailable} of {item.capacity} open
-              </Text>
+    } finally {
+      setBooking(false);
+    }
+  };
+
+  const confirmBook = () => {
+    // Stops a double tap opening two alerts
+    if (booking || confirmationOpen.current) return;
+    confirmationOpen.current = true;
+    const closeConfirmation = () => {
+      confirmationOpen.current = false;
+    };
+    Alert.alert(
+      "Book this shift?",
+      `${item.timeSlot ? `${formatTimeSlotLabel(item.timeSlot)} · ` : ""}${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\n${item.vacanciesAvailable} of ${item.capacity} spots open`,
+      [
+        { text: "Cancel", style: "cancel", onPress: closeConfirmation },
+        {
+          text: "Book",
+          onPress: () => {
+            closeConfirmation();
+            return book();
+          },
+        },
+      ],
+      { onDismiss: closeConfirmation }
+    );
+  };
+
+  return (
+    <TouchableOpacity activeOpacity={0.9} onPressIn={pressIn} onPressOut={pressOut} onPress={confirmBook}>
+      <Animated.View
+        style={[SHIFT_CARD_STYLES.card, { borderLeftColor: slot.accent, transform: [{ scale }] }]}
+      >
+        <View style={[SHIFT_CARD_STYLES.notch, SHIFT_CARD_STYLES.notchBottomLeft]} />
+        <View style={SHIFT_CARD_STYLES.topNotch} />
+        <View style={styles.availableTitleRow}>
+          <SlotChip slot={item.timeSlot} />
+        </View>
+        <View style={SHIFT_CARD_STYLES.badgeRow}>
+          <DateBadge dateStr={item.shiftDate} size={68} color={slot.soft} textColor={slot.ink} />
+          <View style={SHIFT_CARD_STYLES.metaColumn}>
+            <View style={SHIFT_CARD_STYLES.metaRow}>
+              <Ionicons name="time-outline" size={14} color={COLORS.grey} />
+              <Text style={SHIFT_CARD_STYLES.metaText}>{item.timeSlot}</Text>
             </View>
-            {limited && (
-              <View style={styles.limitedTag}>
-                <Text style={styles.limitedTagText}>Limited spots</Text>
+            {item.location && (
+              <View style={SHIFT_CARD_STYLES.metaRow}>
+                <Ionicons name="location-outline" size={14} color={COLORS.grey} />
+                <Text style={SHIFT_CARD_STYLES.metaText} numberOfLines={1} ellipsizeMode="tail">
+                  {item.location}
+                </Text>
               </View>
             )}
+            <View style={SHIFT_CARD_STYLES.metaRow}>
+              <Ionicons name="calendar-outline" size={14} color={COLORS.grey} />
+              <Text style={SHIFT_CARD_STYLES.metaText}>{getRelativeLabel(item.shiftDate)}</Text>
+            </View>
+            <View style={SHIFT_CARD_STYLES.metaRow}>
+              <Ionicons name="people-outline" size={14} color={COLORS.grey} />
+              <Text style={SHIFT_CARD_STYLES.metaText}>
+                {item.vacanciesAvailable} of {item.capacity} open
+              </Text>
+              {limited && (
+                <View style={styles.limitedTag}>
+                  <Text style={styles.limitedTagText}>Limited</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
+        <View style={SHIFT_CARD_STYLES.divider} />
+        <TouchableOpacity style={SHIFT_CARD_STYLES.actionWrap} onPress={confirmBook} disabled={booking} hitSlop={6}>
+          <View style={[SHIFT_CARD_STYLES.action, styles.bookAction]}>
+            {booking ? (
+              <ActivityIndicator size="small" color={COLORS.pastelInk} />
+            ) : (
+              <>
+                <Ionicons name="add-circle-outline" size={14} color={COLORS.pastelInk} />
+                <Text style={[SHIFT_CARD_STYLES.actionText, styles.bookActionText]}>Book</Text>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
       </Animated.View>
     </TouchableOpacity>
   );
 }
+
+// ------------------------------------------------------------ //
 
 function SkeletonCard() {
   const opacity = useRef(new Animated.Value(0.4)).current;
@@ -111,15 +198,19 @@ function SkeletonCard() {
   }, [opacity]);
 
   return (
-    <Animated.View style={[styles.shiftCard, { opacity }]}>
-      <View style={styles.skeletonBadge} />
-      <View style={styles.shiftCardBody}>
-        <View style={styles.skeletonLineWide} />
-        <View style={styles.skeletonLineNarrow} />
+    <Animated.View style={[SHIFT_CARD_STYLES.card, { opacity }]}>
+      <View style={styles.skeletonLineWide} />
+      <View style={SHIFT_CARD_STYLES.badgeRow}>
+        <View style={styles.skeletonBadge} />
+        <View style={styles.skeletonBody}>
+          <View style={styles.skeletonLineNarrow} />
+        </View>
       </View>
     </Animated.View>
   );
 }
+
+//--------------------SCREEN--------------------//
 
 export default function BookingsScreen() {
   const router = useRouter();
@@ -127,6 +218,7 @@ export default function BookingsScreen() {
   const [tab, setTab] = useState<"mine" | "available">("mine");
   const [myShifts, setMyShifts] = useState<MyShift[]>([]);
   const [availableShifts, setAvailableShifts] = useState<Vacancy[]>([]);
+  const [pendingCancellationIds, setPendingCancellationIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -134,6 +226,21 @@ export default function BookingsScreen() {
   const segmentTranslateX = useRef(new Animated.Value(0)).current;
   const segmentIndicatorWidth = segmentRowWidth > 0 ? (segmentRowWidth - 8) / 2 : 0;
   const hasLoadedTab = useRef<{ mine: boolean; available: boolean }>({ mine: false, available: false });
+
+  const bannerFade = useRef(new Animated.Value(0)).current;
+  const bannerSlide = useRef(new Animated.Value(14)).current;
+  const sheetFade = useRef(new Animated.Value(0)).current;
+  const sheetSlide = useRef(new Animated.Value(18)).current;
+
+  useEffect(() => {
+    const stagger = (fade: Animated.Value, slide: Animated.Value) =>
+      Animated.parallel([
+        Animated.timing(fade, { toValue: 1, duration: 420, useNativeDriver: true }),
+        Animated.timing(slide, { toValue: 0, duration: 420, useNativeDriver: true }),
+      ]);
+
+    Animated.stagger(90, [stagger(bannerFade, bannerSlide), stagger(sheetFade, sheetSlide)]).start();
+  }, [bannerFade, bannerSlide, sheetFade, sheetSlide]);
 
   useEffect(() => {
     Animated.spring(segmentTranslateX, {
@@ -144,6 +251,7 @@ export default function BookingsScreen() {
     }).start();
   }, [tab, segmentIndicatorWidth, segmentTranslateX]);
 
+  // Silent mode refreshes without a spinner
   const load = useCallback(
     async (mode: "initial" | "manual" | "silent" = "initial") => {
       if (mode === "manual") setRefreshing(true);
@@ -151,9 +259,19 @@ export default function BookingsScreen() {
       setLoadError(false);
       try {
         if (tab === "mine") {
-          setMyShifts(await getMyShifts());
+          const [shifts, pending] = await Promise.all([
+            getMyShifts(),
+            getPendingCancellationIds().catch((error) => {
+              logError("Load pending cancellations error", error);
+              return null;
+            }),
+          ]);
+          setMyShifts(shifts);
+          if (pending) setPendingCancellationIds(pending);
         } else {
           const [vacancies, myShiftsForExclusion] = await Promise.all([getVacancies(), getMyShifts()]);
+          setMyShifts(myShiftsForExclusion);
+          // Hide my own full and ended shifts
           const assignedShiftIds = new Set(myShiftsForExclusion.map((s) => s.shiftId));
           setAvailableShifts(
             vacancies.filter(
@@ -162,10 +280,11 @@ export default function BookingsScreen() {
                 !hasShiftEnded(v.shiftDate, v.timeSlot) &&
                 !assignedShiftIds.has(v.shiftId)
             )
+              .sort(compareShiftsByStart)
           );
         }
       } catch (error) {
-        console.error(`Load ${tab} shifts error:`, error);
+        logError(`Load ${tab} shifts error`, error);
         setLoadError(true);
       } finally {
         if (mode === "manual") setRefreshing(false);
@@ -177,6 +296,7 @@ export default function BookingsScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // Spinner only the first time per tab
       const alreadyLoadedThisTab = hasLoadedTab.current[tab];
       hasLoadedTab.current[tab] = true;
       load(alreadyLoadedThisTab ? "silent" : "initial");
@@ -188,81 +308,141 @@ export default function BookingsScreen() {
       ? groupMyShifts(myShifts.filter((s) => !hasShiftEnded(s.shiftDate, s.timeSlot)))
       : availableShifts.map((item) => ({ type: "available", key: `available-${item.shiftId}`, item }));
 
+  const shiftCount = rows.filter((row) => row.type !== "header").length;
+
   const header = (
     <>
-      <View style={styles.headerRow}>
-        <View style={styles.headerCard}>
-          <Text style={styles.title}>Upcoming Shifts</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.availabilityButton}
-          onPress={() => router.push("/(tabs)/bookings/submit-availability")}
-        >
-          <Ionicons name="calendar-outline" size={16} color={COLORS.navy} />
-          <Text style={styles.availabilityButtonText}>Availability</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View
-        style={styles.segmentRow}
-        onLayout={(e) => setSegmentRowWidth(e.nativeEvent.layout.width)}
+      <AboveBannerFill />
+      <LinearGradient
+        colors={[COLORS.pastelYellowLight, COLORS.pastelYellowDeep]}
+        style={[styles.banner, { paddingTop: 24 + insets.top }]}
       >
-        {segmentIndicatorWidth > 0 && (
-          <Animated.View
-            style={[
-              styles.segmentIndicator,
-              { width: segmentIndicatorWidth, transform: [{ translateX: segmentTranslateX }] },
-            ]}
+        <LinearGradient
+          colors={["rgba(255,255,255,0.08)", "transparent"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
+        <Svg style={StyleSheet.absoluteFill} viewBox="0 0 400 260" preserveAspectRatio="none" pointerEvents="none">
+          <Path d="M-20,26 C40,16 90,32 140,24 C190,16 240,30 290,22 C330,16 380,26 420,18 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.03} />
+          <Path d="M-20,46 C40,38 90,52 140,44 C190,36 240,50 290,42 C330,36 380,46 420,40 L420,260 L-20,260 Z" fill={COLORS.amberAccentLight} opacity={0.04} />
+          <Path d="M-20,68 C40,58 90,74 140,64 C190,54 240,70 290,60 C330,54 380,66 420,58 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.05} />
+          <Path d="M-20,90 C40,82 90,96 140,86 C190,76 240,92 290,82 C330,76 380,88 420,80 L420,260 L-20,260 Z" fill={COLORS.amberAccentLight} opacity={0.07} />
+          <Path d="M-20,112 C40,102 90,118 140,108 C190,98 240,114 290,104 C330,98 380,110 420,102 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.08} />
+          <Path d="M-20,134 C40,126 90,140 140,130 C190,120 240,136 290,126 C330,120 380,132 420,124 L420,260 L-20,260 Z" fill={COLORS.amberAccentLight} opacity={0.09} />
+          <Path d="M-20,156 C40,146 90,162 140,152 C190,142 240,158 290,148 C330,142 380,154 420,146 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.11} />
+          <Path d="M-20,178 C40,170 90,184 140,174 C190,164 240,180 290,170 C330,164 380,176 420,168 L420,260 L-20,260 Z" fill={COLORS.amberAccentLight} opacity={0.12} />
+          <Path d="M-20,200 C40,190 90,206 140,196 C190,186 240,202 290,192 C330,186 380,198 420,190 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.14} />
+          <Path d="M-20,222 C40,214 90,228 140,218 C190,208 240,224 290,214 C330,208 380,220 420,212 L420,260 L-20,260 Z" fill={COLORS.amberAccentLight} opacity={0.16} />
+        </Svg>
+
+        <BannerBirds tint="dark" top={insets.top} />
+
+        <Animated.View
+          style={[styles.titleGroup, { opacity: bannerFade, transform: [{ translateY: bannerSlide }] }]}
+        >
+          <Text style={styles.title}>Upcoming Shifts</Text>
+          <Text style={styles.subtitle}>YOUR SCHEDULE</Text>
+          <Text style={styles.tagline}>My Shifts · Available Shifts</Text>
+        </Animated.View>
+
+        <BannerPenguin variant="family" />
+      </LinearGradient>
+
+      <View style={styles.sheet}>
+        <Animated.View style={{ opacity: sheetFade, transform: [{ translateY: sheetSlide }] }}>
+          <View style={styles.summaryRow}>
+            <View>
+              <Text style={styles.summaryHeading}>{shiftCount}</Text>
+              <Text style={styles.eyebrowLabel}>
+                {tab === "mine" ? "UPCOMING SHIFTS" : "OPEN SHIFTS"}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.availabilityButtonWrap}
+              onPress={() => router.push("/(tabs)/bookings/submit-availability")}
+              activeOpacity={0.9}
+            >
+              <View style={styles.availabilityButton}>
+                <Text style={styles.availabilityButtonText}>Availability</Text>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.pastelInk} />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View
+            style={styles.segmentRow}
+            onLayout={(e) => setSegmentRowWidth(e.nativeEvent.layout.width)}
           >
-            <LinearGradient
-              colors={["#6FD0FF", "#2BA8E0"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.segmentIndicatorFill}
-            />
-          </Animated.View>
-        )}
-        <TouchableOpacity style={styles.segment} onPress={() => setTab("mine")}>
-          <Text style={[styles.segmentText, tab === "mine" && styles.segmentTextActive]}>My Shifts</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.segment} onPress={() => setTab("available")}>
-          <Text style={[styles.segmentText, tab === "available" && styles.segmentTextActive]}>Available Shifts</Text>
-        </TouchableOpacity>
+            {segmentIndicatorWidth > 0 && (
+              <Animated.View
+                style={[
+                  styles.segmentIndicator,
+                  { width: segmentIndicatorWidth, transform: [{ translateX: segmentTranslateX }] },
+                ]}
+              >
+                <View style={styles.segmentIndicatorFill} />
+              </Animated.View>
+            )}
+            <TouchableOpacity style={styles.segment} onPress={() => setTab("mine")}>
+              <Text style={[styles.segmentText, tab === "mine" && styles.segmentTextActive]}>My Shifts</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.segment} onPress={() => setTab("available")}>
+              <Text style={[styles.segmentText, tab === "available" && styles.segmentTextActive]}>Available Shifts</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
       </View>
     </>
   );
 
   return (
-    <ImageBackground
-      source={require("../../../../assets/images/bg_kelpGull.jpg.jpeg")}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <LinearGradient
-        colors={["rgba(255,255,255,0.86)", "rgba(255,255,255,0.76)", "rgba(255,255,255,0.84)"]}
-        locations={[0, 0.42, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.container}>
-        <FlatList
-          ListHeaderComponent={header}
-          data={rows}
-          keyExtractor={(row) => row.key}
-          contentContainerStyle={{ padding: 20, paddingTop: 8 + insets.top, paddingBottom: 150, flexGrow: 1 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => load("manual")} tintColor={COLORS.blue} />
+    <View style={styles.container}>
+      <FlatList
+        ListHeaderComponent={header}
+        data={rows}
+        keyExtractor={(row) => row.key}
+        style={[styles.list, BANNER_SCROLL.scroll]}
+        contentContainerStyle={[{ paddingBottom: 150, flexGrow: 1 }, BANNER_SCROLL.content]}
+        ListFooterComponent={<BelowContentFill />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => load("manual")}
+            tintColor={COLORS.pastelInk}
+            colors={[COLORS.amberMid]}
+          />
+        }
+        renderItem={({ item: row }) => {
+          if (row.type === "header") {
+            return (
+              <View style={styles.rowWrap}>
+                <Text style={styles.sectionHeader}>{row.title}</Text>
+              </View>
+            );
           }
-          renderItem={({ item: row }) => {
-            if (row.type === "header") {
-              return <Text style={styles.sectionHeader}>{row.title}</Text>;
-            }
-            if (row.type === "mine") {
-              return <MyShiftCard item={row.item} />;
-            }
-            return <AvailableShiftCard item={row.item} />;
-          }}
-          ListEmptyComponent={
-            loading ? (
+          if (row.type === "mine") {
+            return (
+              <View style={styles.rowWrap}>
+                <MyShiftCard
+                  item={row.item}
+                  cancellationPending={pendingCancellationIds.has(row.item.rosterAssignmentId)}
+                  accent={COLORS.pastelYellowDeep}
+                  accentText={COLORS.pastelInk}
+                />
+              </View>
+            );
+          }
+          return (
+            <View style={styles.rowWrap}>
+              <AvailableShiftCard item={row.item} onChanged={() => load("silent")} />
+            </View>
+          );
+        }}
+        ListEmptyComponent={
+          <View style={[styles.rowWrap, styles.emptyWrap]}>
+            {loading ? (
               <>
                 <SkeletonCard />
                 <SkeletonCard />
@@ -270,13 +450,19 @@ export default function BookingsScreen() {
               </>
             ) : loadError ? (
               <View style={styles.emptyStateCard}>
-                <Ionicons name="warning-outline" size={40} color={COLORS.grey} />
+                <View style={styles.emptyArtRow}>
+                  <Ionicons name="warning-outline" size={40} color={COLORS.grey} />
+                  <EmptyStatePenguin />
+                </View>
                 <Text style={styles.emptyTitle}>Couldn't load shifts</Text>
                 <Text style={styles.emptyText}>Switch tabs or try again in a moment.</Text>
               </View>
             ) : (
               <View style={styles.emptyStateCard}>
-                <Ionicons name="calendar-outline" size={40} color={COLORS.grey} />
+                <View style={styles.emptyArtRow}>
+                  <Ionicons name="calendar-outline" size={40} color={COLORS.grey} />
+                  <EmptyStatePenguin />
+                </View>
                 <Text style={styles.emptyTitle}>
                   {tab === "mine" ? "No shifts scheduled yet" : "No open shifts right now"}
                 </Text>
@@ -286,125 +472,167 @@ export default function BookingsScreen() {
                     : "Check back later, admins release shifts here when help's needed."}
                 </Text>
               </View>
-            )
-          }
-        />
-      </View>
-    </ImageBackground>
+            )}
+          </View>
+        }
+      />
+    </View>
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
-  background: { flex: 1 },
-  container: { flex: 1 },
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  headerCard: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 22,
+  container: { flex: 1, backgroundColor: COLORS.white },
+  list: { backgroundColor: COLORS.white },
+  rowWrap: { backgroundColor: COLORS.white, paddingHorizontal: 20 },
+  emptyWrap: { flexGrow: 1, paddingTop: 4 },
+  banner: {
+    alignItems: "center",
+    paddingBottom: 90,
   },
-  title: { fontSize: 20, fontWeight: "800", color: COLORS.navy },
-  availabilityButton: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
+  titleGroup: {
+    alignSelf: "stretch",
+    alignItems: "flex-start",
+    paddingHorizontal: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: COLORS.pastelInk,
+    letterSpacing: 0.5,
+    zIndex: 1,
+    textShadowColor: "rgba(255,255,255,0.6)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: COLORS.amberDark,
+    letterSpacing: 1.5,
+    marginLeft: 1.5,
+    marginTop: 6,
+    fontWeight: "700",
+    zIndex: 1,
+  },
+  tagline: {
+    fontSize: 11.5,
+    color: COLORS.amberDark,
+    letterSpacing: 0.3,
+    marginTop: 6,
+    fontWeight: "500",
+    zIndex: 1,
+  },
+  sheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -20,
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    shadowColor: "#3a2c02",
+    ...SHEET_TOP_SHADOW,
+  },
+  summaryRow: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 20,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    gap: 6,
+    justifyContent: "space-between",
+    width: "100%",
+    marginBottom: 20,
   },
-  availabilityButtonText: { color: COLORS.navy, fontWeight: "800", fontSize: 13 },
+  summaryHeading: { fontSize: 24, color: COLORS.amberLight, fontWeight: "700" },
+  eyebrowLabel: { fontSize: 12, color: COLORS.amberMid, fontWeight: "800", letterSpacing: 1.4, marginTop: 4 },
+  availabilityButtonWrap: {
+    borderRadius: 40,
+    shadowColor: COLORS.amberDark,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  availabilityButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 40,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    gap: 6,
+    backgroundColor: COLORS.pastelYellowDeep,
+    borderWidth: 1,
+    borderColor: COLORS.pastelYellowBorder,
+  },
+  availabilityButtonText: { color: COLORS.pastelInk, fontWeight: "700", fontSize: 13 },
   segmentRow: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
     flexDirection: "row",
     height: 44,
     padding: 4,
-    borderRadius: 14,
+    borderRadius: 22,
     marginBottom: 16,
+    backgroundColor: COLORS.pastelYellowBg,
+    borderWidth: 1,
+    borderColor: COLORS.pastelYellow,
   },
-  segment: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 10 },
+  segment: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 18 },
   segmentIndicator: {
     position: "absolute",
     top: 4,
     bottom: 4,
     left: 4,
-    borderRadius: 10,
-    borderWidth: 0.75,
-    borderColor: "rgba(255,255,255,0.5)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 10,
+    borderRadius: 18,
+    shadowColor: COLORS.amberDark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  segmentIndicatorFill: { flex: 1, borderRadius: 10 },
+  segmentIndicatorFill: { flex: 1, borderRadius: 18, backgroundColor: COLORS.pastelYellowDeep },
   segmentText: { fontSize: 13, color: COLORS.grey, fontWeight: "700" },
-  segmentTextActive: { color: COLORS.white, fontWeight: "900" },
+  segmentTextActive: { color: COLORS.pastelInk, fontWeight: "900" },
   sectionHeader: {
     fontSize: 12,
-    fontWeight: "900",
-    color: COLORS.navy,
+    fontWeight: "700",
+    color: COLORS.amberMid,
     letterSpacing: 0.6,
     textTransform: "uppercase",
     marginBottom: 8,
     marginTop: 4,
   },
   emptyStateCard: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_LG,
     alignItems: "center",
+    backgroundColor: COLORS.white,
     borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#ede7d8",
     padding: 26,
     gap: 12,
   },
-  emptyTitle: { fontSize: 16, fontWeight: "800", color: COLORS.navy },
+  emptyArtRow: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.amberLight },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
-  shiftCard: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_MD,
-    flexDirection: "row",
-    gap: 20,
-    borderRadius: 20,
-    padding: 22,
-    marginBottom: 18,
-  },
-  shiftCardBody: { flex: 1, gap: 8 },
-  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  shiftTimeLabel: { fontSize: 19, fontWeight: "800", color: COLORS.navy },
-  relativeLabel: { fontSize: 13, fontWeight: "700", color: COLORS.grey },
-  capacityRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 3 },
-  capacityChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "rgba(0,46,76,0.08)",
-    paddingVertical: 5,
-    paddingHorizontal: 13,
-    borderRadius: 13,
-  },
-  capacityChipText: { fontSize: 13, fontWeight: "800", color: COLORS.navy },
+  availableTitleRow: { marginBottom: 12 },
+  bookAction: { backgroundColor: COLORS.pastelYellowDeep },
+  bookActionText: { color: COLORS.pastelInk },
   limitedTag: {
-    backgroundColor: COLORS.amberBg,
-    paddingVertical: 5,
-    paddingHorizontal: 13,
+    backgroundColor: COLORS.pastelYellow,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
     borderRadius: 13,
+    marginLeft: 6,
   },
-  limitedTagText: { fontSize: 13, fontWeight: "800", color: "#9A7B00" },
+  limitedTagText: { fontSize: 11, fontWeight: "800", color: "#9A7B00" },
   skeletonBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 14,
     backgroundColor: "rgba(0,46,76,0.12)",
   },
+  skeletonBody: { flex: 1, gap: 8 },
   skeletonLineWide: {
     height: 18,
     borderRadius: 9,
     width: "70%",
     backgroundColor: "rgba(0,46,76,0.12)",
+    marginBottom: 8,
   },
   skeletonLineNarrow: {
     height: 15,
@@ -414,3 +642,5 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

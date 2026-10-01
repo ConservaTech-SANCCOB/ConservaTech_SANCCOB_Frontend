@@ -1,6 +1,7 @@
 import { ViewStyle } from "react-native";
 import { GLASS_CARD, GLASS_SHADOW_LG } from "./glassCard";
 
+// Also restores the tab bar after a screen hides it
 export function getTabBarStyle(bottomInset: number): ViewStyle {
   return {
     position: "absolute",
@@ -14,8 +15,12 @@ export function getTabBarStyle(bottomInset: number): ViewStyle {
     paddingTop: 8,
     ...GLASS_CARD,
     ...GLASS_SHADOW_LG,
-    // Local override: keep the nav bar's original translucency even though
-    // GLASS_CARD's default opacity was bumped up for card readability elsewhere.
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
     backgroundColor: "rgba(255,255,255,0.55)",
   };
 }
+
+//----------------------------------- END OF FILE ---------------------------------//

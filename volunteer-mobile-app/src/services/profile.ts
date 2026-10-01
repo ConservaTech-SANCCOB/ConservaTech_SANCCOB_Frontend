@@ -11,6 +11,7 @@ export interface VolunteerProfile {
   emergencyContactPhone: string | null;
 }
 
+// Backend rejects any extra fields
 export interface UpdateVolunteerProfilePayload {
   email: string;
   phoneNumber?: string | null;
@@ -24,6 +25,10 @@ export function getMyProfile() {
   return api.get<VolunteerProfile>("/api/volunteers/me/profile");
 }
 
+// ------------------------------------------------------------ //
+
 export function updateMyProfile(payload: UpdateVolunteerProfilePayload) {
   return api.put<void>("/api/volunteers/me/profile", payload);
 }
+
+//----------------------------------- END OF FILE ---------------------------------//

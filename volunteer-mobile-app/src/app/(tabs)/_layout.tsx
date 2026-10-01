@@ -8,8 +8,15 @@ import { getTabBarStyle } from "../../constants/tabBar";
 
 const ACTIVE_COLOR = COLORS.blue;
 const INACTIVE_COLOR = COLORS.navy;
+const TAB_ACCENTS: Record<string, string> = {
+  progress: COLORS.green,
+  bookings: COLORS.amberMid,
+  profile: COLORS.pinkMid,
+};
 const INDICATOR_HEIGHT = 44;
 const PILL_HORIZONTAL_INSET = 6;
+
+//--------------------TAB BAR--------------------//
 
 function TabIcon({
   name,
@@ -41,11 +48,18 @@ function TabIcon({
   );
 }
 
+// ------------------------------------------------------------ //
+
+// Reports its position so the pill can slide there
 function TabButton({
+  label,
+  focused,
   onPress,
   onLayout,
   children,
 }: {
+  label: string;
+  focused: boolean;
   onPress: () => void;
   onLayout: (event: LayoutChangeEvent) => void;
   children: React.ReactNode;
@@ -60,12 +74,24 @@ function TabButton({
   };
 
   return (
-    <Pressable style={styles.tabButton} onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} onLayout={onLayout}>
+    <Pressable
+      style={styles.tabButton}
+      onPress={onPress}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+      onLayout={onLayout}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: focused }}
+    >
       <Animated.View style={[styles.tabButtonInner, { transform: [{ scale }] }]}>{children}</Animated.View>
     </Pressable>
   );
 }
 
+// ------------------------------------------------------------ //
+
+// Our own tab bar with a sliding highlight pill
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const translateX = useRef(new Animated.Value(0)).current;
@@ -96,9 +122,13 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   }, [state.index]);
 
   const focusedOptions = descriptors[state.routes[state.index].key].options;
+  // Screens hide the bar with display none
   if (focusedOptions.tabBarStyle?.display === "none") {
     return null;
   }
+
+  const activeRoute = state.routes[state.index].name;
+  const activeColor = TAB_ACCENTS[activeRoute] ?? ACTIVE_COLOR;
 
   const handleButtonLayout = (index: number, event: LayoutChangeEvent) => {
     const { x, width } = event.nativeEvent.layout;
@@ -113,14 +143,20 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       {pillWidth > 0 && (
         <View style={styles.indicatorLayer} pointerEvents="none">
           <Animated.View
-            style={[styles.indicatorPill, { width: pillWidth, transform: [{ translateX }] }]}
+            style={[
+              styles.indicatorPill,
+              activeRoute === "progress" && styles.indicatorPillTraining,
+              activeRoute === "bookings" && styles.indicatorPillShifts,
+              activeRoute === "profile" && styles.indicatorPillProfile,
+              { width: pillWidth, transform: [{ translateX }] },
+            ]}
           />
         </View>
       )}
       {state.routes.map((route: { key: string; name: string }, index: number) => {
         const { options } = descriptors[route.key];
         const focused = state.index === index;
-        const color = focused ? ACTIVE_COLOR : INACTIVE_COLOR;
+        const color = focused ? activeColor : INACTIVE_COLOR;
 
         const onPress = () => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -130,7 +166,13 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         };
 
         return (
-          <TabButton key={route.key} onPress={onPress} onLayout={(e) => handleButtonLayout(index, e)}>
+          <TabButton
+            key={route.key}
+            label={options.title ?? route.name}
+            focused={focused}
+            onPress={onPress}
+            onLayout={(e) => handleButtonLayout(index, e)}
+          >
             {options.tabBarIcon?.({ focused, color, size: 20 })}
           </TabButton>
         );
@@ -138,6 +180,8 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     </View>
   );
 }
+
+//--------------------TABS--------------------//
 
 export default function TabsLayout() {
   return (
@@ -149,15 +193,31 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="home"
-        options={{ title: "Home", tabBarIcon: ({ color, size, focused }) => <TabIcon name="home" color={color} size={size} focused={focused} /> }}
+        options={{
+          title: "Home",
+          popToTopOnBlur: true,
+          tabBarIcon: ({ color, size, focused }) => <TabIcon name="home" color={color} size={size} focused={focused} />,
+        }}
       />
       <Tabs.Screen
         name="bookings"
-        options={{ title: "Shift", tabBarIcon: ({ color, size, focused }) => <TabIcon name="calendar" color={color} size={size} focused={focused} /> }}
+        options={{
+          title: "Shift",
+          // Coming back to the tab always shows the Shifts list, never a half-finished
+          // Submit Availability or Request Change screen left open from earlier.
+          popToTopOnBlur: true,
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name="calendar" color={color} size={size} focused={focused} />
+          ),
+        }}
       />
       <Tabs.Screen
         name="progress"
-        options={{ title: "Training", tabBarIcon: ({ color, size, focused }) => <TabIcon name="school" color={color} size={size} focused={focused} /> }}
+        options={{
+          title: "Training",
+          popToTopOnBlur: true,
+          tabBarIcon: ({ color, size, focused }) => <TabIcon name="school" color={color} size={size} focused={focused} />,
+        }}
       />
       <Tabs.Screen
         name="profile"
@@ -166,6 +226,8 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+//--------------------STYLES--------------------//
 
 const styles = StyleSheet.create({
   barContainer: {
@@ -195,4 +257,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(83, 199, 255, 0.35)",
   },
+  indicatorPillTraining: {
+    backgroundColor: "rgba(63, 201, 32, 0.16)",
+    borderColor: "rgba(63, 201, 32, 0.35)",
+  },
+  indicatorPillShifts: {
+    backgroundColor: "rgba(255, 226, 122, 0.5)",
+    borderColor: "rgba(239, 203, 85, 0.6)",
+  },
+  indicatorPillProfile: {
+    backgroundColor: "rgba(181, 42, 107, 0.14)",
+    borderColor: "rgba(181, 42, 107, 0.35)",
+  },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

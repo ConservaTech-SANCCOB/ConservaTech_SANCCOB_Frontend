@@ -1,33 +1,46 @@
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import AnimatedSplash from "../components/AnimatedSplash";
-import { getToken } from "../utils/api";
+import { toastConfig } from "../components/toastConfig";
+import { clearToken, getSessionRole, getToken } from "../utils/api";
 import { COLORS } from "../utils/colors";
+import { logError } from "../utils/logError";
 
+// Keep the native splash until ours takes over
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+export { default as ErrorBoundary } from "../components/ErrorFallback";
 
 type SessionCheck = "checking" | "authenticated" | "unauthenticated";
 
+// Checks for a saved session before showing any screen
 export default function RootLayout() {
   const router = useRouter();
   const [showCustomSplash, setShowCustomSplash] = useState(true);
   const [sessionCheck, setSessionCheck] = useState<SessionCheck>("checking");
+  const hideCustomSplash = useCallback(() => setShowCustomSplash(false), []);
 
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
   }, []);
 
+  // Trainer sessions are never restored on a shared device
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const token = await getToken();
+        let token = await getToken();
+        if (token && (await getSessionRole()) === "trainer") {
+          await clearToken();
+          token = null;
+        }
         if (!cancelled) setSessionCheck(token ? "authenticated" : "unauthenticated");
       } catch (error) {
-        console.error("Session restore check failed:", error);
+        logError("Session restore check failed", error);
         if (!cancelled) setSessionCheck("unauthenticated");
       }
     })();
@@ -36,6 +49,7 @@ export default function RootLayout() {
     };
   }, []);
 
+  // Already signed in so skip Welcome
   useEffect(() => {
     if (sessionCheck === "authenticated") {
       router.replace("/(tabs)/home");
@@ -48,7 +62,8 @@ export default function RootLayout() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.white }}>
           <ActivityIndicator color={COLORS.blue} />
         </View>
-        {showCustomSplash && <AnimatedSplash onFinish={() => setShowCustomSplash(false)} />}
+        {showCustomSplash && <AnimatedSplash onFinish={hideCustomSplash} />}
+        <Toast config={toastConfig} />
       </SafeAreaProvider>
     );
   }
@@ -61,12 +76,14 @@ export default function RootLayout() {
         <Stack.Screen name="activate" />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="request-change" />
         <Stack.Screen name="trainer-pin" />
         <Stack.Screen name="trainer-select" />
         <Stack.Screen name="trainer-dashboard" />
         <Stack.Screen name="trainer-volunteer/[volunteerId]" />
       </Stack>
-      {showCustomSplash && <AnimatedSplash onFinish={() => setShowCustomSplash(false)} />}
+      {showCustomSplash && <AnimatedSplash onFinish={hideCustomSplash} />}
+      <Toast config={toastConfig} />
     </SafeAreaProvider>
   );
 }

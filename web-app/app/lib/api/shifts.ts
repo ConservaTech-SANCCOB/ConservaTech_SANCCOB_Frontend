@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { apiFetch, ApiError } from "./http";
 
 /* ============================================================
    TYPES — match the confirmed backend Swagger schema exactly
@@ -12,17 +12,19 @@ export interface Shift {
   shiftDate: string;
   timeSlot: string;
   location: string;
-  birdCount: number;
+  birdCount?: number | null;
   capacity: number;
-  requiredSkillIds: number[];
+  requiredSkillIds?: number[] | null;
 }
 
+// POST/PUT body matching CreateShiftDto & UpdateShiftDto
 export interface ShiftPayload {
   shiftDate: string;
   timeSlot: string;
   location: string;
-  birdCount: number;
-  requiredSkillIds: number[];
+  birdCount?: number | null;
+  capacity?: number | null;
+  requiredSkillIds?: number[] | null;
 }
 
 export interface Vacancy {
@@ -34,7 +36,26 @@ export interface Vacancy {
   capacity: number;
   assignedVolunteers: number;
   vacanciesAvailable: number;
-  requiredSkillIds: number[];
+  requiredSkillIds?: number[] | null;
+}
+
+// Matches components.schemas.ShiftLocationDto
+export interface ShiftLocation {
+  skillId: number;
+  locationName: string;
+  locationType: string;
+}
+
+// Matches components.schemas.ShiftSkillDto
+export interface ShiftSkill {
+  skillId: number;
+  skillName: string;
+}
+
+// Matches components.schemas.ShiftTimeSlotDto
+export interface ShiftTimeSlotOption {
+  value: string;
+  displayName: string;
 }
 
 /* ============================================================
@@ -43,46 +64,51 @@ export interface Vacancy {
 
 // GET /api/Shifts
 export async function fetchShifts(token: string | null): Promise<Shift[]> {
-  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
+  const data = await apiFetch<Shift[]>(
+    "/api/Shifts",
+    token,
+    { method: "GET" },
+    "Unable to load shifts"
+  );
+  return Array.isArray(data) ? data : [];
+}
 
-  const response = await fetch(`${API_URL}/api/Shifts`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
+// GET /api/Shifts/{id}
+export async function fetchShiftById(token: string | null, shiftId: number): Promise<Shift> {
+  return apiFetch<Shift>(
+    `/api/Shifts/${shiftId}`,
+    token,
+    { method: "GET" },
+    "Unable to load shift"
+  );
+}
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to load shifts");
-  }
-
-  const data: Shift[] = await response.json();
+// GET /api/Shifts/week?weekStartDate=...
+export async function fetchShiftsForWeek(
+  token: string | null,
+  weekStartDate: string
+): Promise<Shift[]> {
+  const data = await apiFetch<Shift[]>(
+    `/api/Shifts/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
+    token,
+    { method: "GET" },
+    "Unable to load shifts for this week"
+  );
   return Array.isArray(data) ? data : [];
 }
 
 // POST /api/Shifts
 export async function createShift(token: string | null, payload: ShiftPayload): Promise<Shift> {
-  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-
-  const response = await fetch(`${API_URL}/api/Shifts`, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+  return apiFetch<Shift>(
+    "/api/Shifts",
+    token,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to create shift");
-  }
-
-  return await response.json();
+    "Unable to create shift"
+  );
 }
 
 // PUT /api/Shifts/{id}
@@ -91,47 +117,34 @@ export async function updateShift(
   shiftId: number,
   payload: ShiftPayload
 ): Promise<Shift> {
-  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-
-  const response = await fetch(`${API_URL}/api/Shifts/${shiftId}`, {
-    method: "PUT",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+  return apiFetch<Shift>(
+    `/api/Shifts/${shiftId}`,
+    token,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to update shift");
-  }
-
-  return await response.json();
+    "Unable to update shift"
+  );
 }
 
 // DELETE /api/Shifts/{id}
 export async function deleteShift(token: string | null, shiftId: number): Promise<void> {
-  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-
-  const response = await fetch(`${API_URL}/api/Shifts/${shiftId}`, {
-    method: "DELETE",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (response.status === 409) {
-    throw new Error(
-      "This shift can't be deleted because it's already linked to roster assignments."
+  try {
+    await apiFetch<void>(
+      `/api/Shifts/${shiftId}`,
+      token,
+      { method: "DELETE" },
+      "Unable to delete shift"
     );
-  }
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Unable to delete shift");
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 409) {
+      throw new Error(
+        "This shift can't be deleted because it's already linked to roster assignments."
+      );
+    }
+    throw err;
   }
 }
 
@@ -140,18 +153,45 @@ export async function fetchShiftsByLocation(
   token: string | null,
   location: string
 ): Promise<Shift[]> {
-  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
+  const data = await apiFetch<Shift[]>(
+    `/api/Shifts/location/${encodeURIComponent(location)}`,
+    token,
+    { method: "GET" },
+    "Unable to load shifts for this location"
+  );
+  return Array.isArray(data) ? data : [];
+}
 
-  const response = await fetch(`${API_URL}/api/Shifts/location/${encodeURIComponent(location)}`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
+// GET /api/Shifts/skills
+export async function fetchShiftSkills(token: string | null): Promise<ShiftSkill[]> {
+  const data = await apiFetch<ShiftSkill[]>(
+    "/api/Shifts/skills",
+    token,
+    { method: "GET" },
+    "Unable to load shift skills"
+  );
+  return Array.isArray(data) ? data : [];
+}
 
-  if (!response.ok) return [];
-  const data = await response.json();
+// GET /api/Shifts/locations
+export async function fetchShiftLocations(token: string | null): Promise<ShiftLocation[]> {
+  const data = await apiFetch<ShiftLocation[]>(
+    "/api/Shifts/locations",
+    token,
+    { method: "GET" },
+    "Unable to load shift locations"
+  );
+  return Array.isArray(data) ? data : [];
+}
+
+// GET /api/Shifts/time-slots
+export async function fetchTimeSlots(token: string | null): Promise<ShiftTimeSlotOption[]> {
+  const data = await apiFetch<ShiftTimeSlotOption[]>(
+    "/api/Shifts/time-slots",
+    token,
+    { method: "GET" },
+    "Unable to load time slots"
+  );
   return Array.isArray(data) ? data : [];
 }
 
@@ -161,19 +201,12 @@ export async function fetchShiftsByLocation(
 
 // GET /api/Vacancies
 export async function fetchVacancies(token: string | null): Promise<Vacancy[]> {
-  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-
-  const response = await fetch(`${API_URL}/api/Vacancies`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) return [];
-
-  const data: Vacancy[] = await response.json();
+  const data = await apiFetch<Vacancy[]>(
+    "/api/Vacancies",
+    token,
+    { method: "GET" },
+    "Unable to load vacancies"
+  );
   return Array.isArray(data) ? data : [];
 }
 
@@ -182,22 +215,12 @@ export async function fetchVacanciesForWeek(
   token: string | null,
   weekStartDate: string
 ): Promise<Vacancy[]> {
-  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-
-  const response = await fetch(
-    `${API_URL}/api/Vacancies/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const data = await apiFetch<Vacancy[]>(
+    `/api/Vacancies/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
+    token,
+    { method: "GET" },
+    "Unable to load vacancies for this week"
   );
-
-  if (!response.ok) return [];
-
-  const data: Vacancy[] = await response.json();
   return Array.isArray(data) ? data : [];
 }
 
@@ -206,39 +229,11 @@ export async function fetchVacanciesByLocation(
   token: string | null,
   location: string
 ): Promise<Vacancy[]> {
-  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-
-  const response = await fetch(`${API_URL}/api/Vacancies/location/${encodeURIComponent(location)}`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) return [];
-
-  const data: Vacancy[] = await response.json();
+  const data = await apiFetch<Vacancy[]>(
+    `/api/Vacancies/location/${encodeURIComponent(location)}`,
+    token,
+    { method: "GET" },
+    "Unable to load vacancies for this location"
+  );
   return Array.isArray(data) ? data : [];
-}
-
-/* ============================================================
-   BUSINESS RULE HELPERS
-   ============================================================ */
-
-export function calculateCapacity(birdCount: number, location: string): number {
-  if (birdCount <= 0) return 0;
-  const computed = Math.ceil(birdCount / 25);
-  if (isQuarantineLocation(location)) {
-    return Math.min(computed, 1);
-  }
-  return computed;
-}
-
-export function isQuarantineLocation(location: string): boolean {
-  return location.toLowerCase().includes("quarantine");
-}
-
-export function maxBirdsForLocation(location: string): number {
-  return isQuarantineLocation(location) ? 25 : 30;
 }

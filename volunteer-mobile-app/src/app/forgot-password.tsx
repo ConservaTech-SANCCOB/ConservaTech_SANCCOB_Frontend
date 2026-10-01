@@ -1,10 +1,15 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import KeyboardAvoidingScreen from "../components/KeyboardAvoidingScreen";
 import { COLORS } from "../utils/colors";
 import { forgotPassword, resetPassword } from "../services/auth";
+import { getErrorMessage, getErrorStatus } from "../utils/api";
+import { showErrorToast } from "../utils/toast";
+import { logError } from "../utils/logError";
+import { resetTo } from "../utils/navigation";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -16,19 +21,20 @@ export default function ForgotPasswordScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleRequestCode = async () => {
-    if (!email) {
+    if (!email.trim()) {
       Alert.alert("Email required", "Enter your email address.");
       return;
     }
     setLoading(true);
     try {
-      await forgotPassword(email);
+      await forgotPassword(email.trim());
+      // Same reply either way so emails stay private
       Alert.alert("Check your email", "If an account exists with this email, a reset code has been sent.", [
         { text: "OK", onPress: () => setStep("reset") },
       ]);
     } catch (error) {
-      console.error("Forgot password error:", error);
-      Alert.alert("Couldn't send reset code", "Something went wrong, try again.");
+      logError("Forgot password error", error);
+      showErrorToast("Couldn't send reset code", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     } finally {
       setLoading(false);
     }
@@ -41,118 +47,116 @@ export default function ForgotPasswordScreen() {
     }
     setLoading(true);
     try {
-      await resetPassword(email, resetCode, newPassword);
-      router.replace("/(tabs)/home");
+      await resetPassword(email.trim(), resetCode, newPassword);
+      resetTo("/(tabs)/home");
     } catch (error) {
-      console.error("Reset password error:", error);
-      Alert.alert("Couldn't reset password", "Check the reset code and try again.");
+      logError("Reset password error", error);
+      const status = getErrorStatus(error);
+      showErrorToast(
+        "Couldn't reset password",
+        status === 401 ? "Incorrect or expired reset code" : getErrorMessage(error, "Something went wrong. Try again in a moment.")
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={["#00567f", "#002e4c"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.banner}>
-        <View style={styles.logoCircle}>
-          <Image source={require("../../assets/images/sanccob-icon.png")} style={styles.logoImage} />
-        </View>
-        <Text style={styles.title}>Reset Password</Text>
-        <Text style={styles.subtitle}>
-          {step === "request" ? "ENTER YOUR EMAIL TO GET A RESET CODE" : "ENTER THE CODE AND A NEW PASSWORD"}
-        </Text>
-      </LinearGradient>
+    <KeyboardAvoidingScreen style={styles.container}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
+        <LinearGradient colors={["#00567f", "#002e4c"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.banner}>
+          <View style={styles.logoCircle}>
+            <Image source={require("../../assets/images/sanccob-icon.png")} style={styles.logoImage} />
+          </View>
+          <Text style={styles.title}>Reset Password</Text>
+          <Text style={styles.subtitle}>
+            {step === "request" ? "ENTER YOUR EMAIL TO GET A RESET CODE" : "ENTER THE CODE AND A NEW PASSWORD"}
+          </Text>
+        </LinearGradient>
 
-      <View style={styles.background}>
-        <View style={styles.form}>
-          {step === "request" ? (
-            <>
-              <Text style={styles.label}>Email Address</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
-                <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                />
-              </View>
-              <TouchableOpacity style={styles.submitButtonWrap} onPress={handleRequestCode} disabled={loading}>
-                <LinearGradient
-                  colors={["#6FD0FF", "#2BA8E0"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={styles.submitButton}
-                >
-                  {loading ? (
-                    <ActivityIndicator color={COLORS.white} />
-                  ) : (
-                    <>
-                      <Ionicons name="mail-outline" size={20} color={COLORS.white} />
-                      <Text style={styles.submitButtonText}>Send Reset Code</Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <Text style={styles.label}>Reset Code</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="keypad-outline" size={18} color={COLORS.grey} />
-                <TextInput
-                  style={styles.input}
-                  value={resetCode}
-                  onChangeText={setResetCode}
-                  autoCorrect={false}
-                />
-              </View>
-              <Text style={styles.label}>New Password</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="lock-closed-outline" size={18} color={COLORS.grey} />
-                <TextInput
-                  style={styles.input}
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  secureTextEntry={!showPassword}
-                  autoCorrect={false}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
-                  <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={COLORS.grey} />
+        <View style={styles.background}>
+          <View style={styles.form}>
+            {step === "request" ? (
+              <>
+                <Text style={styles.label}>Email Address</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                  />
+                </View>
+                <TouchableOpacity style={styles.submitButtonWrap} onPress={handleRequestCode} disabled={loading}>
+                  <View style={styles.submitButton}>
+                    {loading ? (
+                      <ActivityIndicator color={COLORS.white} />
+                    ) : (
+                      <>
+                        <Text style={styles.submitButtonText}>Send Reset Code</Text>
+                        <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
+                      </>
+                    )}
+                  </View>
                 </TouchableOpacity>
-              </View>
-              <TouchableOpacity style={styles.submitButtonWrap} onPress={handleReset} disabled={loading}>
-                <LinearGradient
-                  colors={["#6FD0FF", "#2BA8E0"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={styles.submitButton}
-                >
-                  {loading ? (
-                    <ActivityIndicator color={COLORS.white} />
-                  ) : (
-                    <>
-                      <Ionicons name="key-outline" size={20} color={COLORS.white} />
-                      <Text style={styles.submitButtonText}>Reset Password</Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setStep("request")}>
-                <Text style={styles.helperText}>Didn&apos;t get a code? Send again</Text>
-              </TouchableOpacity>
-            </>
-          )}
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.helperText}>Back to login</Text>
-          </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.label}>Reset Code</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="keypad-outline" size={18} color={COLORS.grey} />
+                  <TextInput
+                    style={styles.input}
+                    value={resetCode}
+                    onChangeText={setResetCode}
+                    autoCorrect={false}
+                  />
+                </View>
+                <Text style={styles.label}>New Password</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="lock-closed-outline" size={18} color={COLORS.grey} />
+                  <TextInput
+                    style={styles.input}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showPassword}
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+                    <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={COLORS.grey} />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity style={styles.submitButtonWrap} onPress={handleReset} disabled={loading}>
+                  <View style={styles.submitButton}>
+                    {loading ? (
+                      <ActivityIndicator color={COLORS.white} />
+                    ) : (
+                      <>
+                        <Text style={styles.submitButtonText}>Reset Password</Text>
+                        <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
+                      </>
+                    )}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setStep("request")}>
+                  <Text style={styles.helperText}>Didn&apos;t get a code? Send again</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text style={styles.helperText}>Back to login</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingScreen>
   );
 }
+
+//--------------------STYLES--------------------//
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
@@ -190,37 +194,39 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    borderWidth: 1.5,
-    borderColor: "rgba(0,46,76,0.3)",
+    borderWidth: 1,
+    borderColor: "rgba(0,46,76,0.15)",
     backgroundColor: COLORS.lightGrey,
     borderRadius: 26,
     paddingHorizontal: 18,
     shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
   },
   input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "600", color: COLORS.navy },
   submitButtonWrap: {
     marginTop: 28,
-    borderRadius: 16,
-    borderWidth: 0.75,
-    borderColor: "rgba(255,255,255,0.5)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 10,
+    borderRadius: 40,
+    shadowColor: "#075985",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   submitButton: {
     flexDirection: "row",
-    borderRadius: 16,
-    paddingVertical: 14,
+    borderRadius: 40,
+    paddingVertical: 24,
+    paddingHorizontal: 18,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    backgroundColor: "#0284c7",
   },
-  submitButtonText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
+  submitButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
   helperText: { textAlign: "center", color: COLORS.navy, fontSize: 13, marginTop: 20 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

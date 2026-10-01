@@ -1,37 +1,25 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { apiFetch } from "./http";
 
 export interface DashboardStats {
   volunteersByAge: { age: string; count: number }[];
   totalNewRecruits: number;
+}
 
-  conservation: {
-    totalRescued: number;
-    totalReleased: number;
-    percentReleased: number;
-  };
+// GET/PUT /api/admin/dashboard/conservation-impact  (ConservationStatsDto)
+export interface ConservationStats {
+  year: number;
+  totalRescued: number;
+  totalReleased: number;
+  percentReleased: number;
+}
 
-  shifts: {
-    totalShifts: number;
-    morningCount: number;
-    afternoonCount: number;
-    morningPercent: number;
-    afternoonPercent: number;
-  };
-
-  todaysShifts: {
-    area: string;
-    status: string;
-    time: string;
-    people: string;
-  }[];
-
-  trainingSessions: {
-    name: string;
-    initials: string;
-    status: string;
-    trainer: string;
-    progress: number;
-  }[];
+// GET /api/admin/dashboard/shift-distribution  (ShiftDistributionDto)
+export interface ShiftDistribution {
+  totalShifts: number;
+  morningCount: number;
+  afternoonCount: number;
+  morningPercent: number;
+  afternoonPercent: number;
 }
 
 export async function fetchDashboardStats(token: string | null): Promise<DashboardStats> {

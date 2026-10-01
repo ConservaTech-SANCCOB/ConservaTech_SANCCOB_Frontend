@@ -1,18 +1,29 @@
 import { useRef } from "react";
 import { Alert, Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { GLASS_CARD, GLASS_SHADOW_MD } from "../constants/glassCard";
 import { MyShift } from "../services/shifts";
 import { COLORS } from "../utils/colors";
 import { getRelativeLabel } from "../utils/dateBuckets";
 import { formatTimeSlotLabel, hasShiftEnded } from "../utils/timeSlot";
-import { DateBadge } from "./ShiftCardParts";
+import { DateBadge, SHIFT_CARD_STYLES, SlotChip, slotTheme } from "./ShiftCardParts";
 
-export default function MyShiftCard({ item }: { item: MyShift }) {
+export default function MyShiftCard({
+  item,
+  cancellationPending = false,
+  accent = COLORS.blueMid,
+  accentText = COLORS.white,
+}: {
+  item: MyShift;
+  cancellationPending?: boolean;
+  /** Tints the Cancel button to match the screen this card is shown on (the rest follows the time slot). */
+  accent?: string;
+  /** Text/icon colour on top of `accent`; override when the accent is too light for white. */
+  accentText?: string;
+}) {
   const router = useRouter();
   const ended = hasShiftEnded(item.shiftDate, item.timeSlot);
+  const slot = slotTheme(item.timeSlot);
   const scale = useRef(new Animated.Value(1)).current;
 
   const pressIn = () => {
@@ -24,7 +35,7 @@ export default function MyShiftCard({ item }: { item: MyShift }) {
 
   const requestChange = () => {
     router.push({
-      pathname: "/(tabs)/bookings/request-change",
+      pathname: "/request-change",
       params: {
         bookingId: String(item.rosterAssignmentId),
         shiftDate: item.shiftDate,
@@ -42,93 +53,84 @@ export default function MyShiftCard({ item }: { item: MyShift }) {
       onPressOut={pressOut}
       onPress={() =>
         Alert.alert(
-          `${formatTimeSlotLabel(item.timeSlot)} shift`,
-          `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\nStatus: ${item.status}`,
-          ended
+          item.timeSlot ? `${formatTimeSlotLabel(item.timeSlot)} shift` : "Shift",
+          `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\nStatus: ${item.status}${
+            cancellationPending ? "\nCancellation request pending review" : ""
+          }`,
+          ended || cancellationPending
             ? [{ text: "Close", style: "cancel" }]
             : [
                 { text: "Close", style: "cancel" },
-                { text: "Request Change", onPress: requestChange },
+                { text: "Cancel Shift", onPress: requestChange },
               ]
         )
       }
     >
-      <Animated.View style={[styles.shiftCard, { transform: [{ scale }] }]}>
-        <DateBadge dateStr={item.shiftDate} />
-        <View style={styles.shiftCardBody}>
-          <View style={styles.topRow}>
-            <Text style={styles.shiftTimeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
-            <Text style={styles.relativeLabel}>{getRelativeLabel(item.shiftDate)}</Text>
-          </View>
-          <View style={styles.metaColumn}>
-            <View style={styles.metaRow}>
-              <Ionicons name="time-outline" size={16} color={COLORS.grey} />
-              <Text style={styles.metaText}>{item.timeSlot}</Text>
+      <Animated.View
+        style={[SHIFT_CARD_STYLES.card, { borderLeftColor: slot.accent, transform: [{ scale }] }]}
+      >
+        <View style={[SHIFT_CARD_STYLES.notch, SHIFT_CARD_STYLES.notchBottomLeft]} />
+        <View style={SHIFT_CARD_STYLES.topNotch} />
+        <View style={styles.titleRow}>
+          <SlotChip slot={item.timeSlot} />
+        </View>
+        <View style={SHIFT_CARD_STYLES.badgeRow}>
+          <DateBadge dateStr={item.shiftDate} size={56} color={slot.soft} textColor={slot.ink} />
+          <View style={SHIFT_CARD_STYLES.metaColumn}>
+            <View style={SHIFT_CARD_STYLES.metaRow}>
+              <Ionicons name="time-outline" size={14} color={COLORS.grey} />
+              <Text style={SHIFT_CARD_STYLES.metaText}>{item.timeSlot}</Text>
             </View>
             {item.location && (
-              <View style={styles.metaRow}>
-                <Ionicons name="location-outline" size={16} color={COLORS.grey} />
-                <Text style={styles.metaText} numberOfLines={1} ellipsizeMode="tail">
+              <View style={SHIFT_CARD_STYLES.metaRow}>
+                <Ionicons name="location-outline" size={14} color={COLORS.grey} />
+                <Text style={SHIFT_CARD_STYLES.metaText} numberOfLines={1} ellipsizeMode="tail">
                   {item.location}
                 </Text>
               </View>
             )}
+            <View style={SHIFT_CARD_STYLES.metaRow}>
+              <Ionicons name="calendar-outline" size={14} color={COLORS.grey} />
+              <Text style={SHIFT_CARD_STYLES.metaText}>{getRelativeLabel(item.shiftDate)}</Text>
+            </View>
           </View>
-          {!ended && (
-            <TouchableOpacity style={styles.changeButtonWrap} onPress={requestChange} hitSlop={6}>
-              <LinearGradient
-                colors={["#6FD0FF", "#2BA8E0"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.changeButton}
-              >
-                <Ionicons name="swap-horizontal-outline" size={13} color={COLORS.white} />
-                <Text style={styles.changeButtonText}>Request Change</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
         </View>
+        {!ended && <View style={SHIFT_CARD_STYLES.divider} />}
+        {!ended && cancellationPending && (
+          // Invisible copy keeps the card height while pending
+          <View
+            style={[SHIFT_CARD_STYLES.actionWrap, styles.hidden]}
+            pointerEvents="none"
+            aria-hidden
+          >
+            <View style={SHIFT_CARD_STYLES.action}>
+              <Ionicons name="close-circle-outline" size={14} />
+              <Text style={SHIFT_CARD_STYLES.actionText}>Cancel</Text>
+            </View>
+          </View>
+        )}
+        {!ended && !cancellationPending && (
+          <TouchableOpacity
+            style={SHIFT_CARD_STYLES.actionWrap}
+            onPress={requestChange}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel shift"
+          >
+            <View style={[SHIFT_CARD_STYLES.action, { backgroundColor: accent }]}>
+              <Ionicons name="close-circle-outline" size={14} color={accentText} />
+              <Text style={[SHIFT_CARD_STYLES.actionText, { color: accentText }]}>Cancel</Text>
+            </View>
+          </TouchableOpacity>
+        )}
       </Animated.View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  shiftCard: {
-    ...GLASS_CARD,
-    ...GLASS_SHADOW_MD,
-    flexDirection: "row",
-    gap: 20,
-    borderRadius: 20,
-    padding: 22,
-    marginBottom: 18,
-  },
-  shiftCardBody: { flex: 1, gap: 8 },
-  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  shiftTimeLabel: { fontSize: 19, fontWeight: "800", color: COLORS.navy },
-  relativeLabel: { fontSize: 13, fontWeight: "700", color: COLORS.grey },
-  metaColumn: { gap: 4 },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  metaText: { flexShrink: 1, fontSize: 14, color: COLORS.grey, fontWeight: "600" },
-  changeButtonWrap: {
-    alignSelf: "flex-start",
-    marginTop: 4,
-    borderRadius: 14,
-    borderWidth: 0.75,
-    borderColor: "rgba(255,255,255,0.5)",
-    shadowColor: "#002e4c",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  changeButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 13.5,
-  },
-  changeButtonText: { fontSize: 12, fontWeight: "800", color: COLORS.white },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  hidden: { opacity: 0 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

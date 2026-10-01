@@ -2,5 +2,6 @@ export interface Skill {
   id: string;
   name: string;
   completed: boolean;
-  seasonal?: boolean;
+  signedOffBy?: string | null;
+  signedOffAt?: string | null;
 }

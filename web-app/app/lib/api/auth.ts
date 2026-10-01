@@ -1,9 +1,11 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// Matches the exact backend Swagger response schema
+// Matches the exact backend Swagger response schema (AuthResponseDto).
+// Both fields are marked nullable in the spec — auth-context.tsx's login()
+// checks for both before trusting this response.
 export interface LoginResponse {
-  token: string;
-  role: string;
+  token: string | null;
+  role: string | null;
 }
 
 export async function loginRequest(
@@ -22,20 +24,21 @@ export async function loginRequest(
     },
     body: JSON.stringify({
       email: email.trim(),
-      password: password.trim(),
+      password: password,
     }),
   });
 
-  if (!response.ok) {
+    if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Invalid email or password");
-  }
+    console.error(`[Login] ${response.status}`, errorData);
 
+    if (response.status === 401 || response.status === 400) {
+      throw new Error(errorData.message || "Invalid email or password");
+    }
+    throw new Error(errorData.message || `Login failed (${response.status})`);
+  }
   const data: LoginResponse = await response.json();
   
-  console.log("[Auth API Response]", data);
-
   return data;
 }
-
 
