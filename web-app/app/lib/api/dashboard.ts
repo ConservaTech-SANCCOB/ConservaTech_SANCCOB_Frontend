@@ -1,111 +1,96 @@
-import { apiFetch } from "./http";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-/* ============================================================
-   TYPES  (matched to the backend Swagger schemas)
-   ============================================================ */
-
-// GET /api/admin/dashboard/volunteers-by-age  (VolunteersByAgeDto)
-export interface VolunteersByAge {
-  volunteersByAge: { age: string | null; count: number }[];
+export interface DashboardStats {
+  volunteersByAge: { age: string; count: number }[];
   totalNewRecruits: number;
+
+  conservation: {
+    totalRescued: number;
+    totalReleased: number;
+    percentReleased: number;
+  };
+
+  shifts: {
+    totalShifts: number;
+    morningCount: number;
+    afternoonCount: number;
+    morningPercent: number;
+    afternoonPercent: number;
+  };
+
+  todaysShifts: {
+    area: string;
+    status: string;
+    time: string;
+    people: string;
+  }[];
+
+  trainingSessions: {
+    name: string;
+    initials: string;
+    status: string;
+    trainer: string;
+    progress: number;
+  }[];
 }
 
-// GET/PUT /api/admin/dashboard/conservation-impact  (ConservationStatsDto)
-export interface ConservationStats {
-  year: number;
-  totalRescued: number;
-  totalReleased: number;
-  percentReleased: number;
-}
+export async function fetchDashboardStats(token: string | null): Promise<DashboardStats> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
 
-// GET /api/admin/dashboard/shift-distribution  (ShiftDistributionDto)
-export interface ShiftDistribution {
-  totalShifts: number;
-  morningCount: number;
-  afternoonCount: number;
-  morningPercent: number;
-  afternoonPercent: number;
-}
+  const currentYear = new Date().getFullYear().toString();
 
-// GET /api/admin/dashboard/todays-overview  (TodaysShiftDto[])
-export interface TodaysShift {
-  shiftId: number;
-  location: string | null;
-  timeSlot: string | null;
-  status: string | null;
-  volunteerNames: string[] | null;
-}
-
-// GET /api/training/volunteers/active  (TrainingVolunteerSummaryDto[])
-export interface TrainingVolunteerSummary {
-  userId: number;
-  firstName: string | null;
-  lastName: string | null;
-  completedSkills: number;
-  totalRequiredSkills: number;
-  progressPercentage: number;
-  trainingStatus: string | null;
-}
-
-/* ============================================================
-   REQUESTS
-   ============================================================ */
-
-export function fetchVolunteersByAge(token: string | null, year: number) {
-  return apiFetch<VolunteersByAge>(
-    `/api/admin/dashboard/volunteers-by-age?year=${year}`,
-    token,
-    {},
-    "Couldn't load volunteers by age."
+  const conservationRes = await fetch(
+    `${API_URL}/api/admin/dashboard/conservation-impact?year=${encodeURIComponent(currentYear)}`,
+    {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
   );
-}
 
-export function fetchConservationImpact(token: string | null, year: number) {
-  return apiFetch<ConservationStats>(
-    `/api/admin/dashboard/conservation-impact?year=${year}`,
-    token,
-    {},
-    "Couldn't load conservation data."
-  );
-}
+  if (!conservationRes.ok) {
+    const errorData = await conservationRes.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to load conservation impact data");
+  }
 
-// PUT /api/admin/dashboard/conservation-impact  (UpdateConservationStatsDto)
-export function updateConservationImpact(
-  token: string | null,
-  year: number,
-  data: { totalRescued: number; totalReleased: number }
-) {
-  return apiFetch<ConservationStats>(
-    `/api/admin/dashboard/conservation-impact?year=${year}`,
-    token,
-    { method: "PUT", body: JSON.stringify(data) },
-    "Couldn't save conservation data."
-  );
-}
+  const conservationRaw = await conservationRes.json();
 
-export function fetchShiftDistribution(token: string | null, year: number) {
-  return apiFetch<ShiftDistribution>(
-    `/api/admin/dashboard/shift-distribution?year=${year}`,
-    token,
-    {},
-    "Couldn't load shift distribution."
-  );
-}
+  // TODO: volunteersByAge, totalNewRecruits, shifts, todaysShifts, and
+  // trainingSessions each need their own confirmed backend endpoint before
+  // they can show real data. Ask the backend team whether a single combined
+  // /dashboard/stats endpoint exists, or whether each section needs its own
+  // call (similar to how conservation-impact works above). Until then these
+  // stay empty/zeroed rather than showing fake numbers.
+  return {
+    volunteersByAge: [
+      { age: "18-24", count: 0 },
+      { age: "25-34", count: 0 },
+      { age: "35-44", count: 0 },
+      { age: "45-54", count: 0 },
+      { age: "55-64", count: 0 },
+      { age: "65+", count: 0 },
+    ],
+    totalNewRecruits: 0,
 
-export function fetchTodaysOverview(token: string | null) {
-  return apiFetch<TodaysShift[]>(
-    "/api/admin/dashboard/todays-overview",
-    token,
-    {},
-    "Couldn't load today's shifts."
-  );
-}
+    conservation: {
+      totalRescued: conservationRaw.totalRescued ?? 0,
+      totalReleased: conservationRaw.totalReleased ?? 0,
+      percentReleased: conservationRaw.percentReleased ?? 0,
+    },
 
-export function fetchActiveTraining(token: string | null) {
-  return apiFetch<TrainingVolunteerSummary[]>(
-    "/api/training/volunteers/active",
-    token,
-    {},
-    "Couldn't load training progress."
-  );
+    shifts: {
+      totalShifts: 0,
+      morningCount: 0,
+      afternoonCount: 0,
+      morningPercent: 0,
+      afternoonPercent: 0,
+    },
+
+    todaysShifts: [],
+
+    trainingSessions: [],
+  };
 }
