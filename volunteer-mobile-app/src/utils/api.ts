@@ -1,5 +1,5 @@
 import * as SecureStore from "expo-secure-store";
-import { router } from "expo-router";
+import { resetTo } from "./navigation";
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 if (!BASE_URL) {
@@ -75,7 +75,7 @@ async function request<T>(path: string, options: RequestInit = {}, config: Reque
 
   if (response.status === 401 && !config.skipSessionRedirect) {
     await clearToken();
-    router.replace("/login");
+    resetTo("/login");
     throw new SessionExpiredError();
   }
 

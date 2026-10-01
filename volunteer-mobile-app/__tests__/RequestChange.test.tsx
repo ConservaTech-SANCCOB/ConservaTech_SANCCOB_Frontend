@@ -10,6 +10,7 @@ jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
   useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }),
   useNavigation: () => ({ getParent: () => ({ setOptions: jest.fn() }) }),
+  useFocusEffect: (effect: () => void) => jest.requireActual("react").useEffect(effect, [effect]),
   useLocalSearchParams: () => mockParams,
 }));
 jest.mock("../src/services/changeRequests");

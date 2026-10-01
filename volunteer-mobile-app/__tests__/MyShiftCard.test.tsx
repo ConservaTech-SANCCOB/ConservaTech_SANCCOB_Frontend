@@ -58,7 +58,8 @@ describe("MyShiftCard cancel button", () => {
       expect.objectContaining({
         pathname: "/(tabs)/bookings/request-change",
         params: expect.objectContaining({ bookingId: "42", shiftDate: "2099-01-10" }),
-      })
+      }),
+      { withAnchor: true }
     );
   });
 

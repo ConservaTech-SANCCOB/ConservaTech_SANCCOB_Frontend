@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRouter } from "expo-router";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -54,13 +54,17 @@ export default function SubmitAvailabilityScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    const parent = navigation.getParent();
-    parent?.setOptions({ tabBarStyle: { display: "none" } });
-    return () => {
-      parent?.setOptions({ tabBarStyle: getTabBarStyle(insets.bottom) });
-    };
-  }, [navigation, insets.bottom]);
+  // Tied to focus, not mount: if this screen is left open underneath another one,
+  // the tab bar must still come back for whatever is on top.
+  useFocusEffect(
+    useCallback(() => {
+      const parent = navigation.getParent();
+      parent?.setOptions({ tabBarStyle: { display: "none" } });
+      return () => {
+        parent?.setOptions({ tabBarStyle: getTabBarStyle(insets.bottom) });
+      };
+    }, [navigation, insets.bottom])
+  );
 
   const toggle = (day: string, slot: TimeBlock) => {
     const next = new Set(selected);

@@ -34,16 +34,21 @@ export default function MyShiftCard({
   };
 
   const requestChange = () => {
-    router.push({
-      pathname: "/(tabs)/bookings/request-change",
-      params: {
-        bookingId: String(item.rosterAssignmentId),
-        shiftDate: item.shiftDate,
-        timeSlot: item.timeSlot,
-        location: item.location ?? "",
-        status: item.status,
+    // withAnchor loads the Shifts list underneath, so when this is opened from Home
+    // before the Shifts tab has been visited, request-change isn't the stack's only screen.
+    router.push(
+      {
+        pathname: "/(tabs)/bookings/request-change",
+        params: {
+          bookingId: String(item.rosterAssignmentId),
+          shiftDate: item.shiftDate,
+          timeSlot: item.timeSlot,
+          location: item.location ?? "",
+          status: item.status,
+        },
       },
-    });
+      { withAnchor: true }
+    );
   };
 
   return (

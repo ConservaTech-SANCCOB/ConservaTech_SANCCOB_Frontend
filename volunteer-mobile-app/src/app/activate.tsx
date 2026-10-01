@@ -10,6 +10,7 @@ import { activate } from "../services/auth";
 import { getErrorMessage, getErrorStatus } from "../utils/api";
 import { showErrorToast } from "../utils/toast";
 import { logError } from "../utils/logError";
+import { resetTo } from "../utils/navigation";
 
 export default function ActivateScreen() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function ActivateScreen() {
     setLoading(true);
     try {
       await activate(email, otp, newPassword);
-      router.replace("/(tabs)/home");
+      resetTo("/(tabs)/home");
     } catch (error) {
       logError("Activation error", error);
       const status = getErrorStatus(error);

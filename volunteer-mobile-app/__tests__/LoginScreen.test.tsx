@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import LoginScreen from "../src/app/login";
 import { login } from "../src/services/auth";
 import { ApiError } from "../src/utils/api";
+import { resetTo } from "../src/utils/navigation";
 import { showErrorToast } from "../src/utils/toast";
 
 const mockReplace = jest.fn();
@@ -12,6 +13,7 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ replace: mockReplace, push: jest.fn(), back: mockBack, canGoBack: mockCanGoBack }),
 }));
 jest.mock("../src/services/auth");
+jest.mock("../src/utils/navigation");
 jest.mock("../src/utils/toast");
 
 const mockedLogin = jest.mocked(login);
@@ -33,7 +35,8 @@ describe("LoginScreen", () => {
 
     await submit("sam@example.com", "secret123");
 
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/(tabs)/home"));
+    // resetTo, not a plain replace, so Back can't return to the welcome/login screens.
+    await waitFor(() => expect(resetTo).toHaveBeenCalledWith("/(tabs)/home"));
     expect(mockedLogin).toHaveBeenCalledWith("sam@example.com", "secret123");
   });
 

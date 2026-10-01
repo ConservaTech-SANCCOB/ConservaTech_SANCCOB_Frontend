@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,9 +15,9 @@ import { showErrorToast } from "../../utils/toast";
 import { logError } from "../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../constants/glassCard";
 import { BannerBirds, BannerPenguin } from "../../components/Wildlife";
+import { resetTo } from "../../utils/navigation";
 
 export default function ProfileScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -93,7 +92,7 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: async () => {
           await logout();
-          router.replace("/");
+          resetTo("/");
         },
       },
     ]);

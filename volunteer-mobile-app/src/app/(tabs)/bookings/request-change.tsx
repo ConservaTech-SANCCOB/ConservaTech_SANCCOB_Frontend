@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -37,13 +37,17 @@ export default function RequestChangeScreen() {
 
   // Same as Submit Availability: the floating tab bar would otherwise sit over the
   // bottom of the form (and the submit button while the keyboard is open).
-  useEffect(() => {
-    const parent = navigation.getParent();
-    parent?.setOptions({ tabBarStyle: { display: "none" } });
-    return () => {
-      parent?.setOptions({ tabBarStyle: getTabBarStyle(insets.bottom) });
-    };
-  }, [navigation, insets.bottom]);
+  // Tied to focus, not mount: if this screen is left open underneath another one,
+  // the tab bar must still come back for whatever is on top.
+  useFocusEffect(
+    useCallback(() => {
+      const parent = navigation.getParent();
+      parent?.setOptions({ tabBarStyle: { display: "none" } });
+      return () => {
+        parent?.setOptions({ tabBarStyle: getTabBarStyle(insets.bottom) });
+      };
+    }, [navigation, insets.bottom])
+  );
 
   const handleSubmit = async () => {
     if (!reason.trim()) {

@@ -17,6 +17,7 @@ import { logError } from "../utils/logError";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../constants/glassCard";
 import { logout } from "../services/auth";
 import { getTrainingVolunteers, TrainingVolunteerSummary } from "../services/training";
+import { resetTo } from "../utils/navigation";
 
 type StatusFilter = "all" | "not-started" | "in-progress" | "completed";
 
@@ -84,7 +85,7 @@ export default function TrainerDashboardScreen() {
 
   const handleLogout = async () => {
     await logout();
-    router.replace("/");
+    resetTo("/");
   };
 
   const filtered = useMemo(() => {
