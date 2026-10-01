@@ -9,9 +9,6 @@ export type TimeSlot = (typeof VALID_TIME_SLOTS)[number];
 
 export interface Shift {
   shiftId: number;
-  // Added when the backend made shiftName required. Optional here because we
-  // haven't confirmed that GET responses return it.
-  shiftName?: string | null;
   shiftDate: string;
   timeSlot: string;
   location: string;
@@ -22,7 +19,6 @@ export interface Shift {
 
 // POST/PUT body matching CreateShiftDto & UpdateShiftDto
 export interface ShiftPayload {
-  shiftName: string; // required by CreateShiftDto
   shiftDate: string;
   timeSlot: string;
   location: string;

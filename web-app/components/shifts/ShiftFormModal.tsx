@@ -16,13 +16,6 @@ const TIME_SLOT_LABELS: Record<string, string> = {
   "08:00-17:00": "Full Day (08:00-17:00)",
 };
 
-// Short session names, only used to suggest a default shift name.
-const TIME_SLOT_SHORT: Record<string, string> = {
-  "08:00-13:00": "Morning",
-  "14:00-17:00": "Afternoon",
-  "08:00-17:00": "Full Day",
-};
-
 export function ModalOverlay({
   children,
   onClose,
@@ -65,12 +58,6 @@ export function ShiftFormModal({
 
   const [locations, setLocations] = useState<ShiftLocation[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<number | "">("");
-
-  // Shift name: until the admin types their own, the field shows a suggested
-  // name built from the location and session. An existing name is never
-  // overwritten by the suggestion.
-  const [shiftName, setShiftName] = useState(shift?.shiftName ?? "");
-  const [nameTouched, setNameTouched] = useState(Boolean(shift?.shiftName));
 
   const [birdCount, setBirdCount] = useState<number>(shift?.birdCount ?? 0);
   const [manualCapacity, setManualCapacity] = useState<number>(
@@ -129,12 +116,6 @@ export function ShiftFormModal({
   // Auto-calculated volunteer capacity (1 volunteer per 25 birds)
   const autoCalculatedCapacity = Math.max(1, Math.ceil(birdCount / 25));
 
-  // Suggested name, e.g. "Pen A – Morning". Empty until a location is chosen.
-  const suggestedName = selectedLocation
-    ? `${selectedLocation.locationName} – ${TIME_SLOT_SHORT[timeSlot] ?? timeSlot}`
-    : "";
-  const displayedName = nameTouched ? shiftName : suggestedName;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -149,16 +130,9 @@ export function ShiftFormModal({
       return;
     }
 
-    const trimmedName = displayedName.trim();
-    if (!trimmedName) {
-      setError("Please enter a shift name.");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const payload: ShiftPayload = {
-        shiftName: trimmedName,
         shiftDate,
         timeSlot,
         location: selectedLocation.locationName,
@@ -182,50 +156,21 @@ export function ShiftFormModal({
           {mode === "create" ? "New Shift" : "Edit Shift"}
         </h2>
         <button
-          type="button"
           onClick={onCancel}
           className="text-slate-400 hover:text-slate-600"
-          aria-label="Close"
         >
           ✕
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Shift name */}
-        <div>
-          <label htmlFor="shift-name" className="block text-xs font-semibold text-slate-700 mb-1.5">
-            Shift name
-          </label>
-          <input
-            id="shift-name"
-            name="shiftName"
-            type="text"
-            required
-            value={displayedName}
-            onChange={(e) => {
-              setShiftName(e.target.value);
-              setNameTouched(true);
-            }}
-            placeholder="e.g. Pen A – Morning"
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-          />
-          {!nameTouched && suggestedName && (
-            <p className="text-[11px] text-slate-500 mt-1">
-              Suggested from the area and time. Edit it if you want a different name.
-            </p>
-          )}
-        </div>
-
         {/* Date & Time Slot */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="shift-date" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
               Date
             </label>
             <input
-              id="shift-date"
-              name="shiftDate"
               type="date"
               required
               value={shiftDate}
@@ -234,12 +179,10 @@ export function ShiftFormModal({
             />
           </div>
           <div>
-            <label htmlFor="shift-time" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
               Time
             </label>
             <select
-              id="shift-time"
-              name="timeSlot"
               value={timeSlot}
               onChange={(e) => setTimeSlot(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-white"
@@ -255,12 +198,10 @@ export function ShiftFormModal({
 
         {/* Skills Dropdown (populated via /api/Shifts/locations) */}
         <div>
-          <label htmlFor="shift-skill" className="block text-xs font-semibold text-slate-700 mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
             Skills
           </label>
           <select
-            id="shift-skill"
-            name="skill"
             required
             value={selectedSkillId}
             onChange={(e) =>
@@ -286,12 +227,10 @@ export function ShiftFormModal({
             {isPenRoutine && (
               <>
                 <div>
-                  <label htmlFor="shift-bird-count" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                     Bird Count
                   </label>
                   <input
-                    id="shift-bird-count"
-                    name="birdCount"
                     type="number"
                     min={0}
                     required
@@ -301,9 +240,9 @@ export function ShiftFormModal({
                   />
                 </div>
                 <div>
-                  <p className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                     Volunteer Capacity (auto-calculated)
-                  </p>
+                  </label>
                   <div className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-500 bg-slate-100">
                     {autoCalculatedCapacity} volunteer
                     {autoCalculatedCapacity === 1 ? "" : "s"}
@@ -315,12 +254,10 @@ export function ShiftFormModal({
             {/* Supporting Areas: Editable Volunteer Capacity */}
             {isSupportingArea && (
               <div className="col-span-2">
-                <label htmlFor="shift-capacity" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Volunteer Capacity Needed
                 </label>
                 <input
-                  id="shift-capacity"
-                  name="capacity"
                   type="number"
                   min={1}
                   required
