@@ -15,11 +15,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { CompletedShift, getMyTrainingStats, MyTrainingStats } from "../../../services/training";
 import { COLORS } from "../../../utils/colors";
+import { AboveBannerFill, BelowContentFill, refreshableBannerScrollStyles } from "../../../components/BannerOverscroll";
 import { parseLocalDate } from "../../../utils/dateBuckets";
 import { formatTimeSlotLabel } from "../../../utils/timeSlot";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 import { BannerBirds } from "../../../components/Wildlife";
+
+const BANNER_SCROLL = refreshableBannerScrollStyles(COLORS.greenLight);
 
 function monthLabelFor(dateStr: string): string {
   return parseLocalDate(dateStr).toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -73,12 +76,19 @@ export default function HoursWorkedScreen() {
   return (
     <View style={styles.container}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 150 }}
+        style={BANNER_SCROLL.scroll}
+        contentContainerStyle={[{ paddingBottom: 150 }, BANNER_SCROLL.content]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={COLORS.greenMid} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => load(true)}
+            tintColor={COLORS.white}
+            colors={[COLORS.greenMid]}
+          />
         }
       >
+        <AboveBannerFill />
         <LinearGradient
           colors={[COLORS.greenLight, COLORS.greenDark]}
           style={[styles.banner, { paddingTop: 16 + insets.top }]}
@@ -186,6 +196,7 @@ export default function HoursWorkedScreen() {
             </View>
           )}
         </View>
+        <BelowContentFill />
       </ScrollView>
     </View>
   );

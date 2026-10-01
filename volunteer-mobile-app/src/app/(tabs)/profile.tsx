@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
+import { AboveBannerFill } from "../../components/BannerOverscroll";
 import KeyboardAvoidingScreen from "../../components/KeyboardAvoidingScreen";
 import SelectDropdown from "../../components/SelectDropdown";
 import { AGE_BRACKETS, isAgeBracket } from "../../constants/ageBrackets";
@@ -105,6 +106,7 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <AboveBannerFill color={COLORS.pinkLight} />
         <LinearGradient
           colors={[COLORS.pinkLight, COLORS.pinkDark]}
           style={[styles.banner, { paddingTop: 16 + insets.top }]}

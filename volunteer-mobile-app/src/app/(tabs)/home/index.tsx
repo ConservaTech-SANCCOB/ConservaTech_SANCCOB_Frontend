@@ -12,11 +12,14 @@ import { getMyNotifications } from "../../../services/notifications";
 import { getMyProfile } from "../../../services/profile";
 import { getMyShifts, MyShift } from "../../../services/shifts";
 import { COLORS } from "../../../utils/colors";
+import { AboveBannerFill, BelowContentFill, refreshableBannerScrollStyles } from "../../../components/BannerOverscroll";
 import { bucketForDate, getRelativeLabel } from "../../../utils/dateBuckets";
 import { logError } from "../../../utils/logError";
 import { compareShiftsByStart, formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 import { BannerBirds, BannerPenguin, EmptyStatePenguin } from "../../../components/Wildlife";
+
+const BANNER_SCROLL = refreshableBannerScrollStyles(COLORS.blueLight);
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -116,12 +119,19 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 150 }}
+        style={BANNER_SCROLL.scroll}
+        contentContainerStyle={[{ paddingBottom: 150 }, BANNER_SCROLL.content]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.blueMid} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.white}
+            colors={[COLORS.blueMid]}
+          />
         }
       >
+        <AboveBannerFill />
         <LinearGradient
           colors={[COLORS.blueLight, COLORS.blueDark]}
           style={[styles.banner, { paddingTop: 16 + insets.top }]}
@@ -248,6 +258,7 @@ export default function HomeScreen() {
           <Text style={[styles.sectionChipText, styles.spotlightHeading]}>MEET THE SEABIRDS</Text>
           <SeabirdSpotlight />
         </View>
+        <BelowContentFill />
       </ScrollView>
     </View>
   );

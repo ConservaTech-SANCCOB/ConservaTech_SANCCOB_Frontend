@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AboveBannerFill } from "../components/BannerOverscroll";
 import KeyboardAvoidingScreen from "../components/KeyboardAvoidingScreen";
 import { DateBadge } from "../components/ShiftCardParts";
 import { SHEET_TOP_SHADOW } from "../constants/glassCard";
@@ -62,6 +63,7 @@ export default function RequestChangeScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <AboveBannerFill color={COLORS.redLight} />
         <LinearGradient
           colors={[COLORS.redLight, COLORS.redDark]}
           style={[styles.banner, { paddingTop: 16 + insets.top }]}

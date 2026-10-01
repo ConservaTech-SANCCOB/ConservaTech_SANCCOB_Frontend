@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { AppNotification, getMyNotifications, markNotificationRead } from "../../../services/notifications";
 import { COLORS } from "../../../utils/colors";
+import { AboveBannerFill } from "../../../components/BannerOverscroll";
 import { formatTimestamp } from "../../../utils/dateBuckets";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
@@ -61,6 +62,7 @@ export default function NotificationsScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <>
+            <AboveBannerFill color={COLORS.blueLight} />
             <LinearGradient
               colors={[COLORS.blueLight, COLORS.blueDark]}
               style={[styles.banner, { paddingTop: 16 + insets.top }]}

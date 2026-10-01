@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../../../utils/colors";
+import { AboveBannerFill } from "../../../components/BannerOverscroll";
 import { getTabBarStyle } from "../../../constants/tabBar";
 import { TIME_SLOT_LABELS } from "../../../utils/timeSlot";
 import { getMyAvailability, updateMyAvailability, AvailabilitySlot, TimeBlock } from "../../../services/availability";
@@ -132,6 +133,7 @@ export default function SubmitAvailabilityScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+        <AboveBannerFill color={COLORS.pastelYellowLight} />
         <LinearGradient
           colors={[COLORS.pastelYellowLight, COLORS.pastelYellowDeep]}
           style={[styles.banner, { paddingTop: 16 + insets.top }]}
