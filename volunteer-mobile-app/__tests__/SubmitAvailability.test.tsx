@@ -9,6 +9,7 @@ jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
   useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }),
   useNavigation: () => ({ getParent: () => ({ setOptions: jest.fn() }) }),
+  useFocusEffect: (effect: () => void) => jest.requireActual("react").useEffect(effect, [effect]),
 }));
 jest.mock("../src/services/availability");
 jest.mock("../src/utils/toast");

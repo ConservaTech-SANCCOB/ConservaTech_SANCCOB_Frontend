@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
+import { AboveBannerFill, BelowContentFill, refreshableBannerScrollStyles } from "../../../components/BannerOverscroll";
 import MyShiftCard from "../../../components/MyShiftCard";
 import { DateBadge, SHIFT_CARD_STYLES, SlotChip, slotTheme } from "../../../components/ShiftCardParts";
 import { BannerBirds, BannerPenguin, EmptyStatePenguin } from "../../../components/Wildlife";
@@ -33,6 +34,8 @@ type ListRow =
   | { type: "header"; key: string; title: string }
   | { type: "mine"; key: string; item: MyShift }
   | { type: "available"; key: string; item: Vacancy };
+
+const BANNER_SCROLL = refreshableBannerScrollStyles(COLORS.pastelYellowLight);
 
 function groupMyShifts(shifts: MyShift[]): ListRow[] {
   const order: DateBucket[] = ["Today", "This Week", "Later"];
@@ -291,6 +294,7 @@ export default function BookingsScreen() {
 
   const header = (
     <>
+      <AboveBannerFill />
       <LinearGradient
         colors={[COLORS.pastelYellowLight, COLORS.pastelYellowDeep]}
         style={[styles.banner, { paddingTop: 24 + insets.top }]}
@@ -381,10 +385,16 @@ export default function BookingsScreen() {
         ListHeaderComponent={header}
         data={rows}
         keyExtractor={(row) => row.key}
-        style={styles.list}
-        contentContainerStyle={{ paddingBottom: 150, flexGrow: 1 }}
+        style={[styles.list, BANNER_SCROLL.scroll]}
+        contentContainerStyle={[{ paddingBottom: 150, flexGrow: 1 }, BANNER_SCROLL.content]}
+        ListFooterComponent={<BelowContentFill />}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => load("manual")} tintColor={COLORS.amberMid} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => load("manual")}
+            tintColor={COLORS.pastelInk}
+            colors={[COLORS.amberMid]}
+          />
         }
         renderItem={({ item: row }) => {
           if (row.type === "header") {

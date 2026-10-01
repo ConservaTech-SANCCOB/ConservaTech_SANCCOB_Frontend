@@ -1,5 +1,5 @@
 import { AGE_BRACKETS, isAgeBracket } from "../src/constants/ageBrackets";
-import { bucketForDate, getRelativeLabel, parseLocalDate } from "../src/utils/dateBuckets";
+import { bucketForDate, formatTimestamp, getRelativeLabel, parseLocalDate } from "../src/utils/dateBuckets";
 import { compareShiftsByStart, formatTimeSlotLabel, getTimeSlotHours, hasShiftEnded } from "../src/utils/timeSlot";
 
 // Fixed "now": Thursday 25 Sept 2026, 12:00 local time.
@@ -70,6 +70,29 @@ describe("dateBuckets", () => {
     expect(getRelativeLabel("2026-09-24")).toBe("Yesterday");
     expect(getRelativeLabel("2026-09-28")).toBe("In 3 days");
     expect(getRelativeLabel("2026-09-20")).toBe("5 days ago");
+  });
+});
+
+describe("formatTimestamp", () => {
+  const utc = (...args: [number, number, number, number, number]) => new Date(...args).toISOString();
+
+  it("labels today and yesterday, with a 24-hour local time", () => {
+    expect(formatTimestamp(utc(2026, 8, 25, 9, 5))).toBe("Today, 09:05");
+    expect(formatTimestamp(utc(2026, 8, 24, 18, 30))).toBe("Yesterday, 18:30");
+  });
+
+  it("shows the date for older ones, and the year only when it isn't this year", () => {
+    expect(formatTimestamp(utc(2026, 8, 12, 14, 0))).toBe("12 Sep, 14:00");
+    expect(formatTimestamp(utc(2025, 11, 31, 8, 0))).toBe("31 Dec 2025, 08:00");
+  });
+
+  it("reads a timestamp with no time zone as UTC, as the backend sends it", () => {
+    const noZone = utc(2026, 8, 25, 9, 5).slice(0, 19);
+    expect(formatTimestamp(noZone)).toBe("Today, 09:05");
+  });
+
+  it("returns null for something that isn't a date", () => {
+    expect(formatTimestamp("not a date")).toBeNull();
   });
 });
 

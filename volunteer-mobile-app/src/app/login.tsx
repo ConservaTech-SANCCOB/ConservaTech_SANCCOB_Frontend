@@ -21,6 +21,7 @@ import { login } from "../services/auth";
 import { getErrorMessage, getErrorStatus } from "../utils/api";
 import { COLORS } from "../utils/colors";
 import { logError } from "../utils/logError";
+import { resetTo } from "../utils/navigation";
 import { showErrorToast } from "../utils/toast";
 
 export default function LoginScreen() {
@@ -38,7 +39,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email, password);
-      router.replace("/(tabs)/home");
+      resetTo("/(tabs)/home");
     } catch (error) {
       logError("Login error", error);
       const status = getErrorStatus(error);
@@ -197,7 +198,8 @@ export default function LoginScreen() {
             <TouchableOpacity onPress={() => router.push("/forgot-password")}>
               <Text style={styles.helperText}>Forgot your password?</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.replace("/")}>
+            {/* An expired session lands here via resetTo (utils/api.ts), leaving nothing to go back to. */}
+            <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}>
               <Text style={styles.helperText}>Back to options</Text>
             </TouchableOpacity>
           </View>

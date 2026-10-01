@@ -9,6 +9,7 @@ import { forgotPassword, resetPassword } from "../services/auth";
 import { getErrorMessage, getErrorStatus } from "../utils/api";
 import { showErrorToast } from "../utils/toast";
 import { logError } from "../utils/logError";
+import { resetTo } from "../utils/navigation";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     try {
       await resetPassword(email, resetCode, newPassword);
-      router.replace("/(tabs)/home");
+      resetTo("/(tabs)/home");
     } catch (error) {
       logError("Reset password error", error);
       const status = getErrorStatus(error);

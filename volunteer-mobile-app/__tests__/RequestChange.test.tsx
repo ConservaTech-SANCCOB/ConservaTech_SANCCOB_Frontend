@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { Alert } from "react-native";
-import RequestChangeScreen from "../src/app/(tabs)/bookings/request-change";
+import RequestChangeScreen from "../src/app/request-change";
 import { submitChangeRequest } from "../src/services/changeRequests";
 import { ApiError } from "../src/utils/api";
 import { showErrorToast } from "../src/utils/toast";
@@ -9,7 +9,6 @@ let mockParams: Record<string, string> = {};
 jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
   useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }),
-  useNavigation: () => ({ getParent: () => ({ setOptions: jest.fn() }) }),
   useLocalSearchParams: () => mockParams,
 }));
 jest.mock("../src/services/changeRequests");

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,14 +9,14 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
 import { logError } from "../utils/logError";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../constants/glassCard";
-import { logout } from "../services/auth";
 import { getTrainingVolunteers, TrainingVolunteerSummary } from "../services/training";
+import { useTrainerSignOut } from "../utils/useTrainerSignOut";
 
 type StatusFilter = "all" | "not-started" | "in-progress" | "completed";
 
@@ -57,25 +57,30 @@ export default function TrainerDashboardScreen() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setIsLoading(true);
-        setVolunteers(await getTrainingVolunteers());
-      } catch (error) {
-        logError("Load training volunteers error", error);
-        setLoadError(true);
-      } finally {
-        setIsLoading(false);
-      }
+  const load = useCallback(async () => {
+    try {
+      setVolunteers(await getTrainingVolunteers());
+      setLoadError(false);
+    } catch (error) {
+      logError("Load training volunteers error", error);
+      setLoadError(true);
     }
-    load();
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace("/");
-  };
+  const hasLoadedRef = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasLoadedRef.current) {
+        hasLoadedRef.current = true;
+        load().finally(() => setIsLoading(false));
+      } else {
+        load();
+      }
+    }, [load])
+  );
+
+  const handleLogout = useTrainerSignOut({ confirmOnBack: true });
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();

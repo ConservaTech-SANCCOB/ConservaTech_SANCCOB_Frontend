@@ -31,3 +31,27 @@ export function getRelativeLabel(dateStr: string): string {
   if (diffDays > 1) return `In ${diffDays} days`;
   return `${Math.abs(diffDays)} days ago`;
 }
+
+export function parseBackendTimestamp(value: string): Date {
+  const hasZone = /(Z|[+-]\d{2}:?\d{2})$/i.test(value);
+  return new Date(hasZone ? value : `${value}Z`);
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+export function formatTimestamp(value: string): string | null {
+  const date = parseBackendTimestamp(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const time = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  const day = new Date(date);
+  day.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((today.getTime() - day.getTime()) / 86400000);
+
+  if (diffDays === 0) return `Today, ${time}`;
+  if (diffDays === 1) return `Yesterday, ${time}`;
+  const year = date.getFullYear() === today.getFullYear() ? "" : ` ${date.getFullYear()}`;
+  return `${date.getDate()} ${MONTHS[date.getMonth()]}${year}, ${time}`;
+}
