@@ -20,6 +20,7 @@ export interface ReportsData {
   activeVolunteers: number;
   monthlyHours: MonthlyHours[];
   conservation: {
+    totalRescued: number;
     totalReleased: number;
     totalInCare: number;
     percentReleased: number;
@@ -33,7 +34,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 async function fetchConservationImpact(
   token: string | null,
   year: string
-): Promise<{ totalReleased: number; totalInCare: number; percentReleased: number }> {
+): Promise<{
+    totalRescued: number;
+    totalReleased: number;
+    totalInCare: number;
+    percentReleased: number;
+  }> {
   if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
 
   const response = await fetch(
@@ -56,6 +62,7 @@ async function fetchConservationImpact(
   const raw = await response.json();
 
   return {
+    totalRescued: raw.totalRescued ?? 0,
     totalReleased: raw.totalReleased ?? 0,
     totalInCare: raw.totalInCare ?? 0,
     percentReleased: raw.percentReleased ?? 0,
