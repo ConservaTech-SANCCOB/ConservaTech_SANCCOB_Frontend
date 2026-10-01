@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { StyleSheet } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 import MyShiftCard from "../src/components/MyShiftCard";
 import { MyShift } from "../src/services/shifts";
 import { COLORS } from "../src/utils/colors";
@@ -68,5 +68,20 @@ describe("MyShiftCard cancel button", () => {
     expect(screen.queryByText("Cancel")).toBeNull();
     expect(screen.queryByRole("button", { name: "Cancel shift" })).toBeNull();
     expect(screen.queryByLabelText("Cancellation pending")).toBeNull();
+  });
+});
+
+describe("MyShiftCard details popup", () => {
+  it("says the cancellation request is pending review", async () => {
+    jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    await render(<MyShiftCard item={shift} cancellationPending />);
+
+    await fireEvent.press(screen.getByText("Penguin Pens"));
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Morning shift",
+      expect.stringContaining("Cancellation request pending review"),
+      [{ text: "Close", style: "cancel" }]
+    );
   });
 });
