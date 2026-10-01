@@ -2,7 +2,6 @@ import { AGE_BRACKETS, isAgeBracket } from "../src/constants/ageBrackets";
 import { bucketForDate, formatTimestamp, getRelativeLabel, parseLocalDate } from "../src/utils/dateBuckets";
 import { compareShiftsByStart, formatTimeSlotLabel, getTimeSlotHours, hasShiftEnded } from "../src/utils/timeSlot";
 
-// Fixed "now": Thursday 25 Sept 2026, 12:00 local time.
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date(2026, 8, 25, 12, 0, 0) });
 });

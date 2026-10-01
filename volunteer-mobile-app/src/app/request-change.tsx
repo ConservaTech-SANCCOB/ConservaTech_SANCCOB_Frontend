@@ -10,7 +10,7 @@ import KeyboardAvoidingScreen from "../components/KeyboardAvoidingScreen";
 import { DateBadge } from "../components/ShiftCardParts";
 import { SHEET_TOP_SHADOW } from "../constants/glassCard";
 import { submitChangeRequest } from "../services/changeRequests";
-import { getErrorMessage } from "../utils/api";
+import { getErrorMessage, SessionExpiredError } from "../utils/api";
 import { COLORS } from "../utils/colors";
 import { getRelativeLabel } from "../utils/dateBuckets";
 import { logError } from "../utils/logError";
@@ -49,6 +49,7 @@ export default function RequestChangeScreen() {
         [{ text: "OK", onPress: () => router.back() }]
       );
     } catch (error) {
+      if (error instanceof SessionExpiredError) return;
       logError("Request change error", error);
       showErrorToast("Couldn't submit", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     } finally {
@@ -179,7 +180,7 @@ export default function RequestChangeScreen() {
                   {submitting ? (
                     <ActivityIndicator size="small" color={COLORS.white} />
                   ) : (
-                    <Text style={styles.submitButtonText}>Cancel</Text>
+                    <Text style={styles.submitButtonText}>Submit request</Text>
                   )}
                 </View>
               </TouchableOpacity>

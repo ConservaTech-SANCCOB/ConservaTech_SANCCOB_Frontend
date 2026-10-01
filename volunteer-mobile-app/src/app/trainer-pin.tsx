@@ -12,9 +12,6 @@ import { showErrorToast } from "../utils/toast";
 import { logError } from "../utils/logError";
 
 const PIN_PATTERN = /^\d{6}$/;
-// Errors thrown by request() in utils/api.ts always start with this — used to tell
-// a still-raw/unparsed error apart from a clean message already extracted from the
-// backend's JSON body (see verifyTrainerPin in services/trainers.ts).
 const RAW_ERROR_FORMAT = /^API error \d+:/;
 
 export default function TrainerPinScreen() {
@@ -39,8 +36,6 @@ export default function TrainerPinScreen() {
       if (status === 401) {
         message = "Incorrect PIN.";
       } else if (error instanceof Error && !isRawFormat && error.message) {
-        // A clean message already extracted from the backend's JSON body
-        // (e.g. "Trainer access PIN has not been configured.") — safe to show as-is.
         message = error.message;
       }
       showErrorToast("Couldn't sign in", message);
@@ -60,7 +55,6 @@ export default function TrainerPinScreen() {
             style={StyleSheet.absoluteFill}
           />
 
-          {/* Stylized sweeping waves */}
           <Svg style={StyleSheet.absoluteFill} viewBox="0 0 400 380" preserveAspectRatio="none" pointerEvents="none">
             <Path d="M-20,40 C60,15 120,55 200,35 C280,15 340,45 420,25 L420,380 L-20,380 Z" fill="#ffffff" opacity={0.03} />
             <Path d="M-20,85 C70,110 140,70 220,90 C300,110 350,80 420,95 L420,380 L-20,380 Z" fill="#7dd3fc" opacity={0.04} />

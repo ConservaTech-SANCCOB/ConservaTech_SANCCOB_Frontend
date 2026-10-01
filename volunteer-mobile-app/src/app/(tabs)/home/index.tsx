@@ -42,14 +42,12 @@ export default function HomeScreen() {
 
   const initials = (`${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "SV");
 
-  // Only shifts still ahead: a shift earlier today that has already finished isn't "upcoming".
   const futureShifts = shifts.filter((s) => !hasShiftEnded(s.shiftDate, s.timeSlot)).sort(compareShiftsByStart);
   const thisWeeksShifts = futureShifts.filter((s) => {
     const bucket = bucketForDate(s.shiftDate);
     return bucket === "Today" || bucket === "This Week";
   });
   const upcoming = thisWeeksShifts.slice(0, 2);
-  // Nothing this week doesn't mean nothing at all — point to the next one if there is one.
   const nextLaterShift = futureShifts.find((s) => bucketForDate(s.shiftDate) === "Later");
 
   const loadUnreadCount = useCallback(async () => {
@@ -76,7 +74,6 @@ export default function HomeScreen() {
     try {
       const [myShifts, pending] = await Promise.all([
         getMyShifts(),
-        // A failure here must not break the shifts list — keep the last known pending set.
         getPendingCancellationIds().catch((error) => {
           logError("Load pending cancellations error", error);
           return null;
@@ -178,7 +175,7 @@ export default function HomeScreen() {
 
           <View style={styles.titleGroup}>
             <Text style={styles.greeting}>{getGreeting()}</Text>
-            <Text style={styles.title}>{firstName || "Your Name"}</Text>
+            {!!firstName && <Text style={styles.title}>{firstName}</Text>}
             <Text style={styles.tagline}>Here&apos;s what your week looks like</Text>
           </View>
 

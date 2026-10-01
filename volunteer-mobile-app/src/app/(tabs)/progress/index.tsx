@@ -381,7 +381,6 @@ export default function TrainingScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
-  // Re-fetched on every focus so a trainer's sign-off shows up without a restart.
   const load = useCallback(async () => {
     try {
       setProfile(await getMyTrainingProfile());
@@ -418,7 +417,6 @@ export default function TrainingScreen() {
   const penRoutines = (profile?.penRoutines ?? []).map((s) => toSkill(s));
   const seasonalSkills = (profile?.seasonalSkills ?? []).map((s) => toSkill(s));
   const allSupportingAreasComplete = supportingAreas.length > 0 && supportingAreas.every((s) => s.completed);
-  // The backend's own required-skill totals, so this matches what trainers see.
   const completedCount = profile?.completedRequiredSkills ?? 0;
   const totalCount = profile?.totalRequiredSkills ?? 0;
   const percent = Math.round(profile?.progressPercentage ?? 0);

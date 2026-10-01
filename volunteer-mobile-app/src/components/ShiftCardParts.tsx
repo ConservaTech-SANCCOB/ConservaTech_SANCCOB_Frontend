@@ -49,7 +49,6 @@ export function DateBadge({
 }: {
   dateStr: string;
   size?: number;
-  /** Tints the badge to match the screen the card is shown on. */
   color?: string;
   /** For light badge colours (the pastel shifts theme), where white text would vanish. */
   textColor?: string;
@@ -71,7 +70,6 @@ export function DateBadge({
   );
 }
 
-/** Shared chrome for the shift cards, which render in two places and must stay in step. */
 export const SHIFT_CARD_STYLES = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,

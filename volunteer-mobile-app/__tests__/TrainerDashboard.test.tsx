@@ -69,6 +69,6 @@ describe("Trainer dashboard", () => {
   it("shows an error message when volunteers can't be loaded", async () => {
     mockedGetVolunteers.mockRejectedValue(new Error("network"));
     await render(<TrainerDashboardScreen />);
-    expect(await screen.findByText("Couldn't load volunteers. Go back and try again.")).toBeTruthy();
+    expect(await screen.findByText("Couldn't load volunteers. Check your connection and try again.")).toBeTruthy();
   });
 });

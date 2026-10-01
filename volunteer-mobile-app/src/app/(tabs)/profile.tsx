@@ -9,7 +9,7 @@ import KeyboardAvoidingScreen from "../../components/KeyboardAvoidingScreen";
 import SelectDropdown from "../../components/SelectDropdown";
 import { AGE_BRACKETS, isAgeBracket } from "../../constants/ageBrackets";
 import { logout } from "../../services/auth";
-import { getErrorMessage } from "../../utils/api";
+import { getErrorMessage, SessionExpiredError } from "../../utils/api";
 import { COLORS } from "../../utils/colors";
 import { getMyProfile, updateMyProfile } from "../../services/profile";
 import { showErrorToast } from "../../utils/toast";
@@ -42,7 +42,6 @@ export default function ProfileScreen() {
       setEmail(profile.email ?? "");
       setPhone(profile.phoneNumber ?? "");
       setNationality(profile.nationality ?? "");
-      // A legacy free-text value the backend would now reject shows as unselected.
       setAgeBracket(isAgeBracket(profile.ageBracket) ? profile.ageBracket : "");
       setEmergencyName(profile.emergencyContactName ?? "");
       setEmergencyPhone(profile.emergencyContactPhone ?? "");
@@ -76,6 +75,7 @@ export default function ProfileScreen() {
       });
       Alert.alert("Saved", "Your profile has been updated.");
     } catch (error) {
+      if (error instanceof SessionExpiredError) return;
       logError("Save profile error", error);
       showErrorToast("Couldn't save", getErrorMessage(error, "Something went wrong. Try again in a moment."));
     } finally {
@@ -188,6 +188,7 @@ export default function ProfileScreen() {
                     style={styles.input}
                     value={email}
                     onChangeText={setEmail}
+                    keyboardType="email-address"
                     autoCapitalize="none"
                   />
                 </View>
@@ -307,7 +308,6 @@ const styles = StyleSheet.create({
     textShadowRadius: 6,
   },
   titleGroup: {
-    // Lines the eyebrow up with the name inside the badge: banner gutter + badge padding + its border.
     paddingLeft: 41,
     paddingRight: 20,
   },

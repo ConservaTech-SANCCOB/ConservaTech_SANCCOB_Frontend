@@ -26,8 +26,6 @@ export async function login(email: string, password: string) {
   return result;
 }
 
-/** Ends the session on the backend (best effort) and always clears it locally,
- * so a failed or offline logout call can never leave someone signed in. */
 export async function logout() {
   try {
     await api.post<void>("/api/Auth/logout", {}, { skipSessionRedirect: true });

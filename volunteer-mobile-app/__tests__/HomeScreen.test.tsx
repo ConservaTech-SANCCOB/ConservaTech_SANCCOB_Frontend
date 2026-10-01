@@ -20,7 +20,6 @@ jest.mock("../src/services/profile");
 
 const mockedGetMyShifts = jest.mocked(getMyShifts);
 
-// Fixed "now": Friday 25 Sept 2026, 12:00 local. advanceTimers keeps animations running.
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date(2026, 8, 25, 12, 0, 0), advanceTimers: true });
   jest.clearAllMocks();

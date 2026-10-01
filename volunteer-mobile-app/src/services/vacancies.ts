@@ -23,10 +23,6 @@ export interface BookVacancyResponse {
   message: string | null;
 }
 
-/** Thrown when the backend rejects a booking for a reason tied to the shift itself
- * (400/404/409 — e.g. it filled up or is otherwise no longer bookable). `backendMessage`
- * is the message from the response's JSON body when there is one, else null. The spec
- * doesn't document these responses, so which status the backend uses is unconfirmed. */
 export class BookingRejectedError extends Error {
   backendMessage: string | null;
   constructor(backendMessage: string | null) {
@@ -36,8 +32,6 @@ export class BookingRejectedError extends Error {
   }
 }
 
-/** Self-service booking of an open shift. POST with no request body — the shift is
- * identified only by the path param. This is in addition to auto-assignment. */
 export async function bookVacancy(shiftId: number) {
   try {
     return await api.post<BookVacancyResponse>(`/api/vacancies/${shiftId}/book`, {});

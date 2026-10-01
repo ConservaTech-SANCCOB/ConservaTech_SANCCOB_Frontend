@@ -45,7 +45,6 @@ export default function WelcomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Clean, deep gradient background */}
       <LinearGradient colors={["#003b5c", "#001a2c"]} style={styles.banner}>
         <PhotoBackdrop
           source={SEABIRD_PHOTOS.africanPenguin}
@@ -59,7 +58,6 @@ export default function WelcomeScreen() {
           style={StyleSheet.absoluteFill}
         />
 
-        {/* Stylized sweeping waves */}
         <Svg style={StyleSheet.absoluteFill} viewBox="0 0 400 380" preserveAspectRatio="none" pointerEvents="none">
           <Path
             d="M-20,40 C60,15 120,55 200,35 C280,15 340,45 420,25 L420,380 L-20,380 Z"
@@ -163,7 +161,6 @@ export default function WelcomeScreen() {
               </TouchableOpacity>
             </Animated.View>
 
-            {/* Clean Divider */}
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>OR</Text>
