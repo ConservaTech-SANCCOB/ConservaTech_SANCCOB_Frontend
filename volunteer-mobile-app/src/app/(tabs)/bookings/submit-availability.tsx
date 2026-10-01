@@ -33,6 +33,7 @@ function mergeHalfDays(keys: Set<string>, day: string): boolean {
   return true;
 }
 
+// Saving replaces all previously saved availability
 export default function SubmitAvailabilityScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -62,6 +63,7 @@ export default function SubmitAvailabilityScreen() {
     loadAvailability();
   }, [loadAvailability]);
 
+  // Hide the tab bar while on this form
   useFocusEffect(
     useCallback(() => {
       const parent = navigation.getParent();
@@ -116,7 +118,9 @@ export default function SubmitAvailabilityScreen() {
   };
 
   const handleSave = () => {
+    // Saving before the load would wipe saved slots
     if (loading || loadError) return;
+    // An empty save clears everything so confirm first
     if (selected.size === 0) {
       Alert.alert(
         "No availability selected",
@@ -287,6 +291,8 @@ export default function SubmitAvailabilityScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.white },
@@ -434,3 +440,5 @@ const styles = StyleSheet.create({
   retryButtonText: { color: COLORS.pastelInk, fontWeight: "600", fontSize: 15 },
   bottomBarButtonText: { color: COLORS.pastelInk, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

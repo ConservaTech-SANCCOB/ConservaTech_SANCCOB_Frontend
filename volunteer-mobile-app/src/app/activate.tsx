@@ -35,6 +35,7 @@ export default function ActivateScreen() {
       resetTo("/(tabs)/home");
     } catch (error) {
       logError("Activation error", error);
+      // 401 means a wrong or expired code
       const status = getErrorStatus(error);
       showErrorToast("Activation failed", status === 401 ? "Incorrect or expired code" : getErrorMessage(error, "Couldn't activate your account. Try again in a moment."));
     } finally {
@@ -137,6 +138,8 @@ export default function ActivateScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   banner: { alignItems: "center", paddingTop: 90, paddingBottom: 170 },
@@ -223,3 +226,5 @@ const styles = StyleSheet.create({
   loginButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
   helperText: { textAlign: "center", color: COLORS.navy, fontSize: 13, marginTop: 20 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

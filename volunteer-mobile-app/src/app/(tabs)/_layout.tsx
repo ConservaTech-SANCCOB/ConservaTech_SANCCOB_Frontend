@@ -16,6 +16,8 @@ const TAB_ACCENTS: Record<string, string> = {
 const INDICATOR_HEIGHT = 44;
 const PILL_HORIZONTAL_INSET = 6;
 
+//--------------------TAB BAR--------------------//
+
 function TabIcon({
   name,
   color,
@@ -46,6 +48,9 @@ function TabIcon({
   );
 }
 
+// ------------------------------------------------------------ //
+
+// Reports its position so the pill can slide there
 function TabButton({
   label,
   focused,
@@ -84,6 +89,9 @@ function TabButton({
   );
 }
 
+// ------------------------------------------------------------ //
+
+// Our own tab bar with a sliding highlight pill
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const translateX = useRef(new Animated.Value(0)).current;
@@ -114,6 +122,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   }, [state.index]);
 
   const focusedOptions = descriptors[state.routes[state.index].key].options;
+  // Screens hide the bar with display none
   if (focusedOptions.tabBarStyle?.display === "none") {
     return null;
   }
@@ -172,6 +181,8 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   );
 }
 
+//--------------------TABS--------------------//
+
 export default function TabsLayout() {
   return (
     <Tabs
@@ -216,6 +227,8 @@ export default function TabsLayout() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   barContainer: {
     flexDirection: "row",
@@ -257,3 +270,5 @@ const styles = StyleSheet.create({
     borderColor: "rgba(181, 42, 107, 0.35)",
   },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

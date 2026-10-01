@@ -16,6 +16,8 @@ export function getVacancies() {
   return api.get<Vacancy[]>("/api/vacancies");
 }
 
+// ------------------------------------------------------------ //
+
 export interface BookVacancyResponse {
   rosterAssignmentId: number;
   shiftId: number;
@@ -23,6 +25,7 @@ export interface BookVacancyResponse {
   message: string | null;
 }
 
+// Backend refused the booking on purpose
 export class BookingRejectedError extends Error {
   backendMessage: string | null;
   constructor(backendMessage: string | null) {
@@ -32,14 +35,19 @@ export class BookingRejectedError extends Error {
   }
 }
 
+// ------------------------------------------------------------ //
+
 export async function bookVacancy(shiftId: number) {
   try {
     return await api.post<BookVacancyResponse>(`/api/vacancies/${shiftId}/book`, {});
   } catch (error) {
     const status = getErrorStatus(error);
+    // A deliberate refusal not a crash
     if (status === 400 || status === 404 || status === 409) {
       throw new BookingRejectedError(error instanceof ApiError ? error.backendMessage : null);
     }
     throw error;
   }
 }
+
+//----------------------------------- END OF FILE ---------------------------------//

@@ -32,6 +32,7 @@ export default function TrainerSelectScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const selectionInProgress = useRef(false);
+  // Back from here logs out without asking
   useTrainerSignOut({ confirmOnBack: false });
 
   useEffect(() => {
@@ -60,6 +61,7 @@ export default function TrainerSelectScreen() {
   }, []);
 
   const handleSelect = async (trainer: Trainer) => {
+    // Ignore extra taps while selecting
     if (selectionInProgress.current) return;
     selectionInProgress.current = true;
     try {
@@ -160,6 +162,8 @@ export default function TrainerSelectScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   header: {
@@ -231,3 +235,5 @@ const styles = StyleSheet.create({
   },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center" },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

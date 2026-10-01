@@ -83,3 +83,5 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

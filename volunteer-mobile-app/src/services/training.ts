@@ -1,5 +1,7 @@
 import { api } from "../utils/api";
 
+//--------------------TRAINER--------------------//
+
 export interface TrainingVolunteerSummary {
   userId: number;
   firstName: string | null;
@@ -13,6 +15,8 @@ export interface TrainingVolunteerSummary {
 export function getTrainingVolunteers() {
   return api.get<TrainingVolunteerSummary[]>("/api/training/volunteers");
 }
+
+// ------------------------------------------------------------ //
 
 export interface TrainingSkillDto {
   skillId: number;
@@ -41,13 +45,20 @@ export function getTrainingVolunteerProfile(userId: number) {
   return api.get<TrainingVolunteerProfile>(`/api/training/volunteers/${userId}`);
 }
 
+// ------------------------------------------------------------ //
+
+// The backend takes the trainer from the token
 export function signOffTrainingSkill(userId: number, skillId: number) {
   return api.post<void>(`/api/training/volunteers/${userId}/sign-off`, { skillId });
 }
 
+//--------------------VOLUNTEER--------------------//
+
 export function getMyTrainingProfile() {
   return api.get<TrainingVolunteerProfile>("/api/volunteers/me/training/profile");
 }
+
+// ------------------------------------------------------------ //
 
 export interface CompletedShift {
   shiftDate: string;
@@ -66,3 +77,5 @@ export interface MyTrainingStats {
 export function getMyTrainingStats() {
   return api.get<MyTrainingStats>("/api/volunteers/me/training/stats");
 }
+
+//----------------------------------- END OF FILE ---------------------------------//

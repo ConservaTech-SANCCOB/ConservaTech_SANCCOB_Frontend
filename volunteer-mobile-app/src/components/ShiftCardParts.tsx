@@ -70,6 +70,9 @@ export function DateBadge({
   );
 }
 
+// ------------------------------------------------------------ //
+
+// Shared so both shift card types match
 export const SHIFT_CARD_STYLES = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,

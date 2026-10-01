@@ -7,3 +7,5 @@ export default function HomeLayout() {
     </Stack>
   );
 }
+
+//----------------------------------- END OF FILE ---------------------------------//

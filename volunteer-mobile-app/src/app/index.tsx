@@ -195,6 +195,8 @@ export default function WelcomeScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   banner: {
@@ -307,3 +309,5 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

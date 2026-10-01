@@ -24,9 +24,13 @@ import { BannerBirds } from "../../../components/Wildlife";
 
 const BANNER_SCROLL = refreshableBannerScrollStyles(COLORS.greenLight);
 
+//--------------------HELPERS--------------------//
+
 function monthLabelFor(dateStr: string): string {
   return parseLocalDate(dateStr).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
+
+// ------------------------------------------------------------ //
 
 function newestFirst(a: CompletedShift, b: CompletedShift): number {
   return b.shiftDate.localeCompare(a.shiftDate) || (b.timeSlot ?? "").localeCompare(a.timeSlot ?? "");
@@ -61,6 +65,7 @@ export default function HoursWorkedScreen() {
 
   const completedShifts = [...(stats?.completedShifts ?? [])].sort(newestFirst);
   const months = Array.from(new Set(completedShifts.map((s) => monthLabelFor(s.shiftDate))));
+  // Show a dash not 0 when loading failed
   const statValue = (value: number | undefined, decimals: number) =>
     loadError || value === undefined ? "—" : value.toFixed(decimals);
 
@@ -201,6 +206,8 @@ export default function HoursWorkedScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.white },
@@ -300,3 +307,5 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 15, fontWeight: "600", color: COLORS.greenLight },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

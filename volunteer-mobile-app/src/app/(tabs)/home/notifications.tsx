@@ -34,6 +34,7 @@ export default function NotificationsScreen() {
     if (item.isRead) return;
     try {
       await markNotificationRead(item.notificationId);
+      // Update in place instead of reloading
       setNotifications((prev) =>
         prev.map((n) => (n.notificationId === item.notificationId ? { ...n, isRead: true } : n))
       );
@@ -150,6 +151,8 @@ export default function NotificationsScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.white },
@@ -223,3 +226,5 @@ const styles = StyleSheet.create({
   message: { fontSize: 14, fontWeight: "600", color: "#1b2a33" },
   timestamp: { fontSize: 12, fontWeight: "600", color: COLORS.grey },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

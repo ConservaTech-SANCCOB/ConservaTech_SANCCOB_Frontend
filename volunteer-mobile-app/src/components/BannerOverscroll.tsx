@@ -5,6 +5,7 @@ import { COLORS } from "../utils/colors";
 const OVERSCROLL_REACH = 2000;
 const BANNER_TOP_EDGE_SHEEN = ["rgba(255,255,255,0.08)", "rgba(255,255,255,0.04)"] as const;
 
+// Banner colour shows when pulling down past the top
 export function AboveBannerFill({ color }: { color?: string }) {
   return (
     <View pointerEvents="none" style={[styles.aboveContent, color !== undefined && { backgroundColor: color }]}>
@@ -18,10 +19,15 @@ export function AboveBannerFill({ color }: { color?: string }) {
   );
 }
 
+// ------------------------------------------------------------ //
+
 export function BelowContentFill() {
   return <View pointerEvents="none" style={styles.belowContent} />;
 }
 
+// ------------------------------------------------------------ //
+
+// iOS only so the refresh area matches the banner
 export function refreshableBannerScrollStyles(bannerColor: string): {
   scroll?: ViewStyle;
   content?: ViewStyle;
@@ -47,3 +53,5 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

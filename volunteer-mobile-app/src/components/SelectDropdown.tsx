@@ -12,6 +12,7 @@ interface SelectDropdownProps {
   accessibilityLabel: string;
 }
 
+// Closed choices so invalid values can't be typed
 export default function SelectDropdown({
   value,
   options,
@@ -104,3 +105,5 @@ const styles = StyleSheet.create({
   optionText: { fontSize: 15, fontWeight: "600", color: "#1b2a33" },
   optionTextSelected: { color: COLORS.pinkMid, fontWeight: "700" },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

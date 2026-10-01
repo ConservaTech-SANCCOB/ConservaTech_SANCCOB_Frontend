@@ -18,6 +18,7 @@ type Snowflake = {
   opacity: number;
 };
 
+// Random values so the snowfall doesn't look repeated
 function createSnowflakes(count: number): Snowflake[] {
   return Array.from({ length: count }, () => ({
     startX: Math.random() * SCREEN_WIDTH,
@@ -28,6 +29,8 @@ function createSnowflakes(count: number): Snowflake[] {
     opacity: 0.35 + Math.random() * 0.45,
   }));
 }
+
+// ------------------------------------------------------------ //
 
 function SnowflakeParticle({ flake }: { flake: Snowflake }) {
   const progress = useRef(new Animated.Value(0)).current;
@@ -72,6 +75,8 @@ function SnowflakeParticle({ flake }: { flake: Snowflake }) {
     />
   );
 }
+
+// ------------------------------------------------------------ //
 
 export default function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -154,3 +159,5 @@ const styles = StyleSheet.create({
     resizeMode: "cover",
   },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

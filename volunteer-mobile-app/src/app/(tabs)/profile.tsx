@@ -42,6 +42,7 @@ export default function ProfileScreen() {
       setEmail(profile.email ?? "");
       setPhone(profile.phoneNumber ?? "");
       setNationality(profile.nationality ?? "");
+      // Ignore an old value that isn't in the list
       setAgeBracket(isAgeBracket(profile.ageBracket) ? profile.ageBracket : "");
       setEmergencyName(profile.emergencyContactName ?? "");
       setEmergencyPhone(profile.emergencyContactPhone ?? "");
@@ -58,6 +59,7 @@ export default function ProfileScreen() {
   }, [loadProfile]);
 
   const handleSave = async () => {
+    // Don't overwrite the profile with an empty form
     if (loading || loadError) return;
     if (!email.trim()) {
       Alert.alert("Email required", "Please enter your email address.");
@@ -75,6 +77,7 @@ export default function ProfileScreen() {
       });
       Alert.alert("Saved", "Your profile has been updated.");
     } catch (error) {
+      // Already sent to Login so no toast
       if (error instanceof SessionExpiredError) return;
       logError("Save profile error", error);
       showErrorToast("Couldn't save", getErrorMessage(error, "Something went wrong. Try again in a moment."));
@@ -279,6 +282,8 @@ export default function ProfileScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   banner: {
@@ -384,3 +389,5 @@ const styles = StyleSheet.create({
   },
   logoutText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

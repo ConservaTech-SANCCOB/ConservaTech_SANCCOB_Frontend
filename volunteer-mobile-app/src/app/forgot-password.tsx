@@ -28,6 +28,7 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     try {
       await forgotPassword(email.trim());
+      // Same reply either way so emails stay private
       Alert.alert("Check your email", "If an account exists with this email, a reset code has been sent.", [
         { text: "OK", onPress: () => setStep("reset") },
       ]);
@@ -155,6 +156,8 @@ export default function ForgotPasswordScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   banner: { alignItems: "center", paddingTop: 100, paddingBottom: 60 },
@@ -225,3 +228,5 @@ const styles = StyleSheet.create({
   submitButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
   helperText: { textAlign: "center", color: COLORS.navy, fontSize: 13, marginTop: 20 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

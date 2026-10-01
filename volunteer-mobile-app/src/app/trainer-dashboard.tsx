@@ -18,6 +18,8 @@ import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../constants/glass
 import { getTrainingVolunteers, TrainingVolunteerSummary } from "../services/training";
 import { useTrainerSignOut } from "../utils/useTrainerSignOut";
 
+//--------------------HELPERS--------------------//
+
 type StatusFilter = "all" | "not-started" | "in-progress" | "completed";
 
 const FILTERS: { key: StatusFilter; label: string }[] = [
@@ -31,11 +33,15 @@ function initialsFor(v: TrainingVolunteerSummary) {
   return `${v.firstName?.[0] ?? ""}${v.lastName?.[0] ?? ""}`.toUpperCase();
 }
 
+// ------------------------------------------------------------ //
+
 function statusFor(percent: number): Exclude<StatusFilter, "all"> {
   if (percent === 0) return "not-started";
   if (percent === 100) return "completed";
   return "in-progress";
 }
+
+// ------------------------------------------------------------ //
 
 function badgeFor(status: Exclude<StatusFilter, "all">) {
   switch (status) {
@@ -67,6 +73,7 @@ export default function TrainerDashboardScreen() {
     }
   }, []);
 
+  // Spinner only on the first load
   const hasLoadedRef = useRef(false);
 
   useFocusEffect(
@@ -85,6 +92,7 @@ export default function TrainerDashboardScreen() {
     load().finally(() => setIsLoading(false));
   };
 
+  // Back asks before logging out
   const handleLogout = useTrainerSignOut({ confirmOnBack: true });
 
   const filtered = useMemo(() => {
@@ -229,6 +237,8 @@ export default function TrainerDashboardScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.lightGrey },
   header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
@@ -344,3 +354,5 @@ const styles = StyleSheet.create({
   },
   retryButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

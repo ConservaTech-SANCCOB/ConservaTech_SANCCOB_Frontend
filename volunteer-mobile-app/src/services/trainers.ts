@@ -19,6 +19,9 @@ export function getTrainers() {
   return api.get<Trainer[]>("/api/trainers");
 }
 
+// ------------------------------------------------------------ //
+
+// Saves the result as a trainer session
 export async function verifyTrainerPin(pin: string) {
   try {
     const response = await api.post<VerifyPinResponse>(
@@ -28,6 +31,7 @@ export async function verifyTrainerPin(pin: string) {
     );
     await saveToken(response.token, "trainer");
   } catch (error) {
+    // Show the backend message not raw API error text
     throw error instanceof ApiError && error.backendMessage ? new Error(error.backendMessage) : error;
   }
 }
