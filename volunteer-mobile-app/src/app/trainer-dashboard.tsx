@@ -15,9 +15,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
 import { logError } from "../utils/logError";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../constants/glassCard";
-import { logout } from "../services/auth";
 import { getTrainingVolunteers, TrainingVolunteerSummary } from "../services/training";
-import { resetTo } from "../utils/navigation";
+import { useTrainerSignOut } from "../utils/useTrainerSignOut";
 
 type StatusFilter = "all" | "not-started" | "in-progress" | "completed";
 
@@ -83,10 +82,7 @@ export default function TrainerDashboardScreen() {
     }, [load])
   );
 
-  const handleLogout = async () => {
-    await logout();
-    resetTo("/");
-  };
+  const handleLogout = useTrainerSignOut({ confirmOnBack: true });
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();

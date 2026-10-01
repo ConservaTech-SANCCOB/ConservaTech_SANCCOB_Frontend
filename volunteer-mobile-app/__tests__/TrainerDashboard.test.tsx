@@ -19,6 +19,7 @@ jest.mock("expo-router", () => {
 });
 jest.mock("../src/services/training");
 jest.mock("../src/services/auth");
+jest.mock("../src/utils/useTrainerSignOut", () => ({ useTrainerSignOut: () => jest.fn() }));
 
 const mockedGetVolunteers = jest.mocked(getTrainingVolunteers);
 

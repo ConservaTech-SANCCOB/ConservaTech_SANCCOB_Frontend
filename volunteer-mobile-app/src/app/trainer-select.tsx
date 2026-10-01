@@ -18,6 +18,7 @@ import { getErrorMessage } from "../utils/api";
 import { COLORS } from "../utils/colors";
 import { showErrorToast } from "../utils/toast";
 import { logError } from "../utils/logError";
+import { useTrainerSignOut } from "../utils/useTrainerSignOut";
 
 function initialsFor(trainer: Trainer) {
   return `${trainer.firstName?.[0] ?? ""}${trainer.lastName?.[0] ?? ""}`.toUpperCase();
@@ -30,6 +31,7 @@ export default function TrainerSelectScreen() {
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  useTrainerSignOut({ confirmOnBack: false });
 
   useEffect(() => {
     Animated.parallel([
