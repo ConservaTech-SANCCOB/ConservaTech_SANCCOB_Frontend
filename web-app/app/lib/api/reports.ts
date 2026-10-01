@@ -30,11 +30,37 @@ export interface ReportsData {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-const MOCK_CONSERVATION = {
-  totalReleased: 782,
-  totalInCare: 205,
-  percentReleased: 79,
-};
+async function fetchConservationImpact(
+  token: string | null,
+  year: string
+): Promise<{ totalReleased: number; totalInCare: number; percentReleased: number }> {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const response = await fetch(
+    `${API_URL}/api/admin/dashboard/conservation-impact?year=${encodeURIComponent(year)}`,
+    {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Unable to fetch conservation impact");
+  }
+
+  const raw = await response.json();
+
+  return {
+    totalReleased: raw.totalReleased ?? 0,
+    totalInCare: raw.totalInCare ?? 0,
+    percentReleased: raw.percentReleased ?? 0,
+  };
+}
 
 export async function fetchReportsData(
   token: string | null,
@@ -47,6 +73,7 @@ export async function fetchReportsData(
 
   const response = await fetch(url, {
     method: "GET",
+    cache: "no-store",
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
@@ -59,6 +86,7 @@ export async function fetchReportsData(
   }
 
   const raw = await response.json();
+  const conservation = await fetchConservationImpact(token, year);
 
   return {
     totalVolunteerHours: raw.totalVolunteerHours ?? 0,
@@ -69,7 +97,7 @@ export async function fetchReportsData(
       month: m.month,
       hours: m.hours,
     })),
-    conservation: MOCK_CONSERVATION,
+    conservation,
     attendanceByMonth: (raw.monthlyAttendanceRate ?? []).map((a: any) => ({
       month: a.month,
       rate: a.ratePercent,
