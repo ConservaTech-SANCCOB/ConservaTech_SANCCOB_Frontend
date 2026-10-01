@@ -1,6 +1,45 @@
+import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../utils/colors";
 import { parseLocalDate } from "../utils/dateBuckets";
+import { formatTimeSlotLabel } from "../utils/timeSlot";
+
+type SlotTheme = {
+  /** Card edge stripe and chip icon. */
+  accent: string;
+  /** Pale fill for the chip and date badge. */
+  soft: string;
+  /** Text/icon colour on top of `soft`. */
+  ink: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
+
+/**
+ * Each time slot gets its own colour so a list of shifts scans at a glance:
+ * warm sunrise for mornings, sky blue for afternoons, lavender for full days.
+ */
+const SLOT_THEMES: Record<string, SlotTheme> = {
+  "08:00-13:00": { accent: "#f08a3c", soft: "#ffe6d2", ink: "#8a3d06", icon: "cafe-outline" },
+  "14:00-17:00": { accent: "#2c9fd9", soft: "#d9f0fc", ink: "#0b4f73", icon: "partly-sunny-outline" },
+  "08:00-17:00": { accent: "#8a62d6", soft: "#ece4fb", ink: "#4a2a8f", icon: "sunny-outline" },
+};
+
+const FALLBACK_SLOT_THEME: SlotTheme = { accent: "#8aa0ad", soft: "#e8eef1", ink: "#1b2a33", icon: "time-outline" };
+
+export function slotTheme(slot: string): SlotTheme {
+  return SLOT_THEMES[slot] ?? FALLBACK_SLOT_THEME;
+}
+
+/** The slot name ("Morning", ...) as a tinted pill, used as each shift card's title. */
+export function SlotChip({ slot }: { slot: string }) {
+  const theme = slotTheme(slot);
+  return (
+    <View style={[styles.slotChip, { backgroundColor: theme.soft }]}>
+      <Ionicons name={theme.icon} size={15} color={theme.accent} />
+      <Text style={[styles.slotChipText, { color: theme.ink }]}>{formatTimeSlotLabel(slot)}</Text>
+    </View>
+  );
+}
 
 export function DateBadge({
   dateStr,
@@ -39,6 +78,8 @@ export const SHIFT_CARD_STYLES = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: "#b3c3cc",
+    // Coloured per time slot by each card (see slotTheme).
+    borderLeftWidth: 5,
     padding: 16,
     marginBottom: 12,
     shadowColor: "#0d2430",
@@ -69,7 +110,6 @@ export const SHIFT_CARD_STYLES = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#b3c3cc",
   },
-  timeLabel: { fontSize: 16.5, fontWeight: "700", color: "#1b2a33" },
   badgeRow: { flexDirection: "row", alignItems: "center", gap: 14 },
   metaColumn: { flex: 1, gap: 4 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 5 },
@@ -97,4 +137,14 @@ const styles = StyleSheet.create({
   },
   dateBadgeDay: { fontSize: 26, fontWeight: "900", color: COLORS.white, lineHeight: 28 },
   dateBadgeWeekday: { fontSize: 12, fontWeight: "700", color: COLORS.white, letterSpacing: 0.5 },
+  slotChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+  },
+  slotChipText: { fontSize: 14.5, fontWeight: "800", letterSpacing: 0.2 },
 });

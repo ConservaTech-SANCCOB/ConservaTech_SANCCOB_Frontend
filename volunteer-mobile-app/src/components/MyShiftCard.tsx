@@ -6,7 +6,7 @@ import { MyShift } from "../services/shifts";
 import { COLORS } from "../utils/colors";
 import { getRelativeLabel } from "../utils/dateBuckets";
 import { formatTimeSlotLabel, hasShiftEnded } from "../utils/timeSlot";
-import { DateBadge, SHIFT_CARD_STYLES } from "./ShiftCardParts";
+import { DateBadge, SHIFT_CARD_STYLES, SlotChip, slotTheme } from "./ShiftCardParts";
 
 export default function MyShiftCard({
   item,
@@ -17,13 +17,14 @@ export default function MyShiftCard({
   item: MyShift;
   /** A pending cancellation request already exists for this shift — hides the cancel action. */
   cancellationPending?: boolean;
-  /** Tints the date badge and Cancel button to match the screen this card is shown on. */
+  /** Tints the Cancel button to match the screen this card is shown on (the rest follows the time slot). */
   accent?: string;
   /** Text/icon colour on top of `accent`; override when the accent is too light for white. */
   accentText?: string;
 }) {
   const router = useRouter();
   const ended = hasShiftEnded(item.shiftDate, item.timeSlot);
+  const slot = slotTheme(item.timeSlot);
   const scale = useRef(new Animated.Value(1)).current;
 
   const pressIn = () => {
@@ -66,17 +67,19 @@ export default function MyShiftCard({
         )
       }
     >
-      <Animated.View style={[SHIFT_CARD_STYLES.card, { transform: [{ scale }] }]}>
+      <Animated.View
+        style={[SHIFT_CARD_STYLES.card, { borderLeftColor: slot.accent, transform: [{ scale }] }]}
+      >
         <View style={[SHIFT_CARD_STYLES.notch, SHIFT_CARD_STYLES.notchBottomLeft]} />
         <View style={SHIFT_CARD_STYLES.topNotch} />
         <View style={styles.titleRow}>
-          <Text style={SHIFT_CARD_STYLES.timeLabel}>{formatTimeSlotLabel(item.timeSlot)}</Text>
+          <SlotChip slot={item.timeSlot} />
           {!ended && cancellationPending && (
             <View style={styles.pendingDot} accessible accessibilityLabel="Cancellation pending" />
           )}
         </View>
         <View style={SHIFT_CARD_STYLES.badgeRow}>
-          <DateBadge dateStr={item.shiftDate} size={56} color={accent} textColor={accentText} />
+          <DateBadge dateStr={item.shiftDate} size={56} color={slot.soft} textColor={slot.ink} />
           <View style={SHIFT_CARD_STYLES.metaColumn}>
             <View style={SHIFT_CARD_STYLES.metaRow}>
               <Ionicons name="time-outline" size={14} color={COLORS.grey} />
