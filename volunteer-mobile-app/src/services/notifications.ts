@@ -15,3 +15,9 @@ export async function getMyNotifications() {
 export function markNotificationRead(id: number) {
   return api.patch<void>(`/api/notifications/${id}/read`, {});
 }
+
+export function registerPushToken(token: string) {
+  return api.post<void>("/api/notifications/push-token", {
+    token,
+  });
+}
