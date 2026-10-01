@@ -5,7 +5,6 @@ export default function BookingsLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="submit-availability" />
-      <Stack.Screen name="request-change" />
     </Stack>
   );
 }
