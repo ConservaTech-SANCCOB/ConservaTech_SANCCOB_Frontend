@@ -35,7 +35,6 @@ describe("LoginScreen", () => {
 
     await submit("sam@example.com", "secret123");
 
-    // resetTo, not a plain replace, so Back can't return to the welcome/login screens.
     await waitFor(() => expect(resetTo).toHaveBeenCalledWith("/(tabs)/home"));
     expect(mockedLogin).toHaveBeenCalledWith("sam@example.com", "secret123");
   });

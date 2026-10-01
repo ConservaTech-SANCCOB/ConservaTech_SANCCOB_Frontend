@@ -54,8 +54,6 @@ export default function SubmitAvailabilityScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Tied to focus, not mount: if this screen is left open underneath another one,
-  // the tab bar must still come back for whatever is on top.
   useFocusEffect(
     useCallback(() => {
       const parent = navigation.getParent();

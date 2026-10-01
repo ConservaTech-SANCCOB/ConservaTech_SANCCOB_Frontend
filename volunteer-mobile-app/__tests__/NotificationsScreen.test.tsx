@@ -8,7 +8,6 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("../src/services/notifications");
 
-// Fixed "now": Friday 25 Sept 2026, 12:00 local.
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date(2026, 8, 25, 12, 0, 0), advanceTimers: true });
 });

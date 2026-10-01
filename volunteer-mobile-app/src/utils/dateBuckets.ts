@@ -32,12 +32,6 @@ export function getRelativeLabel(dateStr: string): string {
   return `${Math.abs(diffDays)} days ago`;
 }
 
-/**
- * Parses a backend date-time (e.g. a notification's `createdAt`). The server runs in UTC,
- * and .NET serialises a database DateTime without an offset ("2026-09-25T10:00:00"), which
- * `new Date` would read as local time — two hours off in South Africa. So a timestamp with
- * no zone is treated as UTC.
- */
 export function parseBackendTimestamp(value: string): Date {
   const hasZone = /(Z|[+-]\d{2}:?\d{2})$/i.test(value);
   return new Date(hasZone ? value : `${value}Z`);
@@ -45,7 +39,6 @@ export function parseBackendTimestamp(value: string): Date {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "Today, 14:05", "Yesterday, 09:30", "12 Sep, 14:05", or "12 Sep 2025, 14:05" in an earlier year. */
 export function formatTimestamp(value: string): string | null {
   const date = parseBackendTimestamp(value);
   if (Number.isNaN(date.getTime())) return null;

@@ -37,8 +37,6 @@ export default function RequestChangeScreen() {
 
   // Same as Submit Availability: the floating tab bar would otherwise sit over the
   // bottom of the form (and the submit button while the keyboard is open).
-  // Tied to focus, not mount: if this screen is left open underneath another one,
-  // the tab bar must still come back for whatever is on top.
   useFocusEffect(
     useCallback(() => {
       const parent = navigation.getParent();

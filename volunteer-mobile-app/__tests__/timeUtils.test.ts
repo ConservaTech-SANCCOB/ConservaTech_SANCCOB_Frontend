@@ -74,7 +74,6 @@ describe("dateBuckets", () => {
 });
 
 describe("formatTimestamp", () => {
-  // Built from local times so the expectations hold in any test-machine time zone.
   const utc = (...args: [number, number, number, number, number]) => new Date(...args).toISOString();
 
   it("labels today and yesterday, with a 24-hour local time", () => {
@@ -88,7 +87,7 @@ describe("formatTimestamp", () => {
   });
 
   it("reads a timestamp with no time zone as UTC, as the backend sends it", () => {
-    const noZone = utc(2026, 8, 25, 9, 5).slice(0, 19); // "2026-09-25T..:..:.." without the Z
+    const noZone = utc(2026, 8, 25, 9, 5).slice(0, 19);
     expect(formatTimestamp(noZone)).toBe("Today, 09:05");
   });
 

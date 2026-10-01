@@ -185,7 +185,6 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: "Home",
-          // Like Shifts below: coming back to the tab shows its main screen, not Notifications.
           popToTopOnBlur: true,
           tabBarIcon: ({ color, size, focused }) => <TabIcon name="home" color={color} size={size} focused={focused} />,
         }}
@@ -206,7 +205,6 @@ export default function TabsLayout() {
         name="progress"
         options={{
           title: "Training",
-          // Like Shifts below: coming back to the tab shows its main screen, not Hours.
           popToTopOnBlur: true,
           tabBarIcon: ({ color, size, focused }) => <TabIcon name="school" color={color} size={size} focused={focused} />,
         }}

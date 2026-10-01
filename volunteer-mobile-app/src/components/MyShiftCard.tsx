@@ -35,8 +35,6 @@ export default function MyShiftCard({
   };
 
   const requestChange = () => {
-    // withAnchor loads the Shifts list underneath, so when this is opened from Home
-    // before the Shifts tab has been visited, request-change isn't the stack's only screen.
     router.push(
       {
         pathname: "/(tabs)/bookings/request-change",
@@ -103,7 +101,6 @@ export default function MyShiftCard({
         </View>
         {!ended && <View style={SHIFT_CARD_STYLES.divider} />}
         {!ended && cancellationPending && (
-          // Invisible stand-in for the Cancel button so the card keeps its size.
           <View
             style={[SHIFT_CARD_STYLES.actionWrap, styles.hidden]}
             pointerEvents="none"

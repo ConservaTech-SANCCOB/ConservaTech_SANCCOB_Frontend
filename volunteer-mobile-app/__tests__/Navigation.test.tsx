@@ -17,9 +17,6 @@ jest.mock("../src/services/changeRequests");
 jest.mock("../src/services/notifications");
 jest.mock("../src/services/profile");
 
-// Uses Expo Router's real routing with the app's real layouts (tab bar, per-tab stacks
-// and their settings), so these check what Back and the tab bar actually do. Screens
-// whose content doesn't matter here are stubs.
 const stub = (label: string) => () => <Text>{label}</Text>;
 const routes = {
   _layout: () => <Stack screenOptions={{ headerShown: false }} />,
@@ -43,16 +40,11 @@ const routes = {
 };
 
 const tab = (name: string) => screen.queryByRole("tab", { name });
-// The tab navigator pops a left tab's stack (popToTopOnBlur) only once the switch
-// animation finishes, so let it run.
 async function pressTab(name: string) {
   await fireEvent.press(tab(name)!);
   await act(() => jest.advanceTimersByTime(1000));
 }
-// RNTL v14's render is async, and renderRouter attaches getPathname() etc. to the promise
-// it returns — so keep that object for the pathname matcher and await it separately.
 
-// Fixed "now": Friday 25 Sept 2026, 12:00 local, so the shift below is this week and upcoming.
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date(2026, 8, 25, 12, 0, 0), advanceTimers: true });
   jest.clearAllMocks();
@@ -90,7 +82,7 @@ describe("Cancel from a Home shift card (Shifts tab not opened yet)", () => {
 
     await fireEvent.press(await screen.findByRole("button", { name: "Cancel shift" }));
     expect(app.getPathname()).toBe("/bookings/request-change");
-    expect(tab("Home")).toBeNull(); // the form hides the tab bar
+    expect(tab("Home")).toBeNull();
 
     await fireEvent.press(screen.getByRole("button", { name: "Go back" }));
     expect(app.getPathname()).toBe("/bookings");
@@ -110,7 +102,6 @@ it("shows the tab bar on any screen opened on top of Request Change", async () =
   await act(() => router.push("/(tabs)/bookings/request-change?bookingId=42&shiftDate=2026-09-26"));
   expect(tab("Home")).toBeNull();
 
-  // Request Change is still mounted underneath; it must not keep the bar hidden.
   await act(() => router.push("/(tabs)/bookings"));
   expect(app.getPathname()).toBe("/bookings");
   expect(tab("Home")).toBeOnTheScreen();

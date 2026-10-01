@@ -5,11 +5,6 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "rea
 import { COLORS } from "../utils/colors";
 import { logError } from "../utils/logError";
 
-/**
- * Shown by Expo Router in place of the app when a screen throws while rendering
- * (exported as `ErrorBoundary` from src/app/_layout.tsx). `retry` clears the error
- * and renders the app again. The raw error is only shown in development builds.
- */
 export default function ErrorFallback({ error, retry }: ErrorBoundaryProps) {
   const [retrying, setRetrying] = useState(false);
 

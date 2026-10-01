@@ -12,7 +12,6 @@ jest.mock("expo-splash-screen", () => ({
   hideAsync: jest.fn(() => Promise.resolve()),
 }));
 
-// __DEV__ is typed as a read-only global; tests flip it to cover both build modes.
 const runtime = globalThis as unknown as { __DEV__: boolean };
 const devFlag = runtime.__DEV__;
 

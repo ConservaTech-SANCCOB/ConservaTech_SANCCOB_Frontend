@@ -2,8 +2,6 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import TrainerDashboardScreen from "../src/app/trainer-dashboard";
 import { getTrainingVolunteers, TrainingVolunteerSummary } from "../src/services/training";
 
-// useFocusEffect runs on mount like the other screen tests; the latest effect is kept
-// so a test can simulate the screen regaining focus (e.g. Back from a volunteer).
 let mockRefocus: () => void = () => {};
 jest.mock("expo-router", () => {
   const { useEffect } = jest.requireActual("react");
@@ -56,8 +54,6 @@ describe("Trainer dashboard", () => {
     await fireEvent.changeText(screen.getByPlaceholderText("Search volunteers..."), "Sam");
     expect(screen.queryByText("Lee Volunteer")).toBeNull();
 
-    // Back from signing off a skill: the refetch is still in flight, and the list
-    // must stay visible rather than flashing back to the first-load spinner.
     let resolveRefresh: (v: TrainingVolunteerSummary[]) => void = () => {};
     mockedGetVolunteers.mockReturnValueOnce(new Promise((resolve) => (resolveRefresh = resolve)));
     await act(async () => mockRefocus());

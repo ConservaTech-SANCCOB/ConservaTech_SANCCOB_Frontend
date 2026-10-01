@@ -69,8 +69,6 @@ export default function TrainerDashboardScreen() {
 
   const hasLoadedRef = useRef(false);
 
-  // Re-fetched on every focus so a sign-off made on the volunteer screen shows here
-  // after Back. Only the first load shows the spinner; later ones refresh silently.
   useFocusEffect(
     useCallback(() => {
       if (!hasLoadedRef.current) {

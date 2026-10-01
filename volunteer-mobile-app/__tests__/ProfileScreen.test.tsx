@@ -38,7 +38,6 @@ describe("Profile", () => {
     expect(screen.queryByText("Save Changes")).toBeNull();
     expect(screen.queryByText("EMAIL ADDRESS")).toBeNull();
     expect(mockedUpdateProfile).not.toHaveBeenCalled();
-    // Logging out and the support details stay reachable while offline.
     expect(screen.getByText("Log Out")).toBeTruthy();
     expect(screen.getByText("volunteers@sanccob.co.za")).toBeTruthy();
   });

@@ -58,8 +58,6 @@ export default function ProfileScreen() {
   }, [loadProfile]);
 
   const handleSave = async () => {
-    // The PUT replaces every field, so saving a form that never loaded would send
-    // nulls over the volunteer's real details. The form isn't shown then, but guard anyway.
     if (loading || loadError) return;
     if (!email.trim()) {
       Alert.alert("Email required", "Please enter your email address.");

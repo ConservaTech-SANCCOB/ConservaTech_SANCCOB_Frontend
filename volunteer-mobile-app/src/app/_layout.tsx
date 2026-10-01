@@ -12,8 +12,6 @@ import { logError } from "../utils/logError";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// Expo Router wraps this root layout (so every screen) in an error boundary that
-// renders this instead of a blank/red screen when something throws while rendering.
 export { default as ErrorBoundary } from "../components/ErrorFallback";
 
 type SessionCheck = "checking" | "authenticated" | "unauthenticated";
