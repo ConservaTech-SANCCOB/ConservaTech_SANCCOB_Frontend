@@ -13,6 +13,8 @@ export async function getMyNotifications() {
   return [...notifications].sort((a, b) => b.notificationId - a.notificationId);
 }
 
+// ------------------------------------------------------------ //
+
 export function markNotificationRead(id: number) {
   return api.patch<void>(`/api/notifications/${id}/read`, {});
 }

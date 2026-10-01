@@ -39,6 +39,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email.trim(), password);
+      // Reset the stack so Back can't return to Login
       resetTo("/(tabs)/home");
     } catch (error) {
       logError("Login error", error);
@@ -207,6 +208,8 @@ export default function LoginScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   banner: { alignItems: "center", paddingTop: 90, paddingBottom: 170 },
@@ -322,3 +325,5 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

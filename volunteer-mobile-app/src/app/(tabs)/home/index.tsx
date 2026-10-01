@@ -21,12 +21,16 @@ import { BannerBirds, BannerPenguin, EmptyStatePenguin } from "../../../componen
 
 const BANNER_SCROLL = refreshableBannerScrollStyles(COLORS.blueLight);
 
+//--------------------HELPERS--------------------//
+
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "GOOD MORNING";
   if (hour < 18) return "GOOD AFTERNOON";
   return "GOOD EVENING";
 }
+
+//--------------------SCREEN--------------------//
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -48,6 +52,7 @@ export default function HomeScreen() {
     return bucket === "Today" || bucket === "This Week";
   });
   const upcoming = thisWeeksShifts.slice(0, 2);
+  // Shown when nothing is on this week
   const nextLaterShift = futureShifts.find((s) => bucketForDate(s.shiftDate) === "Later");
 
   const loadUnreadCount = useCallback(async () => {
@@ -74,6 +79,7 @@ export default function HomeScreen() {
     try {
       const [myShifts, pending] = await Promise.all([
         getMyShifts(),
+        // Shifts still show if this fails
         getPendingCancellationIds().catch((error) => {
           logError("Load pending cancellations error", error);
           return null;
@@ -98,6 +104,7 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [refetchAll]);
 
+  // Spinner on first visit then quiet refreshes
   const hasLoadedRef = useRef(false);
 
   useFocusEffect(
@@ -261,6 +268,8 @@ export default function HomeScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   banner: {
@@ -388,3 +397,5 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: { fontSize: 13, fontWeight: "600", color: COLORS.white, letterSpacing: 0.2 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

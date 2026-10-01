@@ -5,10 +5,14 @@ import { Alert } from "react-native";
 import { logout } from "../services/auth";
 import { resetTo } from "./navigation";
 
+// Only Back should log the trainer out
 function isBackAction(action: NavigationAction) {
   return action.type === "GO_BACK" || action.type === "POP";
 }
 
+// ------------------------------------------------------------ //
+
+// Back on a trainer screen ends the shared session
 export function useTrainerSignOut({ confirmOnBack }: { confirmOnBack: boolean }) {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
@@ -19,6 +23,7 @@ export function useTrainerSignOut({ confirmOnBack }: { confirmOnBack: boolean })
     setSignedOut(true);
   }, []);
 
+  // Wait until usePreventRemove stops blocking the move
   useEffect(() => {
     if (signedOut) resetTo("/");
   }, [signedOut]);
@@ -40,3 +45,5 @@ export function useTrainerSignOut({ confirmOnBack }: { confirmOnBack: boolean })
 
   return signOut;
 }
+
+//----------------------------------- END OF FILE ---------------------------------//

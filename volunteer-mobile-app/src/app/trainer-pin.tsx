@@ -12,6 +12,7 @@ import { showErrorToast } from "../utils/toast";
 import { logError } from "../utils/logError";
 
 const PIN_PATTERN = /^\d{6}$/;
+// Raw API error text that users shouldn't see
 const RAW_ERROR_FORMAT = /^API error \d+:/;
 
 export default function TrainerPinScreen() {
@@ -113,6 +114,8 @@ export default function TrainerPinScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   banner: { alignItems: "center", paddingTop: 100, paddingBottom: 120 },
@@ -198,3 +201,5 @@ const styles = StyleSheet.create({
   submitButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
   helperText: { textAlign: "center", color: COLORS.navy, fontSize: 13, marginTop: 20 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

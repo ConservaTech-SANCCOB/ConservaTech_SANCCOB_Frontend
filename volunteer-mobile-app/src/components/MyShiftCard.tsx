@@ -97,6 +97,7 @@ export default function MyShiftCard({
         </View>
         {!ended && <View style={SHIFT_CARD_STYLES.divider} />}
         {!ended && cancellationPending && (
+          // Invisible copy keeps the card height while pending
           <View
             style={[SHIFT_CARD_STYLES.actionWrap, styles.hidden]}
             pointerEvents="none"
@@ -131,3 +132,5 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
   hidden: { opacity: 0 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

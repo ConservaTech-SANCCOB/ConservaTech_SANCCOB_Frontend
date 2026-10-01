@@ -30,6 +30,8 @@ import { showErrorToast } from "../../../utils/toast";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 
+//--------------------HELPERS--------------------//
+
 type ListRow =
   | { type: "header"; key: string; title: string }
   | { type: "mine"; key: string; item: MyShift }
@@ -54,6 +56,8 @@ function groupMyShifts(shifts: MyShift[]): ListRow[] {
   });
   return rows;
 }
+
+//--------------------CARDS--------------------//
 
 function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () => Promise<void> }) {
   const limited = item.vacanciesAvailable === 1;
@@ -83,6 +87,7 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
           "Couldn't book this shift",
           error.backendMessage ?? "It may have just filled up or is no longer available."
         );
+        // Refresh so a full shift drops off the list
         await onChanged();
       } else {
         showErrorToast("Couldn't book this shift", "Something went wrong. Try again in a moment.");
@@ -93,6 +98,7 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
   };
 
   const confirmBook = () => {
+    // Stops a double tap opening two alerts
     if (booking || confirmationOpen.current) return;
     confirmationOpen.current = true;
     const closeConfirmation = () => {
@@ -175,6 +181,8 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
   );
 }
 
+// ------------------------------------------------------------ //
+
 function SkeletonCard() {
   const opacity = useRef(new Animated.Value(0.4)).current;
 
@@ -201,6 +209,8 @@ function SkeletonCard() {
     </Animated.View>
   );
 }
+
+//--------------------SCREEN--------------------//
 
 export default function BookingsScreen() {
   const router = useRouter();
@@ -241,6 +251,7 @@ export default function BookingsScreen() {
     }).start();
   }, [tab, segmentIndicatorWidth, segmentTranslateX]);
 
+  // Silent mode refreshes without a spinner
   const load = useCallback(
     async (mode: "initial" | "manual" | "silent" = "initial") => {
       if (mode === "manual") setRefreshing(true);
@@ -260,6 +271,7 @@ export default function BookingsScreen() {
         } else {
           const [vacancies, myShiftsForExclusion] = await Promise.all([getVacancies(), getMyShifts()]);
           setMyShifts(myShiftsForExclusion);
+          // Hide my own full and ended shifts
           const assignedShiftIds = new Set(myShiftsForExclusion.map((s) => s.shiftId));
           setAvailableShifts(
             vacancies.filter(
@@ -284,6 +296,7 @@ export default function BookingsScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // Spinner only the first time per tab
       const alreadyLoadedThisTab = hasLoadedTab.current[tab];
       hasLoadedTab.current[tab] = true;
       load(alreadyLoadedThisTab ? "silent" : "initial");
@@ -467,6 +480,8 @@ export default function BookingsScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   list: { backgroundColor: COLORS.white },
@@ -627,3 +642,5 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

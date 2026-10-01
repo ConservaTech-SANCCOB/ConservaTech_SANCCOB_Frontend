@@ -393,6 +393,7 @@ export default function TrainingScreen() {
     }
   }, []);
 
+  // Reload on every visit so new sign-offs show
   useFocusEffect(
     useCallback(() => {
       load();
@@ -423,6 +424,7 @@ export default function TrainingScreen() {
   const supportingCompletedCount = supportingAreas.filter((s) => s.completed).length;
   const penCompletedCount = penRoutines.filter((s) => s.completed).length;
   const seasonalCompletedCount = seasonalSkills.filter((s) => s.completed).length;
+  // Pen Routines unlock after all Supporting Areas
   const penLocked = !allSupportingAreasComplete;
 
   return (
@@ -775,3 +777,5 @@ const styles = StyleSheet.create({
   pathStatusDone: { fontSize: 12, color: "#7f8a7c", fontWeight: "500" },
   pathStatusNext: { fontSize: 12, fontWeight: "700" },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

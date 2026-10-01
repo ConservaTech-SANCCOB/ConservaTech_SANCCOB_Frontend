@@ -10,12 +10,14 @@ import { clearToken, getSessionRole, getToken } from "../utils/api";
 import { COLORS } from "../utils/colors";
 import { logError } from "../utils/logError";
 
+// Keep the native splash until ours takes over
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export { default as ErrorBoundary } from "../components/ErrorFallback";
 
 type SessionCheck = "checking" | "authenticated" | "unauthenticated";
 
+// Checks for a saved session before showing any screen
 export default function RootLayout() {
   const router = useRouter();
   const [showCustomSplash, setShowCustomSplash] = useState(true);
@@ -26,6 +28,7 @@ export default function RootLayout() {
     SplashScreen.hideAsync().catch(() => {});
   }, []);
 
+  // Trainer sessions are never restored on a shared device
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -46,6 +49,7 @@ export default function RootLayout() {
     };
   }, []);
 
+  // Already signed in so skip Welcome
   useEffect(() => {
     if (sessionCheck === "authenticated") {
       router.replace("/(tabs)/home");

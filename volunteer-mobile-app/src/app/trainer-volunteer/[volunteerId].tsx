@@ -64,6 +64,7 @@ export default function TrainerVolunteerScreen() {
   const percent = profile ? Math.round(profile.progressPercentage) : 0;
   const volunteerLabel = profile ? `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() : "Volunteer";
 
+  // Reload so the progress numbers update
   const applySignOff = async (skill: TrainingSkillDto) => {
     setSigningOffId(skill.skillId);
     try {
@@ -176,6 +177,8 @@ export default function TrainerVolunteerScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.lightGrey },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.lightGrey },
@@ -230,3 +233,5 @@ const styles = StyleSheet.create({
   signedOffTag: { flexDirection: "row", alignItems: "center", gap: 4 },
   signedOffText: { color: COLORS.green, fontWeight: "700", fontSize: 12 },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

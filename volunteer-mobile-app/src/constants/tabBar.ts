@@ -1,6 +1,7 @@
 import { ViewStyle } from "react-native";
 import { GLASS_CARD, GLASS_SHADOW_LG } from "./glassCard";
 
+// Also restores the tab bar after a screen hides it
 export function getTabBarStyle(bottomInset: number): ViewStyle {
   return {
     position: "absolute",
@@ -21,3 +22,5 @@ export function getTabBarStyle(bottomInset: number): ViewStyle {
     backgroundColor: "rgba(255,255,255,0.55)",
   };
 }
+
+//----------------------------------- END OF FILE ---------------------------------//

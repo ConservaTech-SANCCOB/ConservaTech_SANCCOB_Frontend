@@ -40,3 +40,5 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontWeight: "700", color: "#1b2a33", marginBottom: 2 },
   message: { fontSize: 13.5, lineHeight: 19, color: "#3d4a52" },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

@@ -17,6 +17,7 @@ import { logError } from "../utils/logError";
 import { formatTimeSlotLabel, hasShiftEnded } from "../utils/timeSlot";
 import { showErrorToast } from "../utils/toast";
 
+// Opened from Home or Shifts so Back returns there
 export default function RequestChangeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -39,6 +40,7 @@ export default function RequestChangeScreen() {
       Alert.alert("Reason required", "Please tell us why you'd like to cancel this shift.");
       return;
     }
+    // Nothing to cancel for a missing or ended shift
     if (!hasShift || ended) return;
     setSubmitting(true);
     try {
@@ -192,6 +194,8 @@ export default function RequestChangeScreen() {
   );
 }
 
+//--------------------STYLES--------------------//
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   banner: {
@@ -323,3 +327,5 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.redDark },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center" },
 });
+
+//----------------------------------- END OF FILE ---------------------------------//

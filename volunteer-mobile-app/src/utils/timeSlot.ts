@@ -7,9 +7,13 @@ export const TIME_SLOT_LABELS: Record<TimeBlock, string> = {
   "08:00-17:00": "Full Day",
 };
 
+// ------------------------------------------------------------ //
+
 export function formatTimeSlotLabel(slot: string): string {
   return (TIME_SLOT_LABELS as Record<string, string>)[slot] ?? slot;
 }
+
+// ------------------------------------------------------------ //
 
 export function getTimeSlotHours(slot: string): number {
   const match = /^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/.exec(slot);
@@ -20,20 +24,29 @@ export function getTimeSlotHours(slot: string): number {
   return Math.max(0, endMinutes - startMinutes) / 60;
 }
 
+// ------------------------------------------------------------ //
+
+// A shift is upcoming until its end time passes
 export function hasShiftEnded(shiftDate: string, timeSlot: string): boolean {
   const match = /^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/.exec(timeSlot);
   const end = parseLocalDate(shiftDate);
   if (match) {
     end.setHours(Number(match[3]), Number(match[4]), 0, 0);
   } else {
+    // No end time so treat it as all day
     end.setHours(23, 59, 59, 999);
   }
   return end.getTime() <= Date.now();
 }
 
+// ------------------------------------------------------------ //
+
+// Zero padded times sort correctly as text
 export function compareShiftsByStart(
   a: { shiftDate: string; timeSlot: string | null },
   b: { shiftDate: string; timeSlot: string | null }
 ): number {
   return a.shiftDate.localeCompare(b.shiftDate) || (a.timeSlot ?? "").localeCompare(b.timeSlot ?? "");
 }
+
+//----------------------------------- END OF FILE ---------------------------------//

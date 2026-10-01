@@ -1,8 +1,14 @@
+//--------------------SHIFT DATES--------------------//
+
+// Parse dates in local time to avoid the UTC day shift
 export function parseLocalDate(dateStr: string): Date {
   const [y, m, d] = dateStr.slice(0, 10).split("-").map(Number);
   return new Date(y, (m || 1) - 1, d || 1);
 }
 
+// ------------------------------------------------------------ //
+
+// Negative means the date is in the past
 function getDiffDays(dateStr: string): number {
   const shiftDate = parseLocalDate(dateStr);
   shiftDate.setHours(0, 0, 0, 0);
@@ -10,6 +16,8 @@ function getDiffDays(dateStr: string): number {
   today.setHours(0, 0, 0, 0);
   return Math.round((shiftDate.getTime() - today.getTime()) / 86400000);
 }
+
+// ------------------------------------------------------------ //
 
 export type DateBucket = "Today" | "This Week" | "Later" | "Past";
 
@@ -21,6 +29,8 @@ export function bucketForDate(dateStr: string): DateBucket {
   return "Later";
 }
 
+// ------------------------------------------------------------ //
+
 export function getRelativeLabel(dateStr: string): string {
   const diffDays = getDiffDays(dateStr);
   if (diffDays === 0) return "Today";
@@ -30,13 +40,19 @@ export function getRelativeLabel(dateStr: string): string {
   return `${Math.abs(diffDays)} days ago`;
 }
 
+//--------------------TIMESTAMPS--------------------//
+
+// Timestamps without a zone are UTC so add Z
 export function parseBackendTimestamp(value: string): Date {
   const hasZone = /(Z|[+-]\d{2}:?\d{2})$/i.test(value);
   return new Date(hasZone ? value : `${value}Z`);
 }
 
+// ------------------------------------------------------------ //
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+// Returns null if the date can't be read
 export function formatTimestamp(value: string): string | null {
   const date = parseBackendTimestamp(value);
   if (Number.isNaN(date.getTime())) return null;
@@ -53,3 +69,5 @@ export function formatTimestamp(value: string): string | null {
   const year = date.getFullYear() === today.getFullYear() ? "" : ` ${date.getFullYear()}`;
   return `${date.getDate()} ${MONTHS[date.getMonth()]}${year}, ${time}`;
 }
+
+//----------------------------------- END OF FILE ---------------------------------//

@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { KeyboardAvoidingView, Platform, StyleProp, ViewStyle } from "react-native";
 
+// Stops the keyboard covering form inputs
 export default function KeyboardAvoidingScreen({
   children,
   style,
@@ -14,3 +15,5 @@ export default function KeyboardAvoidingScreen({
     </KeyboardAvoidingView>
   );
 }
+
+//----------------------------------- END OF FILE ---------------------------------//
