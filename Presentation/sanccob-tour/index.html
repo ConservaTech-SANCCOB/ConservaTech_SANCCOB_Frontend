@@ -749,7 +749,7 @@ npx expo start</code></pre>
         <li><b>Hosting.</b> Free tiers on Azure and Neon are fine for a demonstration. Real use needs paid tiers.</li>
         <li><b>Distribution.</b> iOS testers use TestFlight and Android testers use an APK. Public store release would need an organization developer account and store review.</li>
         <li><b>Sessions.</b> There is no token refresh yet, so users sign in again when a token expires.</li>
-        <li><b>Testing.</b> The API has automated xUnit tests. Front-end tests are still being added.</li>
+        <li><b>Testing.</b> Automated tests across the stack: backend xUnit, mobile Jest/RTL (120 passing), web app Jest (50 passing across 14 suites).</li>
         <li><b>Privacy.</b> The system holds personal information, so production use would need a POPIA review.</li>
       </ul>
 
@@ -936,10 +936,10 @@ const STOPS = [
     points: [
       "Feature branches merge to main through pull requests. GitHub Actions runs the xUnit tests on every push, and deployment to Azure only happens after they pass.",
       "Vercel deploys the dashboard on every push to main, and Expo EAS builds the mobile app and sends JavaScript and UI fixes over the air — a native change like push notifications needs a full rebuild, a plain JS fix doesn't.",
-      "Test coverage across the stack: backend xUnit, mobile Jest/RTL (120 passing)."
+      "Test coverage across the stack: backend xUnit, mobile Jest/RTL (120 passing), web app Jest (50 passing across 14 suites)."
     ],
     rubric: ["GitHub and version control"],
-    code: [".github/workflows/backend-ci.yml", "SANCCOB_Backend_API.Tests", "eas.json"] },
+    code: [".github/workflows/backend-ci.yml", "SANCCOB_Backend_API.Tests", "eas.json", "web-app/__tests__"] },
 
   { id: "lessons", name: "Home Pen", sub: "Outro", speaker: "The whole team", mins: 2,
     video: { file: "videos/07-outro.mp4", youtube: "" },
