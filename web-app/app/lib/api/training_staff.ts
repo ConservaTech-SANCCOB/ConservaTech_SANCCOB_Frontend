@@ -84,3 +84,24 @@ export async function createTrainer(data: CreateTrainerRequest, token: string | 
     body: JSON.stringify(data),
   }, "Unable to create trainer");
 }
+
+// PUT /api/trainers/{trainerId} (UpdateTrainerDto: firstName, lastName)
+export type UpdateTrainerRequest = CreateTrainerRequest;
+
+export async function updateTrainer(
+  trainerId: number,
+  data: UpdateTrainerRequest,
+  token: string | null
+): Promise<Trainer> {
+  return apiFetch<Trainer>(`/api/trainers/${trainerId}`, token, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }, "Unable to update trainer");
+}
+
+// DELETE /api/trainers/{trainerId}
+export async function deleteTrainer(trainerId: number, token: string | null): Promise<void> {
+  return apiFetch<void>(`/api/trainers/${trainerId}`, token, {
+    method: "DELETE",
+  }, "Unable to delete trainer");
+}

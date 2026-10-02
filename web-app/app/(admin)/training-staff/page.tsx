@@ -9,6 +9,8 @@ import {
   fetchTrainingVolunteerProfile,
   fetchTrainers,
   createTrainer,
+  updateTrainer,
+  deleteTrainer,
   TrainingVolunteerSummary,
   TrainingDashboard,
   TrainingVolunteerProfile,
@@ -20,17 +22,24 @@ import { ModalOverlay } from "@/components/shifts/ShiftFormModal";
 type Tab = "progress" | "trainers";
 type TrainerStatus = "Active" | "Inactive";
 
+//------------------------------------------------------------------------------------------------//
+
+//<summary>
+// The two tabs on the page and their display labels.
+//</summary>
 const TABS: { label: string; value: Tab }[] = [
   { label: "Volunteer Progress", value: "progress" },
   { label: "Trainers", value: "trainers" },
 ];
 
-// ---------------------------------------------------------------------------
-// PLACEHOLDER STORAGE: TrainerDto has no contact details or status fields yet,
-// so these are kept in this browser's localStorage, keyed by trainerId.
-// They are NOT shared between devices/admins and the mobile app can't see them.
+//-------------------------------------------------------------------------------------------------//
+
+//<summary>
+// PLACEHOLDER STORAGE: TrainerDto has no contact details or status fields yet, so these are
+// kept in this browser's localStorage, keyed by trainerId. They are NOT shared between
+// devices/admins and the mobile app can't see them.
 // Replace with real API fields once the backend adds them.
-// ---------------------------------------------------------------------------
+//</summary>
 interface TrainerExtras {
   contactDetails: string;
   status: TrainerStatus;
@@ -39,6 +48,12 @@ interface TrainerExtras {
 const EXTRAS_KEY = "sanccob_trainer_extras";
 const STATUS_OPTIONS: TrainerStatus[] = ["Active", "Inactive"];
 
+//------------------------------------------------------------------------------------------------//
+
+//<summary>
+// Reads the saved contact details / status for all trainers from localStorage.
+// Returns an empty object if nothing is saved or storage is unavailable.
+//</summary>
 function loadTrainerExtras(): Record<number, TrainerExtras> {
   try {
     const raw = localStorage.getItem(EXTRAS_KEY);
@@ -48,6 +63,12 @@ function loadTrainerExtras(): Record<number, TrainerExtras> {
   }
 }
 
+//-------------------------------------------------------------------------------------------//
+
+//<summary>
+// Writes the contact details / status for all trainers to localStorage.
+// Fails silently if storage is unavailable (changes just won't persist).
+//</summary>
 function saveTrainerExtras(extras: Record<number, TrainerExtras>) {
   try {
     localStorage.setItem(EXTRAS_KEY, JSON.stringify(extras));
@@ -56,23 +77,43 @@ function saveTrainerExtras(extras: Record<number, TrainerExtras>) {
   }
 }
 
+//-------------------------------------------------------------------------------------------//
+
+//<summary>
+// Staff Training page. Two tabs:
+// - Volunteer Progress: stat cards and a table of each volunteer's training progress.
+// - Trainers: create, edit and delete the staff members who sign off training.
+//</summary>
 export default function TrainingStaffPage() {
   const { token, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("progress");
+  
+  //-------------------------------------------------------------------------------------------//
 
-  // ---- Volunteer Progress tab ----
+  //<summary>
+  // State for the Volunteer Progress tab.
+  //</summary>
   const [volunteers, setVolunteers] = useState<TrainingVolunteerSummary[]>([]);
   const [dashboard, setDashboard] = useState<TrainingDashboard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<TrainingVolunteerProfile | null>(null);
+  
+  //-------------------------------------------------------------------------------------------//
 
-  // ---- Trainers tab ----
+  //<summary>
+  // State for the Trainers tab: the list, loading/error state, and the locally stored extras.
+  //</summary>
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [trainersLoading, setTrainersLoading] = useState(false);
   const [trainersError, setTrainersError] = useState<string | null>(null);
   const [trainerExtras, setTrainerExtras] = useState<Record<number, TrainerExtras>>({});
+  
+  //-------------------------------------------------------------------------------------------//
 
+  //<summary>
+  // State for the Create Trainer modal.
+  //</summary>
   const [showCreateTrainer, setShowCreateTrainer] = useState(false);
   const [trainerFirstName, setTrainerFirstName] = useState("");
   const [trainerLastName, setTrainerLastName] = useState("");
@@ -80,6 +121,33 @@ export default function TrainingStaffPage() {
   const [isSavingTrainer, setIsSavingTrainer] = useState(false);
   const [createTrainerError, setCreateTrainerError] = useState<string | null>(null);
 
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // State for the Edit Trainer modal (editingTrainer = null means closed).
+  //</summary>
+  const [editingTrainer, setEditingTrainer] = useState<Trainer | null>(null);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [editContact, setEditContact] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editTrainerError, setEditTrainerError] = useState<string | null>(null);
+ 
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // State for the Delete Trainer confirmation modal (deletingTrainer = null means closed).
+  //</summary>
+  const [deletingTrainer, setDeletingTrainer] = useState<Trainer | null>(null);
+  const [isDeletingTrainer, setIsDeletingTrainer] = useState(false);
+  const [deleteTrainerError, setDeleteTrainerError] = useState<string | null>(null);
+
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Loads the volunteer list and dashboard counts for the Volunteer Progress tab.
+  // Logs the user out if the token is rejected.
+  //</summary>
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -101,6 +169,12 @@ export default function TrainingStaffPage() {
     }
   }, [token, logout]);
 
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Loads the trainer list for the Trainers tab. Also called after create, edit and delete
+  // so the table refreshes. Logs the user out if the token is rejected.
+  //</summary>
   const loadTrainers = useCallback(async () => {
     setTrainersLoading(true);
     setTrainersError(null);
@@ -117,20 +191,39 @@ export default function TrainingStaffPage() {
     }
   }, [token, logout]);
 
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Loads the Volunteer Progress data when the page opens.
+  //</summary>
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Restore locally-saved contact details / status once on mount
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Restores the locally saved contact details / status once on mount.
+  //</summary>
   useEffect(() => {
     setTrainerExtras(loadTrainerExtras());
   }, []);
 
-  // Only fetch trainers when the Trainers tab is opened
+ //--------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Only fetches trainers when the Trainers tab is opened.
+  //</summary>
   useEffect(() => {
     if (activeTab === "trainers") loadTrainers();
   }, [activeTab, loadTrainers]);
 
+  //--------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Updates one trainer's locally stored contact details and/or status and saves to
+  // localStorage. Fields not in `patch` keep their current value.
+  //</summary>
   const updateTrainerExtras = (trainerId: number, patch: Partial<TrainerExtras>) => {
     const current = trainerExtras[trainerId] ?? { contactDetails: "", status: "Active" as TrainerStatus };
     const next = { ...trainerExtras, [trainerId]: { ...current, ...patch } };
@@ -138,6 +231,23 @@ export default function TrainingStaffPage() {
     saveTrainerExtras(next);
   };
 
+//--------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Removes one trainer's locally stored extras, so they can't attach to a future trainer.
+  //</summary>
+  const removeTrainerExtras = (trainerId: number) => {
+    const next = { ...trainerExtras };
+    delete next[trainerId];
+    setTrainerExtras(next);
+    saveTrainerExtras(next);
+  };
+
+//--------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Opens the training history modal for a volunteer.
+  //</summary>
   const handleOpenHistory = async (userId: number) => {
     try {
       const profile = await fetchTrainingVolunteerProfile(userId, token);
@@ -151,6 +261,12 @@ export default function TrainingStaffPage() {
     }
   };
 
+//--------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Creates a trainer. The name goes to the API; contact details are kept locally because
+  // the backend can't store them yet. Clears the form and refreshes the table on success.
+  //</summary>
   const handleCreateTrainer = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateTrainerError(null);
@@ -183,6 +299,89 @@ export default function TrainingStaffPage() {
     }
   };
 
+ //-----------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Opens the Edit Trainer modal, pre-filled with the trainer's current name and
+  // locally stored contact details.
+  //</summary>
+  const openEditTrainer = (t: Trainer) => {
+    setEditingTrainer(t);
+    setEditFirstName(t.firstName ?? "");
+    setEditLastName(t.lastName ?? "");
+    setEditContact(trainerExtras[t.trainerId]?.contactDetails ?? "");
+    setEditTrainerError(null);
+  };
+
+  //------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Saves an edited trainer. The name goes to the API; contact details are kept locally.
+  // Closes the modal and refreshes the table on success.
+  //</summary>
+  const handleEditTrainer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTrainer) return;
+    setEditTrainerError(null);
+    setIsSavingEdit(true);
+    try {
+      await updateTrainer(
+        editingTrainer.trainerId,
+        { firstName: editFirstName.trim(), lastName: editLastName.trim() },
+        token
+      );
+
+      // Contact details can't go to the backend yet, so keep them locally//
+
+      updateTrainerExtras(editingTrainer.trainerId, {
+        contactDetails: editContact.trim(),
+      });
+      setEditingTrainer(null);
+      await loadTrainers();
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        logout();
+        return;
+      }
+      setEditTrainerError(err instanceof Error ? err.message : "Unable to update trainer");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  //------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Deletes the trainer chosen in the confirmation modal, clears their locally stored
+  // extras and refreshes the table. If the backend refuses (e.g. the trainer has signed
+  // off skills), the error is shown in the modal.
+  //</summary>
+  const handleDeleteTrainer = async () => {
+    if (!deletingTrainer) return;
+    setDeleteTrainerError(null);
+    setIsDeletingTrainer(true);
+    try {
+      await deleteTrainer(deletingTrainer.trainerId, token);
+      removeTrainerExtras(deletingTrainer.trainerId);
+      setDeletingTrainer(null);
+      await loadTrainers();
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        logout();
+        return;
+      }
+      setDeleteTrainerError(err instanceof Error ? err.message : "Unable to delete trainer");
+    } finally {
+      setIsDeletingTrainer(false);
+    }
+  };
+
+  //------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Helpers for display: the average progress across all volunteers, a trainer's initials
+  // for the avatar, and a trainer's full name for labels.
+  //</summary>
   const averageProgress =
     volunteers.length > 0
       ? Math.round(
@@ -193,8 +392,12 @@ export default function TrainingStaffPage() {
   const initials = (t: Trainer) =>
     `${t.firstName?.[0] ?? ""}${t.lastName?.[0] ?? ""}`.toUpperCase() || "?";
 
+  const fullName = (t: Trainer) => `${t.firstName ?? ""} ${t.lastName ?? ""}`.trim();
+
   return (
     <div className="p-8">
+      {/*------------------------- Page header ---------------------------------*/}
+
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Staff Training</h1>
@@ -214,7 +417,8 @@ export default function TrainingStaffPage() {
         )}
       </div>
 
-      {/* Tabs */}
+      {/*------------------------- Tabs ---------------------------------*/}
+      
       <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-1 mb-6">
         {TABS.map((tab) => (
           <button
@@ -231,7 +435,8 @@ export default function TrainingStaffPage() {
         ))}
       </div>
 
-      {/* ================= Volunteer Progress tab ================= */}
+      {/*------------------------- Volunteer Progress tab ---------------------------------*/}
+
       {activeTab === "progress" && (
         <>
           {error && (
@@ -241,12 +446,14 @@ export default function TrainingStaffPage() {
             </div>
           )}
 
+          {/* Stat cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <StatCard label="Completed Training" value={dashboard?.trained ?? "—"} sub="Full certification achieved" />
             <StatCard label="Currently Training" value={dashboard?.activelyTraining ?? "—"} sub="Actively progressing" />
             <StatCard label="Average Progress" value={`${averageProgress}%`} sub="Across all volunteers" />
           </div>
 
+          {/* Volunteer progress table */}
           <div className="rounded-2xl bg-white border border-slate-100 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -301,7 +508,8 @@ export default function TrainingStaffPage() {
         </>
       )}
 
-      {/* ================= Trainers tab ================= */}
+      {/*------------------------- Trainers tab ---------------------------------*/}
+
       {activeTab === "trainers" && (
         <>
           {trainersError && (
@@ -311,6 +519,7 @@ export default function TrainingStaffPage() {
             </div>
           )}
 
+          {/* Trainers table */}
           <div className="rounded-2xl bg-white border border-slate-100 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -320,13 +529,14 @@ export default function TrainingStaffPage() {
                   <th className="px-6 py-3">Surname</th>
                   <th className="px-6 py-3">Contact Details</th>
                   <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {trainersLoading ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Loading...</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">Loading...</td></tr>
                 ) : trainers.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">No trainers yet</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">No trainers yet</td></tr>
                 ) : (
                   trainers.map((t) => {
                     const extras = trainerExtras[t.trainerId];
@@ -343,6 +553,7 @@ export default function TrainingStaffPage() {
                         <td className="px-6 py-4 text-slate-600">
                           {extras?.contactDetails ? extras.contactDetails : <span className="text-slate-400">—</span>}
                         </td>
+                        {/* Active / Inactive toggle (stored locally) */}
                         <td className="px-6 py-4">
                           <div className="inline-flex rounded-full bg-slate-100 p-0.5">
                             {STATUS_OPTIONS.map((option) => (
@@ -362,6 +573,39 @@ export default function TrainingStaffPage() {
                             ))}
                           </div>
                         </td>
+                        {/* Edit / delete actions */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => openEditTrainer(t)}
+                              aria-label={`Edit ${fullName(t)}`}
+                              title="Edit trainer"
+                              className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-blue-700 transition-colors"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDeletingTrainer(t);
+                                setDeleteTrainerError(null);
+                              }}
+                              aria-label={`Delete ${fullName(t)}`}
+                              title="Delete trainer"
+                              className="p-2 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 6h18" />
+                                <path d="M8 6V4h8v2" />
+                                <path d="M6 6l1 14h10l1-14" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })
@@ -371,18 +615,20 @@ export default function TrainingStaffPage() {
           </div>
 
           {/* PLACEHOLDER notice, remove once the backend stores these fields */}
+
           <p className="mt-3 text-xs text-amber-600">
             Contact details and status are saved in this browser only until the backend supports them.
           </p>
         </>
       )}
 
-      {/* History modal */}
+      {/*------------------------- History modal ---------------------------------*/}
       {selectedProfile && (
         <TrainingHistoryModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
       )}
 
-     {/* Create Trainer modal */}
+      {/*------------------------- Create Trainer modal ---------------------------------*/}
+      
       {showCreateTrainer && (
         <ModalOverlay onClose={() => setShowCreateTrainer(false)}>
           <div className="flex items-center justify-between mb-5">
@@ -391,13 +637,14 @@ export default function TrainingStaffPage() {
               type="button"
               onClick={() => setShowCreateTrainer(false)}
               className="text-slate-500 hover:text-slate-700"
+              aria-label="Close"
             >
               ✕
             </button>
           </div>
 
           <form onSubmit={handleCreateTrainer} className="space-y-4">
-            {/* First & Last name */}
+            {/* First & last name */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label
@@ -433,7 +680,7 @@ export default function TrainingStaffPage() {
               </div>
             </div>
 
-            {/* Contact */}
+            {/* Contact details */}
             <div>
               <label
                 htmlFor="trainer-contact"
@@ -476,9 +723,148 @@ export default function TrainingStaffPage() {
           </form>
         </ModalOverlay>
       )}
+
+      {/*------------------------- Edit Trainer modal ---------------------------------*/}
+
+      {editingTrainer && (
+        <ModalOverlay onClose={() => setEditingTrainer(null)}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-bold text-black">Edit Trainer</h2>
+            <button
+              type="button"
+              onClick={() => setEditingTrainer(null)}
+              className="text-slate-500 hover:text-slate-700"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleEditTrainer} className="space-y-4">
+            {/* First & last name */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="edit-trainer-first-name"
+                  className="block text-xs font-semibold text-black mb-1.5"
+                >
+                  First name
+                </label>
+                <input
+                  id="edit-trainer-first-name"
+                  name="firstName"
+                  required
+                  value={editFirstName}
+                  onChange={(e) => setEditFirstName(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="edit-trainer-last-name"
+                  className="block text-xs font-semibold text-black mb-1.5"
+                >
+                  Last name
+                </label>
+                <input
+                  id="edit-trainer-last-name"
+                  name="lastName"
+                  required
+                  value={editLastName}
+                  onChange={(e) => setEditLastName(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Contact details */}
+            <div>
+              <label
+                htmlFor="edit-trainer-contact"
+                className="block text-xs font-semibold text-black mb-1.5"
+              >
+                Contact details
+              </label>
+              <input
+                id="edit-trainer-contact"
+                name="contact"
+                value={editContact}
+                onChange={(e) => setEditContact(e.target.value)}
+                placeholder="Phone number or email"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+              />
+            </div>
+
+            {editTrainerError && (
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {editTrainerError}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingTrainer(null)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingEdit}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-60"
+              >
+                {isSavingEdit ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </ModalOverlay>
+      )}
+
+      {/*------------------------- Delete Trainer confirmation modal ---------------------------------*/}
+      
+      {deletingTrainer && (
+        <ModalOverlay onClose={() => setDeletingTrainer(null)}>
+          <h2 className="text-lg font-bold text-black mb-2">Delete trainer?</h2>
+          <p className="text-sm text-slate-700 mb-4">
+            {fullName(deletingTrainer)} will be removed from the trainers list. This can&apos;t be undone.
+          </p>
+
+          {deleteTrainerError && (
+            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+              {deleteTrainerError}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setDeletingTrainer(null)}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteTrainer}
+              disabled={isDeletingTrainer}
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+            >
+              {isDeletingTrainer ? "Deleting..." : "Delete trainer"}
+            </button>
+          </div>
+        </ModalOverlay>
+      )}
     </div>
   );
 }
+
+//---------------------------------------------------------------//
+
+//<summary>
+// A summary card used at the top of the Volunteer Progress tab:
+// an uppercase label, a large value and a short caption.
+//</summary>
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub: string }) {
   return (
     <div className="rounded-2xl bg-white border border-slate-100 p-5">
@@ -489,4 +875,4 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
   );
 }
 
-
+//------------------------------------0-0-0- End Of File -0-0-0----------------------------------------------//
