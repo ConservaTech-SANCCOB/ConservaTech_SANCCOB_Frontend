@@ -3,14 +3,25 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth-context";
-import { fetchVacancies, fetchShifts,createShift, Vacancy, Shift,ShiftPayload } from "../../lib/api/shifts";
+import { fetchVacancies, fetchShifts, createShift, Vacancy, Shift, ShiftPayload } from "../../lib/api/shifts";
 import { ShiftFormModal } from "../../../components/shifts/ShiftFormModal";
 import VacanciesList from "../../../components/VacanciesList";
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Time slot mapping constants for shift display formatting.
+//</summary>
+
 const TIME_SLOT_LABELS: Record<string, string> = {
   "08:00-13:00": "AM",
   "14:00-17:00": "PM",
   "08:00-17:00": "Full Day",
 };
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Main page component for viewing, filtering, and creating vacancies.
+//</summary>
 
 export default function VacanciesPage() {
   const { token } = useAuth();
@@ -20,43 +31,48 @@ export default function VacanciesPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    async function loadData() {
-      try {
-        setIsLoading(true);
-        setErrorMessage("");
-        // Both are needed: GET /api/vacancies only returns shifts that still
-        // have open capacity — fully-staffed shifts are silently excluded.
-        // To count "Filled" shifts, we compare against the full shift list.
-        const [vacancyData, shiftData] = await Promise.all([
-          fetchVacancies(token),
-          fetchShifts(token),
-        ]);
-        setVacancies(vacancyData);
-        setAllShifts(shiftData);
-      } catch (err) {
-        setErrorMessage(err instanceof Error ? err.message : "Unable to load vacancies.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  async function loadData() {
+    try {
+      setIsLoading(true);
+      setErrorMessage("");
 
-    useEffect(() => {
-      loadData();
-    }, [token]);
+      // Both are needed: GET /api/vacancies only returns shifts that still
+      // have open capacity — fully-staffed shifts are silently excluded.
+      // To count "Filled" shifts, we compare against the full shift list.
 
-    async function handleCreateShift(payload: ShiftPayload) {
-      await createShift(token, payload);
-      await loadData(); // refresh both vacancies and all shifts after creating a new shift
-      setIsCreateModalOpen(false);
+      const [vacancyData, shiftData] = await Promise.all([
+        fetchVacancies(token),
+        fetchShifts(token),
+      ]);
+      setVacancies(vacancyData);
+      setAllShifts(shiftData);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Unable to load vacancies.");
+    } finally {
+      setIsLoading(false);
     }
+  }
+
+  useEffect(() => {
+    loadData();
+  }, [token]);
+
+  async function handleCreateShift(payload: ShiftPayload) {
+    await createShift(token, payload);
+    await loadData(); // refresh both vacancies and all shifts after creating a new shift
+    setIsCreateModalOpen(false);
+  }
 
   const stats = useMemo(() => {
     const openShiftsWithVacancies = vacancies.length;
     const openPositions = vacancies.reduce((sum, v) => sum + v.vacanciesAvailable, 0);
+
     // Shifts fully staffed = total shifts minus the ones that still show up
     // as having openings. This works because the vacancies endpoint already
     // excludes any shift with zero remaining capacity.
+
     const fullyFilled = Math.max(allShifts.length - openShiftsWithVacancies, 0);
+
     // "Urgent" = less than half staffed. Not an official threshold from the
     // business rules doc — a reasonable default until one is specified.
     const urgent = vacancies.filter(
@@ -73,6 +89,7 @@ export default function VacanciesPage() {
 
   return (
     <div className="space-y-6">
+      {/*------------------------------------ Header Section ------------------------------------*/}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Vacancy Management</h1>
@@ -88,6 +105,7 @@ export default function VacanciesPage() {
         </button>
       </div>
 
+      {/*------------------------------------ Explanation Banner ------------------------------------*/}
       {/* Honest explanation banner — vacancies aren't editable records
       <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
         Vacancies aren't separate records — they're calculated automatically from each shift's
@@ -98,13 +116,14 @@ export default function VacanciesPage() {
         , and it'll appear here if it still has open spots.
       </div> */}
 
+      {/*------------------------------------ Error Alert ------------------------------------*/}
       {errorMessage && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {errorMessage}
         </div>
       )}
 
-      {/* Stat cards */}
+      {/*------------------------------------ Stat Cards Grid ------------------------------------*/}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Shifts With Openings" value={stats.totalVacancies} />
         <StatCard label="Open Positions" value={stats.openPositions} color="text-blue-700" />
@@ -112,7 +131,7 @@ export default function VacanciesPage() {
         <StatCard label="Urgent (<50% filled)" value={stats.urgent} color="text-red-600" />
       </div>
 
-      {/* Vacancy cards — every entry here is, by definition, still open */}
+      {/*------------------------------------ Vacancies Content Section ------------------------------------*/}
       {isLoading ? (
         <div className="py-16 text-center text-slate-400 text-sm">Loading vacancies…</div>
       ) : vacancies.length === 0 ? (
@@ -124,65 +143,11 @@ export default function VacanciesPage() {
           </p>
         </div>
       ) : (
-        // <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        //   {vacancies.map((v) => {
-        //     const percent = v.capacity > 0 ? (v.assignedVolunteers / v.capacity) * 100 : 0;
-        //     const isCritical = v.capacity > 0 && v.assignedVolunteers / v.capacity < 0.5;
-
-        //     return (
-        //       <div key={v.shiftId} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        //         <div className="flex items-start justify-between mb-1">
-        //           <h3 className="font-bold text-slate-900">{v.location}</h3>
-        //           <div className="flex items-center gap-1.5">
-        //             <span
-        //               className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-        //                 isCritical ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-        //               }`}
-        //             >
-        //               {isCritical ? "Critical" : "Understaffed"}
-        //             </span>
-        //             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-        //               {TIME_SLOT_LABELS[v.timeSlot] || v.timeSlot}
-        //             </span>
-        //           </div>
-        //         </div>
-
-        //         <div className="text-xs text-slate-500 space-y-1 mb-4">
-        //           <p>📅 {v.shiftDate}</p>
-        //           <p>🕐 {v.timeSlot}</p>
-        //           <p>🐦 {v.birdCount} birds</p>
-        //         </div>
-
-        //         <div className="flex items-center justify-between text-sm mb-1.5">
-        //           <span className="text-slate-500">
-        //             {v.assignedVolunteers} / {v.capacity} volunteers
-        //           </span>
-        //           <span className="font-semibold text-slate-800">
-        //             {v.vacanciesAvailable} remaining
-        //           </span>
-        //         </div>
-        //         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-4">
-        //           <div
-        //             className={`h-full rounded-full ${isCritical ? "bg-red-500" : "bg-amber-500"}`}
-        //             style={{ width: `${percent}%` }}
-        //           />
-        //         </div>
-
-        //         <Link
-        //           href="/shifts"
-        //           className="block text-center text-sm font-semibold text-blue-700 border border-blue-200 rounded-lg py-2 hover:bg-blue-50"
-        //         >
-        //           View / Edit in Shift Scheduling
-        //         </Link>
-        //       </div>
-        //     );
-        //   })}
-        // </div>
-
         <VacanciesList vacancies={vacancies} onRefresh={loadData} />
       )}
 
-       {isCreateModalOpen && (
+      {/*------------------------------------ Create Shift Modal ------------------------------------*/}
+      {isCreateModalOpen && (
         <ShiftFormModal
           mode="create"
           onCancel={() => setIsCreateModalOpen(false)}
@@ -193,6 +158,11 @@ export default function VacanciesPage() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Reusable stat card UI component for key summary metrics.
+//</summary>
+
 function StatCard({ label, value, color = "text-slate-900" }: { label: string; value: number; color?: string }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
@@ -201,3 +171,5 @@ function StatCard({ label, value, color = "text-slate-900" }: { label: string; v
     </div>
   );
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

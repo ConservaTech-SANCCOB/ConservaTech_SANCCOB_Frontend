@@ -53,3 +53,5 @@ export async function notifyOpenVacancy(token: string | null, shiftId: number): 
     "Unable to notify volunteers"
   );
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

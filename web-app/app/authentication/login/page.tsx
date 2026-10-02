@@ -4,7 +4,19 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../lib/auth-context";
 
+//---------------------------------------------------------------------------------------------------------------//
+// Main Page Component
+//---------------------------------------------------------------------------------------------------------------//
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Admin portal login page. Shows a hero image panel alongside a sign-in form
+// (email, password, keep-me-signed-in). Redirects to /dashboard once the user
+// is authenticated, and displays any login error above the form.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export default function LoginPage() {
+ 
   const router = useRouter();
   const { login, token, isLoading } = useAuth();
 
@@ -15,12 +27,25 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Redirects already-authenticated users straight to the dashboard once
+  // the auth state has finished loading.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   useEffect(() => {
     if (!isLoading && token) {
       router.replace("/dashboard");
     }
   }, [isLoading, token, router]);
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Submits the login form. Trims the email, calls login with the
+  // keep-signed-in preference, then navigates to /dashboard. On failure the
+  // error message is shown to the user.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -38,19 +63,28 @@ export default function LoginPage() {
   }
 };
  
+//-----------------------------------------------------------------------------------------------//
+// Render Guard: show nothing while auth is loading or the user is already signed in
+//-----------------------------------------------------------------------------------------------//
 if (isLoading || token) 
     return null; // Optionally, you can return a loading spinner here
   
+  //---------------------------------------------------------------------------------------------------------------//
+  // Render
+  //---------------------------------------------------------------------------------------------------------------//
   return (
     <div className="min-h-screen flex bg-slate-50">
-      {/* Left side — image panel */}
+      {/*------------------------------------ Left Side: Image Panel ----------------------------------------------------*/}
       <div className="hidden lg:block lg:w-1/2 relative">
         <img
           src="/login-hero.png"
           alt="SANCCOB Volunteers caring for Seabirds"
           className="absolute inset-0 w-full h-full object-cover"
         />
+        {/*------------------------------------ Image Gradient Overlay ----------------------------------------------------*/}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+
+        {/*------------------------------------ Image Caption ----------------------------------------------------*/}
         <div className="absolute bottom-10 left-10 right-10 text-white">
           <p className="mt-2 text-white/80">
             SANCCOB Admin Portal - co-ordinating volunteers, rosters, and rescues.
@@ -58,24 +92,30 @@ if (isLoading || token)
         </div>
       </div>
 
-      {/* Right side — login form */}
+      {/*------------------------------------ Right Side: Login Form ----------------------------------------------------*/}
       <div className="flex w-full lg:w-1/2 items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
+
+          {/*------------------------------------ Login Card ----------------------------------------------------*/}
           <div className="rounded-2xl bg-white p-10 shadow-sm border border-slate-100">
+
+            {/*------------------------------------ Card Heading ----------------------------------------------------*/}
             <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
             <p className="mt-1 text-sm text-slate-500">
               Sign in to the SANCCOB Admin portal
             </p>
 
-            {/* Error Message Display */}
+            {/*------------------------------------ Error Message Display ----------------------------------------------------*/}
             {error && (
               <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-600">
                 {error}
               </div>
             )}
 
+            {/*------------------------------------ Sign-In Form ----------------------------------------------------*/}
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-              {/* Email */}
+
+              {/*------------------------------------ Email Field ----------------------------------------------------*/}
               <div>
                 <label
                   htmlFor="email"
@@ -99,7 +139,7 @@ if (isLoading || token)
                 </div>
               </div>
 
-              {/* Password */}
+              {/*------------------------------------ Password Field ----------------------------------------------------*/}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label
@@ -122,6 +162,7 @@ if (isLoading || token)
                     placeholder="••••••••"
                     className="w-full rounded-xl bg-slate-50 border border-slate-200 py-3 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-800 focus:border-transparent"
                   />
+                  {/*------------------------------------ Show / Hide Password Toggle ----------------------------------------------------*/}
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
@@ -133,7 +174,7 @@ if (isLoading || token)
                 </div>
               </div>
 
-              {/* Keep signed in */}
+              {/*------------------------------------ Keep Signed In ----------------------------------------------------*/}
               <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                 <input
                   type="checkbox"
@@ -141,10 +182,10 @@ if (isLoading || token)
                   onChange={(e) => setKeepSignedIn(e.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-blue-800"
                 />
-                Keep me signed 
+                Keep me signed in
               </label>
 
-              {/* Submit */}
+              {/*------------------------------------ Submit Button ----------------------------------------------------*/}
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -155,6 +196,7 @@ if (isLoading || token)
             </form>
           </div>
 
+          {/*------------------------------------ Footer ----------------------------------------------------*/}
           <p className="mt-6 text-center text-xs text-slate-400">
             © 2026 SANCCOB · ConservaTech Admin Portal · v3.1.0
           </p>
@@ -164,6 +206,13 @@ if (isLoading || token)
   );
 }
 
+//---------------------------------------------ICONS------------------------------------------------------------------//
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Envelope icon shown inside the email input.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function MailIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -173,6 +222,11 @@ function MailIcon() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Padlock icon shown inside the password input.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function LockIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -182,6 +236,12 @@ function LockIcon() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Eye icon for the show/hide password toggle. Renders an open eye when the
+// password is visible and a crossed-out eye when it is hidden.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -195,3 +255,5 @@ function EyeIcon({ open }: { open: boolean }) {
     </svg>
   );
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

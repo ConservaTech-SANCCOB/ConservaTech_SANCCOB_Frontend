@@ -47,14 +47,18 @@ export async function apiFetch<T = unknown>(
   errorMessage = "API request failed"
 ): Promise<T> {
   if (!API_BASE_URL) {
+
     // Fail loudly rather than silently falling back to a dev URL — a
     // misconfigured env var in production should be obvious, not a
     // confusing "can't reach localhost" error for the person using it.
+
     throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
   }
   if (!token) {
+
     // Refuse to send an unauthenticated request rather than silently
     // dropping the Authorization header and letting the backend 401 it.
+    
     throw new ApiError("You are not signed in.", 401);
   }
 
@@ -113,3 +117,5 @@ export async function apiFetch<T = unknown>(
     return text as T;
   }
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//
