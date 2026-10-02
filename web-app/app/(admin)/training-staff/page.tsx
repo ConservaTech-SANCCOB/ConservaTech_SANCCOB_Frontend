@@ -15,7 +15,7 @@ import { apiFetch, isUnauthorized } from "../../lib/api/http";
 import { ModalOverlay } from "@/components/shifts/ShiftFormModal";
 
 type Tab = "progress" | "trainers";
-type TrainerStatus = "Active" | "Inactive";
+type TrainerStatus = "active" | "inactive";
 
 //------------------------------------------------------------------------------------------------//
 
@@ -57,7 +57,7 @@ const TABS: { label: string; value: Tab }[] = [
   { label: "Trainers", value: "trainers" },
 ];
 
-const STATUS_OPTIONS: TrainerStatus[] = ["Active", "Inactive"];
+const STATUS_OPTIONS: TrainerStatus[] = ["active", "inactive"];
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -71,7 +71,7 @@ const isActive = (t: Trainer) => t.status?.toLowerCase() === "active";
 // edit never silently changes it. Anything unexpected is sent as null.
 //</summary>
 const statusForUpdate = (t: Trainer): TrainerStatus | null =>
-  t.status === "Active" || t.status === "Inactive" ? t.status : null;
+  t.status === "active" || t.status === "inactive" ? t.status : null;
 
 //-------------------------------------------------------------------------------------------//
 
@@ -331,7 +331,7 @@ export default function TrainingStaffPage() {
   //</summary>
   const handleSetStatus = async (t: Trainer, status: TrainerStatus) => {
     if (togglingId !== null) return;
-    if ((status === "Active") === isActive(t)) return; // already in that state
+    if ((status === "active") === isActive(t)) return; // already in that state
     setTogglingId(t.trainerId);
     setTrainersError(null);
     try {
@@ -553,7 +553,7 @@ export default function TrainingStaffPage() {
                   <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">No trainers yet</td></tr>
                 ) : (
                   trainers.map((t) => {
-                    const status: TrainerStatus = isActive(t) ? "Active" : "Inactive";
+                    const status: TrainerStatus = isActive(t) ? "active" : "inactive";
                     const isToggling = togglingId === t.trainerId;
                     return (
                       <tr key={t.trainerId} className="border-b border-slate-50 last:border-0">
@@ -585,7 +585,7 @@ export default function TrainingStaffPage() {
                                 onClick={() => handleSetStatus(t, option)}
                                 className={`rounded-full px-3 py-1 text-xs font-semibold transition-all disabled:opacity-60 ${
                                   status === option
-                                    ? option === "Active"
+                                    ? option === "active"
                                       ? "bg-green-500 text-white shadow-sm"
                                       : "bg-slate-500 text-white shadow-sm"
                                     : "text-slate-500 hover:text-slate-700"
