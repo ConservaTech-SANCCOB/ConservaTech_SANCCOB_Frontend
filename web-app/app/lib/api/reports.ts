@@ -35,11 +35,11 @@ async function fetchConservationImpact(
   token: string | null,
   year: string
 ): Promise<{
-  totalRescued: number;
-  totalReleased: number;
-  totalInCare: number;
-  percentReleased: number;
-}> {
+    totalRescued: number;
+    totalReleased: number;
+    totalInCare: number;
+    percentReleased: number;
+  }> {
   if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not defined");
 
   const response = await fetch(
