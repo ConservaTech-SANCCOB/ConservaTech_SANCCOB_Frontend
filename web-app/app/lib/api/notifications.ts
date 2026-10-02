@@ -43,3 +43,13 @@ export async function markAllNotificationsRead(token: string | null): Promise<vo
     "Unable to mark notifications as read"
   );
 }
+
+// POST /api/notifications/open-vacancy/{shiftId}
+export async function notifyOpenVacancy(token: string | null, shiftId: number): Promise<void> {
+  await apiFetch<void>(
+    `/api/notifications/open-vacancy/${shiftId}`,
+    token,
+    { method: "POST" },
+    "Unable to notify volunteers"
+  );
+}

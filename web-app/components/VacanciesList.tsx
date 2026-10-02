@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "../app/lib/auth-context";
+import { notifyOpenVacancy } from "../app/lib/api/notifications";
 import { Vacancy, ShiftPayload, updateShift } from "../app/lib/api/shifts";
 import { ShiftFormModal } from "./shifts/ShiftFormModal"; // adjust to where ShiftFormModal.tsx lives
 
@@ -34,33 +35,13 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
   const handleNotifyVolunteers = async (vacancy: Vacancy) => {
     setNotifyingShiftId(vacancy.shiftId);
     setNotifySuccess(null);
-
     try {
-      // POST to backend notifications route filtered by matching requiredSkillIds
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      const res = await fetch(`${API_URL}/api/notifications/broadcast-vacancy`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          shiftId: vacancy.shiftId,
-          requiredSkillIds: vacancy.requiredSkillIds,
-          title: "New Shift Vacancy Available!",
-          message: `A vacancy opened up for ${vacancy.location} on ${vacancy.shiftDate} (${vacancy.timeSlot}).`,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to dispatch vacancy notifications.");
-      }
-
+      await notifyOpenVacancy(token, vacancy.shiftId);
       setNotifySuccess(`Notification dispatched to qualifying volunteers for Shift #${vacancy.shiftId}`);
       setTimeout(() => setNotifySuccess(null), 4000);
     } catch (err) {
       console.error("Notify failed", err);
-      alert("Unable to send vacancy notification. Please verify backend notification endpoints.");
+      alert(err instanceof Error ? err.message : "Unable to notify volunteers.");
     } finally {
       setNotifyingShiftId(null);
     }

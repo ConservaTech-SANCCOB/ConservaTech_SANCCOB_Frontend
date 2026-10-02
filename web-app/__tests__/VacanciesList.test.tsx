@@ -21,7 +21,12 @@ const VACANCY: Vacancy = {
 };
 
 function mockFetchStatus(ok: boolean) {
-  const fetchMock = jest.fn().mockResolvedValue({ ok, status: ok ? 200 : 500, json: async () => ({}) });
+  const fetchMock = jest.fn().mockResolvedValue({
+    ok,
+    status: ok ? 200 : 500,
+    json: async () => ({}),
+    text: async () => "",
+  });
   global.fetch = fetchMock as unknown as typeof fetch;
   return fetchMock;
 }
@@ -41,7 +46,7 @@ beforeEach(() => {
 //--------------------TESTS--------------------//
 
 describe("VacanciesList", () => {
-  it("Notify Qualified sends the vacancy details with the token, and alerts on failure", async () => {
+  it("Notify Qualified posts to the open-vacancy endpoint with the token, and alerts on failure", async () => {
     const user = userEvent.setup();
     const fetchMock = mockFetchStatus(true);
     render(<VacanciesList vacancies={[VACANCY]} onRefresh={jest.fn()} />);
@@ -50,24 +55,15 @@ describe("VacanciesList", () => {
 
     expect(await screen.findByText("Notification dispatched to qualifying volunteers for Shift #7")).toBeInTheDocument();
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe("https://api.test/api/notifications/broadcast-vacancy");
+    expect(url).toBe("https://api.test/api/notifications/open-vacancy/7");
     expect(init.method).toBe("POST");
-    expect(init.headers.Authorization).toBe("Bearer jwt-token");
-    expect(JSON.parse(init.body)).toEqual({
-      shiftId: 7,
-      requiredSkillIds: [3],
-      title: "New Shift Vacancy Available!",
-      message: "A vacancy opened up for Penguin Pens on 2026-10-05 (08:00-13:00).",
-    });
+    expect(init.headers.get("Authorization")).toBe("Bearer jwt-token");
+    expect(init.body).toBeUndefined();
 
     mockFetchStatus(false);
     await user.click(screen.getByRole("button", { name: /Notify Qualified/ }));
 
-    await waitFor(() =>
-      expect(window.alert).toHaveBeenCalledWith(
-        "Unable to send vacancy notification. Please verify backend notification endpoints."
-      )
-    );
+    await waitFor(() => expect(window.alert).toHaveBeenCalledWith("Unable to notify volunteers"));
   });
 });
 
