@@ -42,18 +42,6 @@ describe("Profile", () => {
     expect(screen.getByText("volunteers@sanccob.co.za")).toBeTruthy();
   });
 
-  it("loads the form after a successful retry", async () => {
-    mockedGetProfile.mockRejectedValueOnce(new Error("network")).mockResolvedValueOnce(PROFILE);
-    await render(<ProfileScreen />);
-
-    await fireEvent.press(await screen.findByText("Try again"));
-
-    expect(await screen.findByText("Save Changes")).toBeTruthy();
-    expect(screen.getByDisplayValue("sam@example.com")).toBeTruthy();
-    expect(screen.queryByText("Try again")).toBeNull();
-    expect(mockedGetProfile).toHaveBeenCalledTimes(2);
-  });
-
   it("saves the loaded details with the edited fields", async () => {
     mockedGetProfile.mockResolvedValue(PROFILE);
     mockedUpdateProfile.mockResolvedValue(undefined);

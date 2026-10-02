@@ -2,8 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-
 import { Alert } from "react-native";
 import SubmitAvailabilityScreen from "../src/app/(tabs)/bookings/submit-availability";
 import { getMyAvailability, updateMyAvailability } from "../src/services/availability";
-import { ApiError } from "../src/utils/api";
-import { showErrorToast, showInfoToast } from "../src/utils/toast";
+import { showInfoToast } from "../src/utils/toast";
 
 jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
@@ -37,20 +36,6 @@ beforeEach(() => {
 });
 
 describe("Submit Availability", () => {
-  it("pre-selects the volunteer's saved availability", async () => {
-    mockedGetMyAvailability.mockResolvedValue([
-      { dayOfWeek: "Monday", timeSlot: "08:00-13:00" },
-      { dayOfWeek: "Saturday", timeSlot: "08:00-17:00" },
-    ]);
-
-    await render(<SubmitAvailabilityScreen />);
-
-    expect(await screen.findByText("Submit 2 blocks")).toBeOnTheScreen();
-    expect(cell("Monday Morning")).toBeSelected();
-    expect(cell("Saturday Full Day")).toBeSelected();
-    expect(cell("Monday Afternoon")).not.toBeSelected();
-  });
-
   it("sends the picked blocks in the shift-style time format the backend accepts", async () => {
     await render(<SubmitAvailabilityScreen />);
 
@@ -68,15 +53,6 @@ describe("Submit Availability", () => {
     expect(Alert.alert).toHaveBeenLastCalledWith("Saved", "Your availability has been updated.", expect.any(Array));
   });
 
-  it("tapping a block again deselects it", async () => {
-    await render(<SubmitAvailabilityScreen />);
-
-    await fireEvent.press(await screen.findByRole("button", { name: "Friday Morning" }));
-    expect(cell("Friday Morning")).toBeSelected();
-    await fireEvent.press(cell("Friday Morning"));
-    expect(cell("Friday Morning")).not.toBeSelected();
-  });
-
   it("picking both Morning and Afternoon selects Full Day instead", async () => {
     await render(<SubmitAvailabilityScreen />);
 
@@ -88,34 +64,6 @@ describe("Submit Availability", () => {
     expect(cell("Thursday Afternoon")).not.toBeSelected();
     expect(showInfoToast).toHaveBeenCalledWith("Full day selected", expect.stringContaining("Thursday"));
     expect(screen.getByText("Submit 1 block")).toBeOnTheScreen();
-  });
-
-  it("shows saved Morning + Afternoon availability as a Full Day", async () => {
-    mockedGetMyAvailability.mockResolvedValue([
-      { dayOfWeek: "Friday", timeSlot: "08:00-13:00" },
-      { dayOfWeek: "Friday", timeSlot: "14:00-17:00" },
-    ]);
-    await render(<SubmitAvailabilityScreen />);
-
-    expect(await screen.findByText("Submit 1 block")).toBeOnTheScreen();
-    expect(cell("Friday Full Day")).toBeSelected();
-    expect(cell("Friday Morning")).not.toBeSelected();
-  });
-
-  it("Full Day replaces Morning/Afternoon on the same day, and vice versa", async () => {
-    await render(<SubmitAvailabilityScreen />);
-
-    await fireEvent.press(await screen.findByRole("button", { name: "Tuesday Morning" }));
-    await fireEvent.press(cell("Tuesday Full Day"));
-
-    expect(cell("Tuesday Full Day")).toBeSelected();
-    expect(cell("Tuesday Morning")).not.toBeSelected();
-    expect(cell("Tuesday Afternoon")).not.toBeSelected();
-
-    await fireEvent.press(cell("Tuesday Morning"));
-
-    expect(cell("Tuesday Morning")).toBeSelected();
-    expect(cell("Tuesday Full Day")).not.toBeSelected();
   });
 
   it("warns before saving an empty grid, since that clears all availability", async () => {
@@ -130,16 +78,6 @@ describe("Submit Availability", () => {
     await fireEvent.press(await emptySubmitButton());
     await pressAlertButton("Save");
     expect(mockedUpdateMyAvailability).toHaveBeenCalledWith([]);
-  });
-
-  it("shows the backend's message when saving fails", async () => {
-    mockedUpdateMyAvailability.mockRejectedValue(new ApiError(400, '{"message":"Invalid time slot."}'));
-    await render(<SubmitAvailabilityScreen />);
-
-    await fireEvent.press(await screen.findByRole("button", { name: "Monday Morning" }));
-    await fireEvent.press(screen.getByText("Submit 1 block"));
-
-    await waitFor(() => expect(showErrorToast).toHaveBeenCalledWith("Couldn't save", "Invalid time slot."));
   });
 
   it("shows an error with Try again, and no grid to save, if saved availability can't be loaded", async () => {

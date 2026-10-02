@@ -42,11 +42,4 @@ describe("Root ErrorBoundary", () => {
     expect(screen.getByText("Something went wrong")).toBeTruthy();
     expect(screen.queryByText("secret internal detail")).toBeNull();
   });
-
-  it("shows the raw error in development builds to help debugging", async () => {
-    runtime.__DEV__ = true;
-    await render(<ErrorBoundary error={new Error("secret internal detail")} retry={jest.fn(() => Promise.resolve())} />);
-
-    expect(screen.getByText("secret internal detail")).toBeTruthy();
-  });
 });

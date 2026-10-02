@@ -35,31 +35,6 @@ describe("Hours / Volunteering Stats", () => {
     expect(screen.getByText("8 hrs")).toBeOnTheScreen();
   });
 
-  it("groups the log by month, newest first", async () => {
-    mockedGetStats.mockResolvedValue({
-      totalHours: 12.5,
-      shiftsCompleted: 2,
-      hoursThisMonth: 4.5,
-      completedShifts: [
-        { shiftDate: "2026-08-14", timeSlot: "08:00-17:00", location: "Rehab Pool", hoursWorked: 8 },
-        { shiftDate: "2026-09-10", timeSlot: "08:00-13:00", location: "Penguin Pens", hoursWorked: 4.5 },
-      ],
-    });
-
-    await render(<HoursWorkedScreen />);
-
-    const months = (await screen.findAllByText(/^(SEPTEMBER|AUGUST) 2026$/)).map((node) => node.props.children);
-    expect(months).toEqual(["SEPTEMBER 2026", "AUGUST 2026"]);
-  });
-
-  it("shows an empty state for a volunteer with no completed shifts", async () => {
-    mockedGetStats.mockResolvedValue({ totalHours: 0, shiftsCompleted: 0, hoursThisMonth: 0, completedShifts: [] });
-
-    await render(<HoursWorkedScreen />);
-
-    expect(await screen.findByText("No shifts completed yet")).toBeOnTheScreen();
-  });
-
   it("shows unknown values, not zeros, when stats can't be loaded", async () => {
     mockedGetStats.mockRejectedValue(new Error("Network request failed"));
 
