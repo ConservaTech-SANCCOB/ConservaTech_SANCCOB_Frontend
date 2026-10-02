@@ -84,7 +84,7 @@ function SettingsContent() {
   );
 }
 
-// ---- Administrator Profile tab ----
+// -------------------------------- Administrator Profile tab ---------------------------------//
 
 function ProfileTab() {
   const { user, role } = useAuth();
@@ -143,7 +143,7 @@ function ReadOnlyField({ id, label, value }: { id: string; label: string; value:
   );
 }
 
-// ---- System Preferences tab ----
+// -----------------------System Preferences tab-------------------------------------------//
 
 function SystemPreferencesTab() {
   const [saved, setSaved] = useState<SystemPrefs>(DEFAULT_PREFS);

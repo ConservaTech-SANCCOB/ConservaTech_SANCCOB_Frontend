@@ -181,6 +181,7 @@ export default function ShiftSchedulingPage() {
   // - Critical (red): under half staffed.
   // - Understaffed (amber): half or more staffed, but not full.
   //</summary>
+
   function getStatus(shift: Shift): { label: string; color: string; assigned: number } {
     const vacancy = vacancyMap.get(shift.shiftId);
     const assigned = vacancy ? vacancy.assignedVolunteers : shift.capacity;
@@ -238,8 +239,6 @@ export default function ShiftSchedulingPage() {
       setDeletingShift(null);
     }
   }
-
-
 
   return (
     <div className="space-y-6">
@@ -526,13 +525,13 @@ function ShiftDetailPanel({
         </div>
 
         {/*------------------------------------ Assigned volunteers (placeholder) ----------------------------------------------------*/}
-        <div>
+        {/* <div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Assigned Volunteers</p>
           <p className="text-xs text-slate-400 italic bg-slate-50 rounded-lg px-3 py-3">
             Volunteer names aren't available yet — the backend currently only returns a count
             ({status.assigned} assigned), not who they are.
           </p>
-        </div>
+        </div> */}
 
         {/*------------------------------------ Notes (local only) ----------------------------------------------------*/}
         <div>

@@ -16,6 +16,12 @@ import {
 // midnight. Normalizing here (rather than leaving whatever time-of-day the
 // Date was created at) is what makes formatDateISO's UTC-free conversion
 // safe below.
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Gets the Monday for the current or supplied week and normalizes it to local midnight.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 function getMonday(d: Date = new Date()): Date {
   const date = new Date(d);
   const day = date.getDay();
@@ -33,6 +39,12 @@ function getMonday(d: Date = new Date()): Date {
 // off-by-one was why POST /api/Rosters/generate rejected the date with
 // "The roster week must start on a Monday" even though getMonday() had
 // computed the correct Monday.
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Formats a Date using its local calendar fields as YYYY-MM-DD without converting through UTC.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 function formatDateISO(d: Date): string {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -41,6 +53,11 @@ function formatDateISO(d: Date): string {
 }
 
 // Helper: Format range label (e.g., "17–23 Aug 2026")
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Creates the human-readable Monday-to-Sunday label displayed by the roster week selectors.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 function formatWeekRange(mondayDate: Date): string {
   const sundayDate = new Date(mondayDate);
   sundayDate.setDate(mondayDate.getDate() + 6);
@@ -53,6 +70,11 @@ function formatWeekRange(mondayDate: Date): string {
   return `${startDay}–${endDay} ${monthStr} ${yearStr}`;
 }
 
+//---------------------------------------------------------------------------------------------------------------//
+//<summary>
+// Main roster management page containing the weekly roster view and automated roster generation workflow.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 export default function RosterPage() {
   const { token } = useAuth();
 
@@ -213,7 +235,8 @@ export default function RosterPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
+      {/*------------------------------------ Page Header ----------------------------------------------------*/}
+
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Roster Management</h1>
         <p className="text-sm text-slate-500 mt-0.5">
@@ -221,7 +244,8 @@ export default function RosterPage() {
         </p>
       </div>
 
-      {/* Pill Navigation Tabs */}
+      {/*------------------------------------ Pill Navigation Tabs ----------------------------------------------------*/}
+
       <div className="flex items-center gap-2">
         <button
           onClick={() => {
@@ -248,7 +272,8 @@ export default function RosterPage() {
         </button>
       </div>
 
-      {/* TAB 1: WEEKLY ROSTER VIEW */}
+      {/*------------------------------------ Weekly Roster View ----------------------------------------------------*/}
+
       {activeTab === "view" && (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
           {/* Top Controls with Weekly Picker */}
@@ -294,7 +319,8 @@ export default function RosterPage() {
             </button>
           </div>
 
-          {/* Stat Cards */}
+          {/*------------------------------------ Roster Statistics ----------------------------------------------------*/}
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard label="Total Shifts" value={totalShiftCount} />
             <StatCard label="Filled Shifts" value={filledCount} color="text-emerald-600" />
@@ -302,7 +328,8 @@ export default function RosterPage() {
             <StatCard label="Volunteers Scheduled" value={scheduledVolunteerCount} color="text-blue-700" />
           </div>
 
-          {/* Roster Calendar Matrix */}
+          {/*------------------------------------ Roster Calendar Matrix ----------------------------------------------------*/}
+
           {isLoading ? (
             <div className="py-16 text-center text-slate-400 text-sm">Loading week roster…</div>
           ) : !roster ? (
@@ -315,10 +342,12 @@ export default function RosterPage() {
         </div>
       )}
 
-      {/* TAB 2: GENERATE ROSTER WIZARD */}
+      {/*------------------------------------ Generate Roster Wizard ----------------------------------------------------*/}
+
       {activeTab === "generate" && (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
-          {/* Header with Weekly Picker */}
+          {/*------------------------------------ Generate Wizard Header ----------------------------------------------------*/}
+
           <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-wrap gap-4">
             <div>
               <h2 className="text-lg font-bold text-slate-900">Generate Roster</h2>
@@ -353,7 +382,8 @@ export default function RosterPage() {
             </div>
           </div>
 
-          {/* STEP 1: REVIEW INPUTS */}
+          {/*------------------------------------ Step 1: Review Inputs ----------------------------------------------------*/}
+
           {step === 1 && !isGenerating && (
             <div className="space-y-6">
               <div className="bg-blue-50 border border-blue-200 text-blue-800 text-xs px-4 py-3 rounded-xl">
@@ -368,14 +398,16 @@ export default function RosterPage() {
                 </div>
               )}
 
-              {/* Input Stat Cards */}
+              {/*------------------------------------ Input Statistics ----------------------------------------------------*/}
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard label="Volunteers Available" value={selectedVolunteers.length} />
                 <StatCard label="Shifts Scheduled" value={shifts.length} />
                 <StatCard label="Selected Target Week" value={weekLabel} isText />
               </div>
 
-              {/* ACCORDION 1: VOLUNTEERS WITH (-) BUTTON */}
+              {/*------------------------------------ Volunteer Pool ----------------------------------------------------*/}
+
               <div className="border border-slate-200/80 rounded-2xl overflow-hidden">
                 <button
                   onClick={() => setExpandedSection(expandedSection === "volunteers" ? null : "volunteers")}
@@ -414,7 +446,8 @@ export default function RosterPage() {
                 )}
               </div>
 
-              {/* ACCORDION 2: SHIFTS */}
+              {/*------------------------------------ Scheduled Shifts ----------------------------------------------------*/}
+
               <div className="border border-slate-200/80 rounded-2xl overflow-hidden">
                 <button
                   onClick={() => setExpandedSection(expandedSection === "shifts" ? null : "shifts")}
@@ -449,7 +482,8 @@ export default function RosterPage() {
                 )}
               </div>
 
-              {/* Action Button */}
+              {/*------------------------------------ Generation Action ----------------------------------------------------*/}
+
               <div className="flex justify-end pt-2">
                 <button
                   onClick={handleStartGeneration}
@@ -461,7 +495,8 @@ export default function RosterPage() {
             </div>
           )}
 
-          {/* GENERATION PROGRESS OVERLAY */}
+          {/*------------------------------------ Generation Progress ----------------------------------------------------*/}
+
           {isGenerating && (
             <div className="py-20 text-center space-y-4">
               <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -477,7 +512,8 @@ export default function RosterPage() {
             </div>
           )}
 
-          {/* STEP 2: GENERATE & REVIEW */}
+          {/*------------------------------------ Step 2: Generate & Review ----------------------------------------------------*/}
+
           {step === 2 && !isGenerating && (
             <div className="space-y-6">
               <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
@@ -618,6 +654,11 @@ export default function RosterPage() {
 // label, matching how the mobile app groups shifts under "Morning" etc.
 // Falls back to the raw string for anything unrecognised rather than
 // guessing, per the project's "don't invent values" convention.
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Converts a supported shift time slot into the session label shown in the roster UI.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 function shiftSessionLabel(timeSlot: string): string {
   switch (timeSlot) {
     case "08:00-13:00":
@@ -634,6 +675,11 @@ function shiftSessionLabel(timeSlot: string): string {
 // /api/Vacancies never returns a shift with 0 remaining capacity, so a shift
 // with no matching vacancy entry is treated as fully assigned — same default
 // used elsewhere in this project for that gap.
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Determines the assigned volunteer count and capacity for a shift using the available vacancy data.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 function shiftAssignedInfo(
   shift: Shift,
   vacancies: Vacancy[]
@@ -645,6 +691,11 @@ function shiftAssignedInfo(
   return { assigned: shift.capacity, capacity: shift.capacity };
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Renders the date, session, location, and volunteer capacity information for one scheduled shift.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 function ShiftDetailCard({
   shift,
   assignedInfo,
@@ -691,6 +742,11 @@ function ShiftDetailCard({
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Renders the reusable location-pin SVG icon used by shift detail cards.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 function LocationIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -700,10 +756,16 @@ function LocationIcon({ className }: { className?: string }) {
   );
 }
 
+//---------------------------------------------------------------------------------------------------------------//
 /* ============================================================
    SHARED COMPONENTS
    ============================================================ */
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Renders a compact statistic card used throughout the roster management interface.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 function StatCard({ label, value, color = "text-slate-900", isText = false }: { label: string; value: number | string; color?: string; isText?: boolean }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
@@ -713,6 +775,11 @@ function StatCard({ label, value, color = "text-slate-900", isText = false }: { 
   );
 }
 
+//---------------------------------------------------------------------------------------------------------------//
+//<summary>
+// Renders the weekly volunteer assignment matrix for Monday through Sunday.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 function RosterMatrix({
   volunteers,
   assignments,
@@ -799,4 +866,6 @@ function RosterMatrix({
       </table>
     </div>
   );
-} 
+}
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

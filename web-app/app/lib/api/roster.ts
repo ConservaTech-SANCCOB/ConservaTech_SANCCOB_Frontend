@@ -1,62 +1,85 @@
 import { apiFetch } from "./http";
 
-/* ============================================================
-   TYPES — mirrored directly from Swagger (verified 22 Sep 2026)
-   ============================================================ */
-
-// Matches components.schemas.RosterAssignmentDto
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// A single volunteer's assignment to a shift within a roster, including the
+// shift's date, time slot, location and the assignment status.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export interface RosterAssignment {
   rosterAssignmentId: number;
   rosterId: number;
   shiftId: number;
-  userId: number; // backend int32, NOT string
+  userId: number; 
   firstName: string | null;
   lastName: string | null;
-  shiftDate: string; // date
+  shiftDate: string; 
   timeSlot: string | null;
   location: string | null;
-  status: string | null; // scale/valid values unconfirmed — console.log a real response before relying on it
+  status: string | null; 
 }
 
-// Matches components.schemas.RosterDto
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// A weekly roster: its date range, status, when it was generated and the
+// list of volunteer assignments it contains.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export interface Roster {
   rosterId: number;
   weekStartDate: string;
   weekEndDate: string;
-  status: string | null; // e.g. Draft/Published — confirm exact strings against a real response
+  status: string | null; 
   generatedAt: string | null;
   assignments: RosterAssignment[] | null;
 }
 
-// Matches components.schemas.GenerateRosterDto
-// NOTE: the real backend only accepts weekStartDate. There is currently no
-// field for excluding volunteers from generation — that UI control does not
-// do anything against the real API until the backend adds support for it.
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Request body for generating an automated roster for the week starting on weekStartDate.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export interface GenerateRosterPayload {
   weekStartDate: string;
 }
 
-// Matches components.schemas.ManualRosterAssignmentDto
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Request body for manually assigning a volunteer (userId) to a shift (shiftId).
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export interface ManualRosterAssignmentPayload {
   shiftId: number;
   userId: number;
 }
 
-/* ============================================================
-   ROSTER API ENDPOINTS
-   ============================================================ */
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // GET /api/Rosters
+// Fetches every roster.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export async function fetchAllRosters(token: string | null): Promise<Roster[]> {
   return apiFetch<Roster[]>("/api/Rosters", token, { method: "GET" }, "Unable to fetch rosters");
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // GET /api/Rosters/{rosterId}
+// Fetches a single roster by its ID.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export async function fetchRosterById(token: string | null, rosterId: number): Promise<Roster> {
   return apiFetch<Roster>(`/api/Rosters/${rosterId}`, token, { method: "GET" }, "Unable to fetch roster");
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // GET /api/Rosters/week/{weekStartDate}
+// Fetches the roster for the week starting on the given date.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export async function fetchWeeklyRoster(
   token: string | null,
   weekStartDate: string
@@ -69,7 +92,12 @@ export async function fetchWeeklyRoster(
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // POST /api/Rosters/generate
+// Asks the backend to automatically generate a roster for the given week.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export async function generateAutomatedRoster(
   token: string | null,
   payload: GenerateRosterPayload
@@ -86,7 +114,13 @@ export async function generateAutomatedRoster(
   );
 }
 
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // POST /api/Rosters/{rosterId}/assignments
+// Manually adds a volunteer to a shift on the given roster.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export async function addRosterAssignment(
   token: string | null,
   rosterId: number,
@@ -104,7 +138,12 @@ export async function addRosterAssignment(
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // DELETE /api/Rosters/{rosterId}/assignments/{rosterAssignmentId}
+// Removes a volunteer's assignment from the given roster.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export async function removeRosterAssignment(
   token: string | null,
   rosterId: number,
@@ -118,10 +157,12 @@ export async function removeRosterAssignment(
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // PATCH /api/Rosters/{rosterId}/publish
-// NOTE: publishing requires the numeric rosterId (from a previously fetched
-// Roster), NOT a weekStartDate. The caller must fetch/generate the roster
-// first to get its rosterId before calling this.
+// Publishes the given roster and returns the updated roster.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export async function publishRoster(token: string | null, rosterId: number): Promise<Roster> {
   return apiFetch<Roster>(
     `/api/Rosters/${rosterId}/publish`,
@@ -131,11 +172,13 @@ export async function publishRoster(token: string | null, rosterId: number): Pro
   );
 }
 
-/* ============================================================
-   ATTENDANCE API ENDPOINTS (used from the roster page)
-   ============================================================ */
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // PUT /api/Attendance/{rosterAssignmentId}
+// Marks whether the volunteer attended the given roster assignment.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export async function updateAttendanceStatus(
   token: string | null,
   rosterAssignmentId: number,
@@ -153,9 +196,13 @@ export async function updateAttendanceStatus(
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // GET /api/Attendance/{rosterAssignmentId}
-// Response shape not documented in Swagger — console.log a real response
-// before building UI on top of this.
+// Fetches the attendance record for the given roster assignment. The response
+// shape is not typed yet, so it is returned as unknown.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export async function fetchAttendanceForAssignment(
   token: string | null,
   rosterAssignmentId: number
@@ -167,3 +214,5 @@ export async function fetchAttendanceForAssignment(
     "Failed to fetch attendance"
   );
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

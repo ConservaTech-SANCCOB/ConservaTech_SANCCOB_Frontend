@@ -16,12 +16,28 @@ import {
 import { useAuth } from "../../lib/auth-context";
 import { fetchReportsData, ReportsData } from "../../lib/api/reports";
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Colour constants used throughout the Reports & Analytics page.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 const NAVY = "#0B2447";
 const BLUE = "#2563EB";
 const LIGHT_BLUE = "#60A5FA";
 const GREEN = "#16A34A";
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Reports & Analytics page: displays volunteer and conservation reporting data for the selected year.
+// Admins can view report metrics, charts and contributor information, and export the report to PDF or Excel.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export default function ReportsPage() {
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Authentication and page state used to load, display and export the report data.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
   const { token } = useAuth();
   const [data, setData] = useState<ReportsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,6 +46,11 @@ export default function ReportsPage() {
 
   const [year, setYear] = useState("2026");
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Loads the report data whenever the authentication token or selected year changes.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
   useEffect(() => {
     let cancelled = false;
 
@@ -53,14 +74,29 @@ export default function ReportsPage() {
     };
   }, [token, year]);
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Resets the report filters back to the default year.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
   const handleReset = () => {
     setYear("2026");
   };
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Prints the report using the browser print dialog, with the printable report styling applied.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
   const handleExportPDF = () => {
     window.print();
   };
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Generates and downloads an Excel workbook containing the report summary, monthly hours, attendance and top contributors.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
   const handleExportExcel = async () => {
     if (!data) return;
     setIsExportingExcel(true);
@@ -115,6 +151,11 @@ export default function ReportsPage() {
     }
   };
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Displays a loading message while report data is being retrieved.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -123,6 +164,11 @@ export default function ReportsPage() {
     );
   }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Displays an error message when report data cannot be loaded.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
   if (error || !data) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -161,7 +207,7 @@ export default function ReportsPage() {
         }
       `}</style>
 
-      {/* Header — hidden when printing */}
+      {/*------------------------------------ Page header: title and report export buttons ----------------------------------------------------*/}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Reports &amp; Analytics</h1>
@@ -188,7 +234,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Filters — hidden when printing */}
+      {/*------------------------------------ Report filters ----------------------------------------------------*/}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-3 flex items-center gap-4">
         <div className="flex items-center gap-1.5 text-slate-500">
           <FilterIcon />
@@ -219,7 +265,7 @@ export default function ReportsPage() {
         </button>
       </div>
 
-      {/* Everything below is what actually prints/exports to PDF */}
+      {/*------------------------------------ Printable report ----------------------------------------------------*/}
       <div id="printable-report" className="space-y-6">
         <div className="grid grid-cols-4 gap-6">
           <StatCard
@@ -391,6 +437,11 @@ export default function ReportsPage() {
 
 // ---- Reusable pieces ----
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Reusable report card component used to keep the dashboard report sections visually consistent.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function Card({
   title,
   subtitle,
@@ -416,6 +467,11 @@ function Card({
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Reusable statistics card for displaying a report metric, value, trend and icon.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function StatCard({
   label,
   value,
@@ -446,6 +502,11 @@ function StatCard({
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Small legend item used by the Conservation Impact chart.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <p className="flex items-center gap-1.5 text-slate-600">
@@ -455,6 +516,11 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Inline SVG icons used throughout the Reports & Analytics page.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 // ---- Inline icons ----
 
 function ClockIcon() {
@@ -551,3 +617,5 @@ function StarIcon() {
     </svg>
   );
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

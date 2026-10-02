@@ -19,7 +19,17 @@ import {
 } from "../../lib/api/volunteers";
 import AttendanceModal from "../../../components/volunteers/AttendanceModal";
 
-// "2026-09-22" -> "Tue, 22 Sept 2026"
+//---------------------------------------------------------------------------------------------------------------//
+// Helper Functions
+//---------------------------------------------------------------------------------------------------------------//
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Formats an ISO-style date string for display in the shift requests table.
+// Example: "2026-09-22" -> "Tue, 22 Sept 2026". Returns "—" for empty values
+// and the original value if it cannot be parsed as a date.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function formatShiftDate(value: string): string {
   if (!value) return "—";
   const date = new Date(`${value.slice(0, 10)}T00:00:00`);
@@ -32,13 +42,32 @@ function formatShiftDate(value: string): string {
   });
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Converts the backend attendance rate into a whole number clamped to 0-100.
 // NOTE: assumes the backend sends attendanceRate as a percentage (0-100).
 // If a real response shows 0-1 instead, multiply by 100 here.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function toPercent(rate: number): number {
   return Math.max(0, Math.min(100, Math.round(rate)));
 }
 
+//---------------------------------------------------------------------------------------------------------------//
+// Main Page Component
+//---------------------------------------------------------------------------------------------------------------//
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Admin Volunteers page. Hosts three tabs: Volunteer Management (list, search,
+// view, edit, attendance), Request Change (approve/decline shift change requests)
+// and Create Volunteer. Owns all data loading and the modal state for the page.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export default function VolunteersPage() {
+  //-----------------------------------------------------------------------------------------------//
+  // Auth & State
+  //-----------------------------------------------------------------------------------------------//
   const { token, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<"management" | "requests" | "create">("management");
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
@@ -48,6 +77,9 @@ export default function VolunteersPage() {
   const [loadError, setLoadError] = useState("");
   const [openingId, setOpeningId] = useState<string | null>(null);
 
+  //-----------------------------------------------------------------------------------------------//
+  // Modal State
+  //-----------------------------------------------------------------------------------------------//
   const [viewingVolunteer, setViewingVolunteer] = useState<Volunteer | null>(null);
   const [editingVolunteer, setEditingVolunteer] = useState<Volunteer | null>(null);
   const [attendanceVolunteer, setAttendanceVolunteer] = useState<Volunteer | null>(null);
@@ -57,8 +89,13 @@ export default function VolunteersPage() {
     volunteerName: string;
   } | null>(null);
 
-  // A 401 means the token is missing/expired: log out (the layout guard then
-  // redirects to login). Anything else is shown to the admin.
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Central error handler for page actions. A 401 means the token is
+  // missing/expired: log out (the layout guard then redirects to login).
+  // Anything else is shown to the admin.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const reportError = (err: unknown, fallback: string) => {
     if (isUnauthorized(err)) {
       logout();
@@ -68,6 +105,13 @@ export default function VolunteersPage() {
     alert(err instanceof Error ? err.message : fallback);
   };
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Loads volunteers and shift requests in parallel. Partial failures are
+  // collected into a single loadError message; a 401 triggers logout.
+  // Pass showSpinner = false to refresh silently in the background.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const loadData = async (showSpinner = true) => {
     if (!token) {
       setIsLoading(false);
@@ -107,14 +151,27 @@ export default function VolunteersPage() {
     setIsLoading(false);
   };
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Initial data load. Re-runs whenever the auth token changes.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   useEffect(() => {
     loadData();
   }, [token]);
 
+  //-----------------------------------------------------------------------------------------------//
+  // Derived Values
+  //-----------------------------------------------------------------------------------------------//
   const pendingCount = requests.filter((r) => r.status === "Pending").length;
 
-  // The list endpoint doesn't include nationality / age / emergency contact,
-  // so view & edit load the full detail record first.
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Opens the view or edit modal for a volunteer. The list endpoint doesn't
+  // include nationality / age / emergency contact, so the full detail record
+  // is loaded first.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const openDetail = async (v: Volunteer, mode: "view" | "edit") => {
     setOpeningId(v.id);
     try {
@@ -128,6 +185,12 @@ export default function VolunteersPage() {
     }
   };
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Approves or declines a shift change request, then updates the request's
+  // status in local state.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const handleAction = async (id: string, newStatus: "Approved" | "Declined") => {
     try {
       if (newStatus === "Approved") {
@@ -143,6 +206,12 @@ export default function VolunteersPage() {
     }
   };
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Saves edits to a volunteer, closes the edit modal and silently
+  // re-fetches the list.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const handleSaveEdit = async (id: string, payload: UpdateVolunteerPayload) => {
     try {
       await updateVolunteer(token, id, payload);
@@ -153,7 +222,13 @@ export default function VolunteersPage() {
     }
   };
 
-  // Throws on failure so the form can show the message.
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Creates a new volunteer. Throws on failure so the form can show the message.
+  // On success the list is re-fetched (the create response has no userId) and
+  // the page switches back to the management tab.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const handleCreate = async (payload: CreateVolunteerPayload) => {
     try {
       await createVolunteer(token, payload);
@@ -166,21 +241,33 @@ export default function VolunteersPage() {
     setActiveTab("management");
   };
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
   // Attendance updates change backend-computed Weekly Hours / Attendance Rate,
   // so re-fetch the volunteer list (no spinner — the modal stays open on top).
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const handleAttendanceChanged = () => {
     loadData(false);
   };
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Volunteers matching the search box (case-insensitive on name or email).
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const filteredVolunteers = volunteers.filter(
     (v) =>
       v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       v.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  //---------------------------------------------------------------------------------------------------------------//
+  // Render
+  //---------------------------------------------------------------------------------------------------------------//
   return (
     <div className="space-y-6">
-      {/* Page Heading */}
+      {/*------------------------------------ Page Heading ----------------------------------------------------*/}
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Volunteers</h1>
         <p className="text-sm text-slate-500 mt-0.5">
@@ -188,7 +275,7 @@ export default function VolunteersPage() {
         </p>
       </div>
 
-      {/* Main Pill Tabs */}
+      {/*------------------------------------ Main Pill Tabs ----------------------------------------------------*/}
       <div className="flex items-center gap-2">
         <button
           onClick={() => setActiveTab("management")}
@@ -227,8 +314,9 @@ export default function VolunteersPage() {
         </button>
       </div>
 
-      {/* Main Container Card */}
+      {/*------------------------------------ Main Container Card ----------------------------------------------------*/}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-5">
+        {/*------------------------------------ Load Error Banner ----------------------------------------------------*/}
         {loadError && (
           <div
             role="alert"
@@ -245,12 +333,14 @@ export default function VolunteersPage() {
         )}
 
         {isLoading ? (
+          /*------------------------------------ Loading State ----------------------------------------------------*/
           <div className="py-16 text-center text-slate-400 text-sm font-medium">
             Loading volunteer data…
           </div>
         ) : activeTab === "management" ? (
-          /* TAB 1: VOLUNTEER MANAGEMENT */
+          /*------------------------------------ TAB 1: VOLUNTEER MANAGEMENT ----------------------------------------------------*/
           <>
+            {/*------------------------------------ Search & Filter Bar ----------------------------------------------------*/}
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 flex-1 max-w-md">
                 <div className="relative flex-1">
@@ -278,6 +368,7 @@ export default function VolunteersPage() {
               </span>
             </div>
 
+            {/*------------------------------------ Volunteers Table ----------------------------------------------------*/}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-600">
                 <thead className="text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
@@ -304,23 +395,27 @@ export default function VolunteersPage() {
 
                       return (
                         <tr key={v.id} className="hover:bg-slate-50/70 transition-colors group">
+                          {/*------------------------------------ Profile Avatar ----------------------------------------------------*/}
                           <td className="py-4 px-4">
                             <div className="w-9 h-9 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shadow-sm">
                               {v.initials}
                             </div>
                           </td>
 
+                          {/*------------------------------------ Volunteer Name ----------------------------------------------------*/}
                           <td className="py-4 px-4">
                             <p className="font-medium text-slate-800 text-sm group-hover:text-blue-600 transition-colors">
                               {v.name}
                             </p>
                           </td>
 
+                          {/*------------------------------------ Contact Information ----------------------------------------------------*/}
                           <td className="py-4 px-4 space-y-1">
                             <p className="text-slate-600 text-[11px]">{v.email}</p>
                             <p className="text-slate-400 text-[11px]">{v.phone || "—"}</p>
                           </td>
 
+                          {/*------------------------------------ Weekly Hours ----------------------------------------------------*/}
                           <td className="py-4 px-4">
                             <div className="flex items-baseline gap-1">
                               <span className="font-bold text-slate-900">{v.weeklyHours}</span>
@@ -328,6 +423,7 @@ export default function VolunteersPage() {
                             </div>
                           </td>
 
+                          {/*------------------------------------ Attendance Rate ----------------------------------------------------*/}
                           <td className="py-4 px-4">
                             <button
                               onClick={() => setAttendanceVolunteer(v)}
@@ -349,6 +445,7 @@ export default function VolunteersPage() {
                             </button>
                           </td>
 
+                          {/*------------------------------------ Row Actions ----------------------------------------------------*/}
                           <td className="py-4 px-4 text-right space-x-1">
                             <button
                               onClick={() => openDetail(v, "view")}
@@ -376,13 +473,15 @@ export default function VolunteersPage() {
             </div>
           </>
         ) : activeTab === "requests" ? (
-          /* TAB 2: SHIFT CHANGE REQUESTS */
+          /*------------------------------------ TAB 2: SHIFT CHANGE REQUESTS ----------------------------------------------------*/
           <div className="space-y-4">
+            {/*------------------------------------ Requests Heading ----------------------------------------------------*/}
             <div>
               <h2 className="font-bold text-slate-900 text-sm">Pending Requests</h2>
               <p className="text-xs text-slate-400 mt-0.5">{pendingCount} pending approval</p>
             </div>
 
+            {/*------------------------------------ Requests Table ----------------------------------------------------*/}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-600">
                 <thead className="text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
@@ -405,6 +504,7 @@ export default function VolunteersPage() {
                   ) : (
                     requests.map((r) => (
                       <tr key={r.id} className="hover:bg-slate-50/70 transition-colors">
+                        {/*------------------------------------ Requesting Volunteer ----------------------------------------------------*/}
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shrink-0">
@@ -415,18 +515,24 @@ export default function VolunteersPage() {
                             </span>
                           </div>
                         </td>
+
+                        {/*------------------------------------ Shift Date & Time ----------------------------------------------------*/}
                         <td className="py-4 px-4 font-medium text-slate-700">
                           {formatShiftDate(r.shiftDate)}
                         </td>
                         <td className="py-4 px-4 font-medium text-slate-700">
                           {r.timeSlot || "—"}
                         </td>
+
+                        {/*------------------------------------ Reason ----------------------------------------------------*/}
                         <td
                           className="py-4 px-4 max-w-[240px] text-slate-500 font-medium"
                           title={r.reason}
                         >
                           <span className="line-clamp-2">{r.reason || "—"}</span>
                         </td>
+
+                        {/*------------------------------------ Status Badge ----------------------------------------------------*/}
                         <td className="py-4 px-4">
                           <span
                             className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
@@ -440,6 +546,8 @@ export default function VolunteersPage() {
                             {r.status}
                           </span>
                         </td>
+
+                        {/*------------------------------------ Approve / Decline Actions ----------------------------------------------------*/}
                         <td className="py-4 px-4 text-center">
                           {r.status === "Pending" ? (
                             <div className="flex items-center justify-center gap-1.5">
@@ -482,7 +590,7 @@ export default function VolunteersPage() {
             </div>
           </div>
         ) : (
-          /* TAB 3: CREATE VOLUNTEER */
+          /*------------------------------------ TAB 3: CREATE VOLUNTEER ----------------------------------------------------*/
           <CreateVolunteerForm
             onCreate={handleCreate}
             onCancel={() => setActiveTab("management")}
@@ -490,7 +598,7 @@ export default function VolunteersPage() {
         )}
       </div>
 
-      {/* VIEW MODAL */}
+      {/*------------------------------------ View Modal ----------------------------------------------------*/}
       {viewingVolunteer && (
         <ViewVolunteerModal
           volunteer={viewingVolunteer}
@@ -498,7 +606,7 @@ export default function VolunteersPage() {
         />
       )}
 
-      {/* EDIT MODAL */}
+      {/*------------------------------------ Edit Modal ----------------------------------------------------*/}
       {editingVolunteer && (
         <EditVolunteerModal
           volunteer={editingVolunteer}
@@ -507,7 +615,7 @@ export default function VolunteersPage() {
         />
       )}
 
-      {/* ATTENDANCE MODAL */}
+      {/*------------------------------------ Attendance Modal ----------------------------------------------------*/}
       {attendanceVolunteer && (
         <AttendanceModal
           volunteer={attendanceVolunteer}
@@ -516,7 +624,7 @@ export default function VolunteersPage() {
         />
       )}
 
-      {/* CONFIRM APPROVE/DECLINE MODAL */}
+      {/*------------------------------------ Confirm Approve / Decline Modal ----------------------------------------------------*/}
       {confirmAction && (
         <ConfirmActionModal
           type={confirmAction.type}
@@ -532,8 +640,16 @@ export default function VolunteersPage() {
   );
 }
 
-// ---- Create Volunteer Form (Tab) ----
+//---------------------------------------------------------------------------------------------------------------//
+// Create Volunteer Form (Tab)
+//---------------------------------------------------------------------------------------------------------------//
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Form shown on the "Create Volunteer" tab. Collects the new volunteer's details,
+// calls onCreate on submit and displays any error returned by the parent handler.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function CreateVolunteerForm({
   onCreate,
   onCancel,
@@ -541,6 +657,9 @@ function CreateVolunteerForm({
   onCreate: (v: CreateVolunteerPayload) => Promise<void>;
   onCancel: () => void;
 }) {
+  //-----------------------------------------------------------------------------------------------//
+  // Form State
+  //-----------------------------------------------------------------------------------------------//
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -550,6 +669,12 @@ function CreateVolunteerForm({
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Validates the age bracket, submits the form via onCreate and surfaces
+  // any failure message in the form.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ageBracket) return;
@@ -567,13 +692,18 @@ function CreateVolunteerForm({
     }
   };
 
+  //-----------------------------------------------------------------------------------------------//
+  // Render
+  //-----------------------------------------------------------------------------------------------//
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+      {/*------------------------------------ Form Heading ----------------------------------------------------*/}
       <div>
         <h2 className="font-bold text-slate-900 text-sm">Create Volunteer Profile</h2>
         <p className="text-xs text-slate-400 mt-0.5">Add a new volunteer to the system</p>
       </div>
 
+      {/*------------------------------------ Error Banner ----------------------------------------------------*/}
       {error && (
         <div
           role="alert"
@@ -583,6 +713,7 @@ function CreateVolunteerForm({
         </div>
       )}
 
+      {/*------------------------------------ Form Fields ----------------------------------------------------*/}
       <div className="grid grid-cols-2 gap-4">
         <FormField label="First Name" value={firstName} onChange={setFirstName} required />
         <FormField label="Last Name" value={lastName} onChange={setLastName} required />
@@ -592,6 +723,7 @@ function CreateVolunteerForm({
         <AgeBracketSelect value={ageBracket} onChange={setAgeBracket} required />
       </div>
 
+      {/*------------------------------------ Form Actions ----------------------------------------------------*/}
       <div className="flex items-center gap-3 pt-2">
         <button
           type="button"
@@ -612,6 +744,15 @@ function CreateVolunteerForm({
   );
 }
 
+//---------------------------------------------------------------------------------------------------------------//
+// Shared Form Inputs
+//---------------------------------------------------------------------------------------------------------------//
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Reusable labelled text input used by both the create form and the edit modal.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function FormField({
   label,
   value,
@@ -627,7 +768,10 @@ function FormField({
 }) {
   return (
     <div>
+      {/*------------------------------------ Field Label ----------------------------------------------------*/}
       <label className="block text-xs font-semibold text-slate-700 mb-1.5">{label}</label>
+
+      {/*------------------------------------ Field Input ----------------------------------------------------*/}
       <input
         type={type}
         required={required}
@@ -639,6 +783,12 @@ function FormField({
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Dropdown for choosing a volunteer's age bracket from AGE_BRACKETS. If the
+// backend holds a value that isn't in the list, it is kept selectable.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function AgeBracketSelect({
   value,
   onChange,
@@ -653,7 +803,10 @@ function AgeBracketSelect({
 
   return (
     <div>
+      {/*------------------------------------ Select Label ----------------------------------------------------*/}
       <label className="block text-xs font-semibold text-slate-700 mb-1.5">Age Bracket</label>
+
+      {/*------------------------------------ Select Options ----------------------------------------------------*/}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -674,8 +827,14 @@ function AgeBracketSelect({
   );
 }
 
-// ---- View Modal ----
+//----------------------------------------------VIEW MODAL-----------------------------------------------------------------//
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Read-only modal showing a volunteer's profile: avatar, nationality / age
+// bracket, contact details, emergency contact, weekly hours and attendance rate.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function ViewVolunteerModal({
   volunteer,
   onClose,
@@ -688,6 +847,7 @@ function ViewVolunteerModal({
 
   return (
     <ModalOverlay onClose={onClose}>
+      {/*------------------------------------ Modal Header ----------------------------------------------------*/}
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-lg font-bold text-slate-900">Volunteer Profile</h2>
         <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close">
@@ -695,6 +855,7 @@ function ViewVolunteerModal({
         </button>
       </div>
 
+      {/*------------------------------------ Profile Summary ----------------------------------------------------*/}
       <div className="flex items-center gap-3 mb-5">
         <div className="w-14 h-14 rounded-xl bg-blue-700 text-white font-bold flex items-center justify-center text-lg shrink-0">
           {volunteer.initials}
@@ -705,6 +866,7 @@ function ViewVolunteerModal({
         </div>
       </div>
 
+      {/*------------------------------------ Contact Details ----------------------------------------------------*/}
       <div className="space-y-3 mb-5">
         <ContactRow icon={<MailIcon />} label="Email" value={volunteer.email || "—"} />
         <ContactRow icon={<PhoneIcon />} label="Phone" value={volunteer.phone || "—"} />
@@ -719,6 +881,7 @@ function ViewVolunteerModal({
         />
       </div>
 
+      {/*------------------------------------ Hours & Attendance Stats ----------------------------------------------------*/}
       <div className="bg-slate-50 rounded-xl p-4 space-y-3">
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium text-slate-600">Hours this week</span>
@@ -738,6 +901,11 @@ function ViewVolunteerModal({
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// A single icon + label + value row used in the volunteer profile modal.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function ContactRow({
   icon,
   label,
@@ -749,9 +917,12 @@ function ContactRow({
 }) {
   return (
     <div className="flex items-center gap-3">
+      {/*------------------------------------ Row Icon ----------------------------------------------------*/}
       <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
         {icon}
       </div>
+
+      {/*------------------------------------ Row Text ----------------------------------------------------*/}
       <div>
         <p className="text-xs text-slate-400">{label}</p>
         <p className="text-sm text-slate-800 font-medium">{value}</p>
@@ -760,8 +931,15 @@ function ContactRow({
   );
 }
 
-// ---- Edit Modal ----
+//-------------------------------------------EDIT MODAL--------------------------------------------------------------------//
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Modal form for editing an existing volunteer's details, including
+// nationality, age bracket and emergency contact. Calls onSave with the
+// updated payload.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function EditVolunteerModal({
   volunteer,
   onCancel,
@@ -771,6 +949,9 @@ function EditVolunteerModal({
   onCancel: () => void;
   onSave: (id: string, payload: UpdateVolunteerPayload) => Promise<void>;
 }) {
+  //-----------------------------------------------------------------------------------------------//
+  // Form State (pre-filled from the volunteer record)
+  //-----------------------------------------------------------------------------------------------//
   const [firstName, setFirstName] = useState(volunteer.firstName);
   const [lastName, setLastName] = useState(volunteer.lastName);
   const [email, setEmail] = useState(volunteer.email);
@@ -781,6 +962,11 @@ function EditVolunteerModal({
   const [emergencyContactPhone, setEmergencyContactPhone] = useState(volunteer.emergencyContactPhone);
   const [isSaving, setIsSaving] = useState(false);
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Submits the edited fields through onSave while showing the saving state.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -797,9 +983,13 @@ function EditVolunteerModal({
     setIsSaving(false);
   };
 
+  //-----------------------------------------------------------------------------------------------//
+  // Render
+  //-----------------------------------------------------------------------------------------------//
   return (
     <ModalOverlay onClose={onCancel}>
       <form onSubmit={handleSubmit}>
+        {/*------------------------------------ Modal Header ----------------------------------------------------*/}
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-slate-900">Edit Volunteer</h2>
           <button
@@ -812,6 +1002,7 @@ function EditVolunteerModal({
           </button>
         </div>
 
+        {/*------------------------------------ Form Fields ----------------------------------------------------*/}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <FormField label="First Name" value={firstName} onChange={setFirstName} required />
           <FormField label="Last Name" value={lastName} onChange={setLastName} required />
@@ -831,6 +1022,7 @@ function EditVolunteerModal({
           />
         </div>
 
+        {/*------------------------------------ Form Actions ----------------------------------------------------*/}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -853,8 +1045,15 @@ function EditVolunteerModal({
   );
 }
 
-// ---- Confirm Action Modal ----
+//---------------------------------------------------------------------------------------------------------------//
+// Confirm Action Modal
+//---------------------------------------------------------------------------------------------------------------//
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Confirmation dialog shown before approving or declining a shift change request.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function ConfirmActionModal({
   type,
   volunteerName,
@@ -870,6 +1069,7 @@ function ConfirmActionModal({
 
   return (
     <ModalOverlay onClose={onCancel}>
+      {/*------------------------------------ Modal Title & Message ----------------------------------------------------*/}
       <h2 className="text-lg font-bold text-slate-900">
         {isApprove ? "Approve Request" : "Decline Request"}
       </h2>
@@ -877,6 +1077,8 @@ function ConfirmActionModal({
         Are you sure you want to {isApprove ? "approve" : "decline"} the change request from{" "}
         <span className="font-semibold text-slate-700">{volunteerName}</span>?
       </p>
+
+      {/*------------------------------------ Modal Actions ----------------------------------------------------*/}
       <div className="flex items-center justify-end gap-3">
         <button
           onClick={onCancel}
@@ -897,8 +1099,16 @@ function ConfirmActionModal({
   );
 }
 
-// ---- Shared modal shell ----
+//---------------------------------------------------------------------------------------------------------------//
+// Shared Modal Shell
+//---------------------------------------------------------------------------------------------------------------//
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Shared modal wrapper: a dimmed full-screen backdrop that closes on click,
+// with a centred white card that stops click propagation.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function ModalOverlay({
   children,
   onClose,
@@ -911,6 +1121,7 @@ function ModalOverlay({
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
+      {/*------------------------------------ Modal Card ----------------------------------------------------*/}
       <div
         className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -921,8 +1132,13 @@ function ModalOverlay({
   );
 }
 
-// ---- Icons ----
+//---------------------------------------------ICONS------------------------------------------------------------------//
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Magnifying-glass icon used in the search input.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function SearchIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -931,6 +1147,11 @@ function SearchIcon({ className }: { className?: string }) {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Funnel icon used on the (disabled) Filter button.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function FilterIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -939,6 +1160,11 @@ function FilterIcon({ className }: { className?: string }) {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Eye icon used for the "View volunteer" row action.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function EyeIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -948,6 +1174,11 @@ function EyeIcon() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Pen-and-note icon used for the "Edit volunteer" row action.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function EditNoteIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -957,6 +1188,11 @@ function EditNoteIcon() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Calendar-with-tick icon shown next to the attendance rate.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function CalendarCheckIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -967,6 +1203,11 @@ function CalendarCheckIcon({ className }: { className?: string }) {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// "X" icon used for closing modals.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function CloseIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -975,6 +1216,11 @@ function CloseIcon() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Tick icon used on the "Save Changes" button.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function CheckIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -983,6 +1229,11 @@ function CheckIcon() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Envelope icon used for the email row in the profile modal.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function MailIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -992,6 +1243,11 @@ function MailIcon() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Phone handset icon used for the phone and emergency contact rows.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function PhoneIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -999,3 +1255,5 @@ function PhoneIcon() {
     </svg>
   );
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

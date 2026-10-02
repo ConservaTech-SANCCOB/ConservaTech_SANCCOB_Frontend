@@ -29,6 +29,11 @@ import {
   VolunteersByAge,
 } from "../../lib/api/dashboard";
 
+//-----------------------------------------------------------------------------------------------//
+
+//<summary>
+// Dashboard chart colour constants.
+//</summary>
 const NAVY = "#0B2447";
 const BLUE = "#2563EB";
 const LIGHT_BLUE = "#60A5FA";
@@ -38,11 +43,23 @@ const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2];
 const MAX_TRAINING_ROWS = 5;
 
+//-----------------------------------------------------------------------------------------------//
+
+//<summary>
+// Represents the loading, error and data state for an individual dashboard section.
+//</summary>
 interface Section<T> {
   data: T | null;
   error: string;
   loaded: boolean;
 }
+
+//-----------------------------------------------------------------------------------------------//
+
+//<summary>
+// Loads one dashboard card's data. Each card loads independently so one failing endpoint
+// only shows an error in that card instead of blanking the whole dashboard.
+//</summary>
 
 /**
  * Loads one dashboard card's data. Each card loads on its own so one failing endpoint
@@ -84,9 +101,21 @@ function useSection<T>(load: (() => Promise<T>) | null, onUnauthorized: () => vo
   return [state, setState] as const;
 }
 
+//-----------------------------------------------------------------------------------------------//
+
+//<summary>
+// Builds the initials used for a volunteer's avatar.
+//</summary>
+
 function initialsFor(firstName: string | null, lastName: string | null) {
   return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
 }
+
+//-----------------------------------------------------------------------------------------------//
+
+//<summary>
+// Creates a short display label for the volunteers assigned to a shift.
+//</summary>
 
 function peopleLabel(names: string[] | null) {
   if (!names || names.length === 0) return "No volunteers assigned";
@@ -94,11 +123,29 @@ function peopleLabel(names: string[] | null) {
   return `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
 }
 
+//---------------------------------------------------------------------------------------------------------------//
+
+//<summary>
+// Dashboard page containing analytics, conservation impact, today's operational overview
+// and active staff and volunteer training information.
+//</summary>
+
 export default function DashboardPage() {
+  //<summary>
+  // Authentication details used to load dashboard data and handle unauthorized requests.
+  //</summary>
   const { token, logout, user } = useAuth();
+  //<summary>
+  // Year selections used by the age and conservation dashboard sections.
+  //</summary>
   const [ageYear, setAgeYear] = useState(CURRENT_YEAR);
   const [conservationYear, setConservationYear] = useState(CURRENT_YEAR);
 
+  //------------------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // API loaders for each independent dashboard section.
+  //</summary>
   const loadAge = useMemo(
     () => (token ? () => fetchVolunteersByAge(token, ageYear) : null),
     [token, ageYear]
@@ -111,12 +158,22 @@ export default function DashboardPage() {
   const loadToday = useMemo(() => (token ? () => fetchTodaysOverview(token) : null), [token]);
   const loadTraining = useMemo(() => (token ? () => fetchActiveTraining(token) : null), [token]);
 
+  //------------------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Dashboard section state for each API-backed card.
+  //</summary>
   const [age] = useSection<VolunteersByAge>(loadAge, logout);
   const [conservation, setConservation] = useSection<ConservationStats>(loadConservation, logout);
   const [shifts] = useSection<ShiftDistribution>(loadShifts, logout);
   const [today] = useSection<TodaysShift[]>(loadToday, logout);
   const [training] = useSection<TrainingVolunteerSummary[]>(loadTraining, logout);
 
+  //------------------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Modal state used when editing conservation impact figures.
+  //</summary>
   // Modal State for Editing Conservation Impact
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [rescuedInput, setRescuedInput] = useState("");
@@ -124,7 +181,11 @@ export default function DashboardPage() {
   const [modalError, setModalError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Handle Conservation Data Update
+  //------------------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Saves the updated conservation impact values through the backend.
+  //</summary>
   const handleSaveConservationData = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError("");
@@ -171,12 +232,24 @@ export default function DashboardPage() {
     }
   };
 
+  //------------------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Opens the conservation impact modal and populates it with the current values.
+  //</summary>
+
   const openModal = () => {
     setRescuedInput(conservation.data ? conservation.data.totalRescued.toString() : "");
     setReleasedInput(conservation.data ? conservation.data.totalReleased.toString() : "");
     setModalError("");
     setIsModalOpen(true);
   };
+
+  //------------------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Formats today's date for the dashboard overview heading.
+  //</summary>
 
   const todayLabel = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
@@ -194,7 +267,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Row 1: Analytics cards */}
+      {/*------------------------------------ Row 1: Analytics cards ----------------------------------------------------*/}
       <div className="grid grid-cols-3 gap-6 items-stretch">
         <Card
           title="New Volunteers by Age"
@@ -220,7 +293,7 @@ export default function DashboardPage() {
           </SectionBody>
         </Card>
 
-        {/* Conservation Impact Card */}
+        {/*------------------------------------ Conservation Impact Card ----------------------------------------------------*/}
         <Card
           title="Conservation Impact"
           subtitle="Bird rescue & release outcomes"
@@ -269,7 +342,7 @@ export default function DashboardPage() {
             )}
           </SectionBody>
 
-          {/* Edit Data Button positioned at Bottom Left */}
+          {/*------------------------------------ Edit Data Button ----------------------------------------------------*/}
           <div className="pt-3 border-t border-slate-100 mt-3 flex justify-start">
             <button
               onClick={openModal}
@@ -326,7 +399,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Row 2: Operational cards */}
+      {/*------------------------------------ Row 2: Operational cards ----------------------------------------------------*/}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:items-stretch">
         <Card
           title="Today's Overview"
@@ -408,7 +481,7 @@ export default function DashboardPage() {
           </SectionBody>
         </Card>
       </div>
-      {/* Modal for Editing Conservation Data */}
+      {/*------------------------------------ Modal for Editing Conservation Data ----------------------------------------------------*/}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4">
@@ -479,7 +552,17 @@ export default function DashboardPage() {
   );
 }
 
-// ---- Reusable pieces ----
+//---------------------------------------------------------------------------------------------------------------------//
+
+//<summary>
+// Reusable dashboard components and UI helpers.
+//</summary>
+
+//---------------------------------------------------------------------------------------------------------------------//
+
+//<summary>
+// Reusable dashboard card container with an optional header action.
+//</summary>
 
 function Card({
   title,
@@ -506,7 +589,11 @@ function Card({
   );
 }
 
-/** Shows a card's loading / error state, or its content once the data has arrived. */
+//---------------------------------------------------------------------------------------------------------------------//
+
+//<summary>
+// Displays loading, error or content state for a dashboard section.
+//</summary>
 function SectionBody<T>({
   section,
   children,
@@ -527,9 +614,21 @@ function SectionBody<T>({
   return <>{children(section.data)}</>;
 }
 
+//---------------------------------------------------------------------------------------------------------------//
+
+//<summary>
+// Displays an empty-state message inside a dashboard section.
+//</summary>
+
 function EmptyNote({ text }: { text: string }) {
   return <p className="text-sm text-slate-500 py-6 text-center">{text}</p>;
 }
+
+//---------------------------------------------------------------------------------------------------------------//
+
+//<summary>
+// Displays a navigation link in a dashboard card header.
+//</summary>
 
 function LinkHeader({ href, text }: { href: string; text: string }) {
   return (
@@ -553,6 +652,12 @@ function LinkHeader({ href, text }: { href: string; text: string }) {
     </Link>
   );
 }
+
+//---------------------------------------------------------------------------------------------------------------//
+
+//<summary>
+// Dropdown used to select the dashboard year.
+//</summary>
 
 function YearDropdown({ value, onChange }: { value: number; onChange: (year: number) => void }) {
   const [open, setOpen] = useState(false);
@@ -590,6 +695,12 @@ function YearDropdown({ value, onChange }: { value: number; onChange: (year: num
   );
 }
 
+//---------------------------------------------------------------------------------------------------------------//
+
+//<summary>
+// Displays a coloured legend dot and its label.
+//</summary>
+
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <p className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -598,6 +709,12 @@ function LegendDot({ color, label }: { color: string; label: string }) {
     </p>
   );
 }
+
+//---------------------------------------------------------------------------------------------------------------//
+
+//<summary>
+// Displays a status badge using the appropriate status colour.
+//</summary>
 
 function StatusBadge({ status }: { status: string }) {
   const styles =
@@ -613,3 +730,5 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//
