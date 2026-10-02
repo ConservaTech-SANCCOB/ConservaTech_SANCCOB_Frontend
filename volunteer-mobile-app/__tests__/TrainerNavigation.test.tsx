@@ -27,7 +27,9 @@ beforeEach(() => {
   jest.clearAllMocks();
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   jest.mocked(logout).mockResolvedValue();
-  jest.mocked(getTrainers).mockResolvedValue([{ trainerId: 3, firstName: "Alex", lastName: "Trainer" }]);
+  jest.mocked(getTrainers).mockResolvedValue([
+    { trainerId: 3, firstName: "Alex", lastName: "Trainer", email: null, phone: null, status: "Active" },
+  ]);
   jest.mocked(selectTrainer).mockResolvedValue();
   jest.mocked(getTrainingVolunteers).mockResolvedValue([
     {

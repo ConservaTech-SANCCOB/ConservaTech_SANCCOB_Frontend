@@ -4,6 +4,9 @@ export interface Trainer {
   trainerId: number;
   firstName: string | null;
   lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  status: string | null;
 }
 
 interface VerifyPinResponse {
@@ -16,7 +19,7 @@ interface SelectTrainerResponse {
 }
 
 export function getTrainers() {
-  return api.get<Trainer[]>("/api/trainers");
+  return api.get<Trainer[]>("/api/trainers/active");
 }
 
 // ------------------------------------------------------------ //
