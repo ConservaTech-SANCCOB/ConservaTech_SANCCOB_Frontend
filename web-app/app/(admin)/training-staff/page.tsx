@@ -9,6 +9,8 @@ import {
   fetchTrainingVolunteerProfile,
   fetchTrainers,
   createTrainer,
+  updateTrainer,
+  deleteTrainer,
   TrainingVolunteerSummary,
   TrainingDashboard,
   TrainingVolunteerProfile,
@@ -73,12 +75,26 @@ export default function TrainingStaffPage() {
   const [trainersError, setTrainersError] = useState<string | null>(null);
   const [trainerExtras, setTrainerExtras] = useState<Record<number, TrainerExtras>>({});
 
+  // Create
   const [showCreateTrainer, setShowCreateTrainer] = useState(false);
   const [trainerFirstName, setTrainerFirstName] = useState("");
   const [trainerLastName, setTrainerLastName] = useState("");
   const [trainerContact, setTrainerContact] = useState("");
   const [isSavingTrainer, setIsSavingTrainer] = useState(false);
   const [createTrainerError, setCreateTrainerError] = useState<string | null>(null);
+
+  // Edit
+  const [editingTrainer, setEditingTrainer] = useState<Trainer | null>(null);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [editContact, setEditContact] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editTrainerError, setEditTrainerError] = useState<string | null>(null);
+
+  // Delete
+  const [deletingTrainer, setDeletingTrainer] = useState<Trainer | null>(null);
+  const [isDeletingTrainer, setIsDeletingTrainer] = useState(false);
+  const [deleteTrainerError, setDeleteTrainerError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -138,6 +154,13 @@ export default function TrainingStaffPage() {
     saveTrainerExtras(next);
   };
 
+  const removeTrainerExtras = (trainerId: number) => {
+    const next = { ...trainerExtras };
+    delete next[trainerId];
+    setTrainerExtras(next);
+    saveTrainerExtras(next);
+  };
+
   const handleOpenHistory = async (userId: number) => {
     try {
       const profile = await fetchTrainingVolunteerProfile(userId, token);
@@ -151,6 +174,7 @@ export default function TrainingStaffPage() {
     }
   };
 
+  // ---- Create ----
   const handleCreateTrainer = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateTrainerError(null);
@@ -183,6 +207,65 @@ export default function TrainingStaffPage() {
     }
   };
 
+  // ---- Edit ----
+  const openEditTrainer = (t: Trainer) => {
+    setEditingTrainer(t);
+    setEditFirstName(t.firstName ?? "");
+    setEditLastName(t.lastName ?? "");
+    setEditContact(trainerExtras[t.trainerId]?.contactDetails ?? "");
+    setEditTrainerError(null);
+  };
+
+  const handleEditTrainer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTrainer) return;
+    setEditTrainerError(null);
+    setIsSavingEdit(true);
+    try {
+      await updateTrainer(
+        editingTrainer.trainerId,
+        { firstName: editFirstName.trim(), lastName: editLastName.trim() },
+        token
+      );
+      // Contact details can't go to the backend yet, so keep them locally
+      updateTrainerExtras(editingTrainer.trainerId, {
+        contactDetails: editContact.trim(),
+      });
+      setEditingTrainer(null);
+      await loadTrainers();
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        logout();
+        return;
+      }
+      setEditTrainerError(err instanceof Error ? err.message : "Unable to update trainer");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // ---- Delete ----
+  const handleDeleteTrainer = async () => {
+    if (!deletingTrainer) return;
+    setDeleteTrainerError(null);
+    setIsDeletingTrainer(true);
+    try {
+      await deleteTrainer(deletingTrainer.trainerId, token);
+      // Remove the local contact/status entry so it can't attach to a future trainer
+      removeTrainerExtras(deletingTrainer.trainerId);
+      setDeletingTrainer(null);
+      await loadTrainers();
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        logout();
+        return;
+      }
+      setDeleteTrainerError(err instanceof Error ? err.message : "Unable to delete trainer");
+    } finally {
+      setIsDeletingTrainer(false);
+    }
+  };
+
   const averageProgress =
     volunteers.length > 0
       ? Math.round(
@@ -192,6 +275,8 @@ export default function TrainingStaffPage() {
 
   const initials = (t: Trainer) =>
     `${t.firstName?.[0] ?? ""}${t.lastName?.[0] ?? ""}`.toUpperCase() || "?";
+
+  const fullName = (t: Trainer) => `${t.firstName ?? ""} ${t.lastName ?? ""}`.trim();
 
   return (
     <div className="p-8">
@@ -320,13 +405,14 @@ export default function TrainingStaffPage() {
                   <th className="px-6 py-3">Surname</th>
                   <th className="px-6 py-3">Contact Details</th>
                   <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {trainersLoading ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Loading...</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">Loading...</td></tr>
                 ) : trainers.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">No trainers yet</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">No trainers yet</td></tr>
                 ) : (
                   trainers.map((t) => {
                     const extras = trainerExtras[t.trainerId];
@@ -362,6 +448,38 @@ export default function TrainingStaffPage() {
                             ))}
                           </div>
                         </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => openEditTrainer(t)}
+                              aria-label={`Edit ${fullName(t)}`}
+                              title="Edit trainer"
+                              className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-blue-700 transition-colors"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDeletingTrainer(t);
+                                setDeleteTrainerError(null);
+                              }}
+                              aria-label={`Delete ${fullName(t)}`}
+                              title="Delete trainer"
+                              className="p-2 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 6h18" />
+                                <path d="M8 6V4h8v2" />
+                                <path d="M6 6l1 14h10l1-14" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })
@@ -382,7 +500,7 @@ export default function TrainingStaffPage() {
         <TrainingHistoryModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
       )}
 
-     {/* Create Trainer modal */}
+      {/* Create Trainer modal */}
       {showCreateTrainer && (
         <ModalOverlay onClose={() => setShowCreateTrainer(false)}>
           <div className="flex items-center justify-between mb-5">
@@ -391,6 +509,7 @@ export default function TrainingStaffPage() {
               type="button"
               onClick={() => setShowCreateTrainer(false)}
               className="text-slate-500 hover:text-slate-700"
+              aria-label="Close"
             >
               ✕
             </button>
@@ -476,9 +595,138 @@ export default function TrainingStaffPage() {
           </form>
         </ModalOverlay>
       )}
+
+      {/* Edit Trainer modal */}
+      {editingTrainer && (
+        <ModalOverlay onClose={() => setEditingTrainer(null)}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-bold text-black">Edit Trainer</h2>
+            <button
+              type="button"
+              onClick={() => setEditingTrainer(null)}
+              className="text-slate-500 hover:text-slate-700"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleEditTrainer} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="edit-trainer-first-name"
+                  className="block text-xs font-semibold text-black mb-1.5"
+                >
+                  First name
+                </label>
+                <input
+                  id="edit-trainer-first-name"
+                  name="firstName"
+                  required
+                  value={editFirstName}
+                  onChange={(e) => setEditFirstName(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="edit-trainer-last-name"
+                  className="block text-xs font-semibold text-black mb-1.5"
+                >
+                  Last name
+                </label>
+                <input
+                  id="edit-trainer-last-name"
+                  name="lastName"
+                  required
+                  value={editLastName}
+                  onChange={(e) => setEditLastName(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="edit-trainer-contact"
+                className="block text-xs font-semibold text-black mb-1.5"
+              >
+                Contact details
+              </label>
+              <input
+                id="edit-trainer-contact"
+                name="contact"
+                value={editContact}
+                onChange={(e) => setEditContact(e.target.value)}
+                placeholder="Phone number or email"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+              />
+            </div>
+
+            {editTrainerError && (
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {editTrainerError}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingTrainer(null)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingEdit}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-60"
+              >
+                {isSavingEdit ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </ModalOverlay>
+      )}
+
+      {/* Delete Trainer confirmation modal */}
+      {deletingTrainer && (
+        <ModalOverlay onClose={() => setDeletingTrainer(null)}>
+          <h2 className="text-lg font-bold text-black mb-2">Delete trainer?</h2>
+          <p className="text-sm text-slate-700 mb-4">
+            {fullName(deletingTrainer)} will be removed from the trainers list. This can&apos;t be undone.
+          </p>
+
+          {deleteTrainerError && (
+            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+              {deleteTrainerError}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setDeletingTrainer(null)}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteTrainer}
+              disabled={isDeletingTrainer}
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+            >
+              {isDeletingTrainer ? "Deleting..." : "Delete trainer"}
+            </button>
+          </div>
+        </ModalOverlay>
+      )}
     </div>
   );
 }
+
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub: string }) {
   return (
     <div className="rounded-2xl bg-white border border-slate-100 p-5">
@@ -488,5 +736,4 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
     </div>
   );
 }
-
 
