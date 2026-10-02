@@ -67,6 +67,8 @@ export default function ReportsPage() {
     try {
       const XLSX = await import("xlsx");
 
+      const inCare = data.conservation.totalRescued - data.conservation.totalReleased;
+
       const summaryRows = [
         ["SANCCOB Reports & Analytics"],
         [`Year: ${year}`],
@@ -80,7 +82,7 @@ export default function ReportsPage() {
         ["Conservation Impact"],
         ["Total Rescued", data.conservation.totalRescued],
         ["Total Released", data.conservation.totalReleased],
-        ["Total In Care", data.conservation.totalInCare],
+        ["Total In Care", inCare],
         ["Percent Released (%)", data.conservation.percentReleased],
       ];
 
@@ -136,6 +138,8 @@ export default function ReportsPage() {
     data.topContributors.length > 0
       ? Math.max(...data.topContributors.map((c) => c.hours))
       : 1;
+
+  const totalInCare = data.conservation.totalRescued - data.conservation.totalReleased;
 
   return (
     <div className="bg-slate-100/80 p-6 min-h-screen rounded-2xl space-y-6">
@@ -289,7 +293,7 @@ export default function ReportsPage() {
                     <Pie
                       data={[
                         { name: "Released", value: data.conservation.totalReleased },
-                        { name: "In Care", value: data.conservation.totalInCare },
+                        { name: "In Care", value: totalInCare },
                       ]}
                       dataKey="value"
                       innerRadius={54}
@@ -315,7 +319,7 @@ export default function ReportsPage() {
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <LegendDot color={BLUE} label="In Care" />
-                  <span className="font-semibold text-slate-900">{data.conservation.totalInCare}</span>
+                  <span className="font-semibold text-slate-900">{totalInCare}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm pt-2 border-t border-slate-100">
                   <span className="text-slate-500">Total Rescued</span>
