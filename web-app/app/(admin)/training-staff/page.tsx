@@ -7,20 +7,45 @@ import {
   fetchTrainingVolunteers,
   fetchTrainingDashboard,
   fetchTrainingVolunteerProfile,
-  fetchTrainers,
-  createTrainer,
-  updateTrainer,
-  deleteTrainer,
   TrainingVolunteerSummary,
   TrainingDashboard,
   TrainingVolunteerProfile,
-  Trainer,
 } from "../../lib/api/training_staff";
-import { isUnauthorized } from "../../lib/api/http";
+import { apiFetch, isUnauthorized } from "../../lib/api/http";
 import { ModalOverlay } from "@/components/shifts/ShiftFormModal";
 
 type Tab = "progress" | "trainers";
 type TrainerStatus = "Active" | "Inactive";
+
+//------------------------------------------------------------------------------------------------//
+
+//<summary>
+// Trainer shapes for /api/trainers (TrainerDto, CreateTrainerDto, UpdateTrainerDto).
+// Email, phone and status are real backend fields now.
+//</summary>
+interface Trainer {
+  trainerId: number;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  status: string | null;
+}
+
+interface CreateTrainerDto {
+  firstName: string;
+  lastName: string;
+  email?: string | null;
+  phone?: string | null;
+}
+
+interface UpdateTrainerDto {
+  firstName: string;
+  lastName: string;
+  email?: string | null;
+  phone?: string | null;
+  status?: TrainerStatus | null;
+}
 
 //------------------------------------------------------------------------------------------------//
 
@@ -32,62 +57,33 @@ const TABS: { label: string; value: Tab }[] = [
   { label: "Trainers", value: "trainers" },
 ];
 
-//-------------------------------------------------------------------------------------------------//
-
-//<summary>
-// PLACEHOLDER STORAGE: TrainerDto has no contact details or status fields yet, so these are
-// kept in this browser's localStorage, keyed by trainerId. They are NOT shared between
-// devices/admins and the mobile app can't see them.
-// Replace with real API fields once the backend adds them.
-//</summary>
-interface TrainerExtras {
-  contactDetails: string;
-  status: TrainerStatus;
-}
-
-const EXTRAS_KEY = "sanccob_trainer_extras";
 const STATUS_OPTIONS: TrainerStatus[] = ["Active", "Inactive"];
 
-//------------------------------------------------------------------------------------------------//
+const JSON_HEADERS = { "Content-Type": "application/json" };
 
 //<summary>
-// Reads the saved contact details / status for all trainers from localStorage.
-// Returns an empty object if nothing is saved or storage is unavailable.
+// A trainer counts as Active only when the backend says so.
 //</summary>
-function loadTrainerExtras(): Record<number, TrainerExtras> {
-  try {
-    const raw = localStorage.getItem(EXTRAS_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-//-------------------------------------------------------------------------------------------//
+const isActive = (t: Trainer) => t.status?.toLowerCase() === "active";
 
 //<summary>
-// Writes the contact details / status for all trainers to localStorage.
-// Fails silently if storage is unavailable (changes just won't persist).
+// The status to send back on an update: exactly what the backend holds, so an
+// edit never silently changes it. Anything unexpected is sent as null.
 //</summary>
-function saveTrainerExtras(extras: Record<number, TrainerExtras>) {
-  try {
-    localStorage.setItem(EXTRAS_KEY, JSON.stringify(extras));
-  } catch {
-    // storage unavailable, changes simply won't persist
-  }
-}
+const statusForUpdate = (t: Trainer): TrainerStatus | null =>
+  t.status === "Active" || t.status === "Inactive" ? t.status : null;
 
 //-------------------------------------------------------------------------------------------//
 
 //<summary>
 // Staff Training page. Two tabs:
 // - Volunteer Progress: stat cards and a table of each volunteer's training progress.
-// - Trainers: create, edit and delete the staff members who sign off training.
+// - Trainers: create, edit, activate/deactivate and delete the staff members who sign off training.
 //</summary>
 export default function TrainingStaffPage() {
   const { token, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("progress");
-  
+
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
@@ -98,17 +94,17 @@ export default function TrainingStaffPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<TrainingVolunteerProfile | null>(null);
-  
+
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // State for the Trainers tab: the list, loading/error state, and the locally stored extras.
+  // State for the Trainers tab: the list, loading/error state, and which row is mid-toggle.
   //</summary>
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [trainersLoading, setTrainersLoading] = useState(false);
   const [trainersError, setTrainersError] = useState<string | null>(null);
-  const [trainerExtras, setTrainerExtras] = useState<Record<number, TrainerExtras>>({});
-  
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
@@ -117,7 +113,8 @@ export default function TrainingStaffPage() {
   const [showCreateTrainer, setShowCreateTrainer] = useState(false);
   const [trainerFirstName, setTrainerFirstName] = useState("");
   const [trainerLastName, setTrainerLastName] = useState("");
-  const [trainerContact, setTrainerContact] = useState("");
+  const [trainerEmail, setTrainerEmail] = useState("");
+  const [trainerPhone, setTrainerPhone] = useState("");
   const [isSavingTrainer, setIsSavingTrainer] = useState(false);
   const [createTrainerError, setCreateTrainerError] = useState<string | null>(null);
 
@@ -129,10 +126,11 @@ export default function TrainingStaffPage() {
   const [editingTrainer, setEditingTrainer] = useState<Trainer | null>(null);
   const [editFirstName, setEditFirstName] = useState("");
   const [editLastName, setEditLastName] = useState("");
-  const [editContact, setEditContact] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editTrainerError, setEditTrainerError] = useState<string | null>(null);
- 
+
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
@@ -172,14 +170,20 @@ export default function TrainingStaffPage() {
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Loads the trainer list for the Trainers tab. Also called after create, edit and delete
-  // so the table refreshes. Logs the user out if the token is rejected.
+  // Loads the trainer list for the Trainers tab. Also called after create, edit, toggle and
+  // delete so the table refreshes. Logs the user out if the token is rejected.
   //</summary>
   const loadTrainers = useCallback(async () => {
     setTrainersLoading(true);
     setTrainersError(null);
     try {
-      setTrainers(await fetchTrainers(token));
+      const data = await apiFetch<Trainer[]>(
+        "/api/trainers",
+        token,
+        { method: "GET" },
+        "Unable to load trainers"
+      );
+      setTrainers(Array.isArray(data) ? data : []);
     } catch (err) {
       if (isUnauthorized(err)) {
         logout();
@@ -203,47 +207,13 @@ export default function TrainingStaffPage() {
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Restores the locally saved contact details / status once on mount.
-  //</summary>
-  useEffect(() => {
-    setTrainerExtras(loadTrainerExtras());
-  }, []);
-
- //--------------------------------------------------------------------------------------------//
-
-  //<summary>
   // Only fetches trainers when the Trainers tab is opened.
   //</summary>
   useEffect(() => {
     if (activeTab === "trainers") loadTrainers();
   }, [activeTab, loadTrainers]);
 
-  //--------------------------------------------------------------------------------------------//
-
-  //<summary>
-  // Updates one trainer's locally stored contact details and/or status and saves to
-  // localStorage. Fields not in `patch` keep their current value.
-  //</summary>
-  const updateTrainerExtras = (trainerId: number, patch: Partial<TrainerExtras>) => {
-    const current = trainerExtras[trainerId] ?? { contactDetails: "", status: "Active" as TrainerStatus };
-    const next = { ...trainerExtras, [trainerId]: { ...current, ...patch } };
-    setTrainerExtras(next);
-    saveTrainerExtras(next);
-  };
-
-//--------------------------------------------------------------------------------------------//
-
-  //<summary>
-  // Removes one trainer's locally stored extras, so they can't attach to a future trainer.
-  //</summary>
-  const removeTrainerExtras = (trainerId: number) => {
-    const next = { ...trainerExtras };
-    delete next[trainerId];
-    setTrainerExtras(next);
-    saveTrainerExtras(next);
-  };
-
-//--------------------------------------------------------------------------------------------//
+  //-------------------------------------------------------------------------------------------//
 
   //<summary>
   // Opens the training history modal for a volunteer.
@@ -261,33 +231,35 @@ export default function TrainingStaffPage() {
     }
   };
 
-//--------------------------------------------------------------------------------------------//
+  //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Creates a trainer. The name goes to the API; contact details are kept locally because
-  // the backend can't store them yet. Clears the form and refreshes the table on success.
+  // Creates a trainer (name, email and phone all go to the API). Clears the form and
+  // refreshes the table on success.
   //</summary>
   const handleCreateTrainer = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateTrainerError(null);
     setIsSavingTrainer(true);
     try {
-      const created = await createTrainer(
-        { firstName: trainerFirstName.trim(), lastName: trainerLastName.trim() },
-        token
+      const payload: CreateTrainerDto = {
+        firstName: trainerFirstName.trim(),
+        lastName: trainerLastName.trim(),
+        email: trainerEmail.trim() || null,
+        phone: trainerPhone.trim() || null,
+      };
+      await apiFetch<Trainer>(
+        "/api/trainers",
+        token,
+        { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(payload) },
+        "Unable to create trainer"
       );
-      // Contact details can't go to the backend yet, so keep them locally
-      if (created?.trainerId != null) {
-        updateTrainerExtras(created.trainerId, {
-          contactDetails: trainerContact.trim(),
-          status: "Active",
-        });
-      }
       setShowCreateTrainer(false);
       setTrainerFirstName("");
       setTrainerLastName("");
-      setTrainerContact("");
-      await loadTrainers(); // refresh so the new trainer shows in the table
+      setTrainerEmail("");
+      setTrainerPhone("");
+      await loadTrainers();
     } catch (err) {
       if (isUnauthorized(err)) {
         logout();
@@ -299,25 +271,25 @@ export default function TrainingStaffPage() {
     }
   };
 
- //-----------------------------------------------------------------------------------------------//
+  //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Opens the Edit Trainer modal, pre-filled with the trainer's current name and
-  // locally stored contact details.
+  // Opens the Edit Trainer modal, pre-filled with the trainer's current details.
   //</summary>
   const openEditTrainer = (t: Trainer) => {
     setEditingTrainer(t);
     setEditFirstName(t.firstName ?? "");
     setEditLastName(t.lastName ?? "");
-    setEditContact(trainerExtras[t.trainerId]?.contactDetails ?? "");
+    setEditEmail(t.email ?? "");
+    setEditPhone(t.phone ?? "");
     setEditTrainerError(null);
   };
 
-  //------------------------------------------------------------------------------------------//
+  //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Saves an edited trainer. The name goes to the API; contact details are kept locally.
-  // Closes the modal and refreshes the table on success.
+  // Saves an edited trainer. The current status is sent back unchanged. Closes the modal
+  // and refreshes the table on success.
   //</summary>
   const handleEditTrainer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -325,17 +297,19 @@ export default function TrainingStaffPage() {
     setEditTrainerError(null);
     setIsSavingEdit(true);
     try {
-      await updateTrainer(
-        editingTrainer.trainerId,
-        { firstName: editFirstName.trim(), lastName: editLastName.trim() },
-        token
+      const payload: UpdateTrainerDto = {
+        firstName: editFirstName.trim(),
+        lastName: editLastName.trim(),
+        email: editEmail.trim() || null,
+        phone: editPhone.trim() || null,
+        status: statusForUpdate(editingTrainer),
+      };
+      await apiFetch<Trainer>(
+        `/api/trainers/${editingTrainer.trainerId}`,
+        token,
+        { method: "PUT", headers: JSON_HEADERS, body: JSON.stringify(payload) },
+        "Unable to update trainer"
       );
-
-      // Contact details can't go to the backend yet, so keep them locally//
-
-      updateTrainerExtras(editingTrainer.trainerId, {
-        contactDetails: editContact.trim(),
-      });
       setEditingTrainer(null);
       await loadTrainers();
     } catch (err) {
@@ -349,20 +323,60 @@ export default function TrainingStaffPage() {
     }
   };
 
-  //------------------------------------------------------------------------------------------//
+  //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Deletes the trainer chosen in the confirmation modal, clears their locally stored
-  // extras and refreshes the table. If the backend refuses (e.g. the trainer has signed
-  // off skills), the error is shown in the modal.
+  // Sets a trainer Active or Inactive from the pill toggle in the table. Sends the full
+  // trainer with the new status, then refreshes the table.
+  //</summary>
+  const handleSetStatus = async (t: Trainer, status: TrainerStatus) => {
+    if (togglingId !== null) return;
+    if ((status === "Active") === isActive(t)) return; // already in that state
+    setTogglingId(t.trainerId);
+    setTrainersError(null);
+    try {
+      const payload: UpdateTrainerDto = {
+        firstName: t.firstName?.trim() ?? "",
+        lastName: t.lastName?.trim() ?? "",
+        email: t.email?.trim() || null,
+        phone: t.phone?.trim() || null,
+        status,
+      };
+      await apiFetch<Trainer>(
+        `/api/trainers/${t.trainerId}`,
+        token,
+        { method: "PUT", headers: JSON_HEADERS, body: JSON.stringify(payload) },
+        "Unable to update trainer status"
+      );
+      await loadTrainers();
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        logout();
+        return;
+      }
+      setTrainersError(err instanceof Error ? err.message : "Unable to update trainer status");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Deletes the trainer chosen in the confirmation modal and refreshes the table. If the
+  // backend refuses (e.g. the trainer has signed off skills), the error is shown in the modal.
   //</summary>
   const handleDeleteTrainer = async () => {
     if (!deletingTrainer) return;
     setDeleteTrainerError(null);
     setIsDeletingTrainer(true);
     try {
-      await deleteTrainer(deletingTrainer.trainerId, token);
-      removeTrainerExtras(deletingTrainer.trainerId);
+      await apiFetch<void>(
+        `/api/trainers/${deletingTrainer.trainerId}`,
+        token,
+        { method: "DELETE" },
+        "Unable to delete trainer"
+      );
       setDeletingTrainer(null);
       await loadTrainers();
     } catch (err) {
@@ -376,7 +390,7 @@ export default function TrainingStaffPage() {
     }
   };
 
-  //------------------------------------------------------------------------------------------//
+  //-------------------------------------------------------------------------------------------//
 
   //<summary>
   // Helpers for display: the average progress across all volunteers, a trainer's initials
@@ -418,7 +432,7 @@ export default function TrainingStaffPage() {
       </div>
 
       {/*------------------------- Tabs ---------------------------------*/}
-      
+
       <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-1 mb-6">
         {TABS.map((tab) => (
           <button
@@ -539,8 +553,8 @@ export default function TrainingStaffPage() {
                   <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">No trainers yet</td></tr>
                 ) : (
                   trainers.map((t) => {
-                    const extras = trainerExtras[t.trainerId];
-                    const status: TrainerStatus = extras?.status ?? "Active";
+                    const status: TrainerStatus = isActive(t) ? "Active" : "Inactive";
+                    const isToggling = togglingId === t.trainerId;
                     return (
                       <tr key={t.trainerId} className="border-b border-slate-50 last:border-0">
                         <td className="px-6 py-4">
@@ -551,16 +565,25 @@ export default function TrainingStaffPage() {
                         <td className="px-6 py-4 font-medium text-slate-900">{t.firstName}</td>
                         <td className="px-6 py-4 font-medium text-slate-900">{t.lastName}</td>
                         <td className="px-6 py-4 text-slate-600">
-                          {extras?.contactDetails ? extras.contactDetails : <span className="text-slate-400">—</span>}
+                          {t.email || t.phone ? (
+                            <>
+                              {t.email && <p>{t.email}</p>}
+                              {t.phone && <p className="text-xs text-slate-500">{t.phone}</p>}
+                            </>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
                         </td>
-                        {/* Active / Inactive toggle (stored locally) */}
+                        {/* Active / Inactive toggle (saved to the backend) */}
                         <td className="px-6 py-4">
                           <div className="inline-flex rounded-full bg-slate-100 p-0.5">
                             {STATUS_OPTIONS.map((option) => (
                               <button
                                 key={option}
-                                onClick={() => updateTrainerExtras(t.trainerId, { status: option })}
-                                className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
+                                type="button"
+                                disabled={isToggling}
+                                onClick={() => handleSetStatus(t, option)}
+                                className={`rounded-full px-3 py-1 text-xs font-semibold transition-all disabled:opacity-60 ${
                                   status === option
                                     ? option === "Active"
                                       ? "bg-green-500 text-white shadow-sm"
@@ -613,12 +636,6 @@ export default function TrainingStaffPage() {
               </tbody>
             </table>
           </div>
-
-          {/* PLACEHOLDER notice, remove once the backend stores these fields */}
-
-          <p className="mt-3 text-xs text-amber-600">
-            Contact details and status are saved in this browser only until the backend supports them.
-          </p>
         </>
       )}
 
@@ -628,7 +645,7 @@ export default function TrainingStaffPage() {
       )}
 
       {/*------------------------- Create Trainer modal ---------------------------------*/}
-      
+
       {showCreateTrainer && (
         <ModalOverlay onClose={() => setShowCreateTrainer(false)}>
           <div className="flex items-center justify-between mb-5">
@@ -657,6 +674,7 @@ export default function TrainingStaffPage() {
                   id="trainer-first-name"
                   name="firstName"
                   required
+                  maxLength={100}
                   value={trainerFirstName}
                   onChange={(e) => setTrainerFirstName(e.target.value)}
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
@@ -673,6 +691,7 @@ export default function TrainingStaffPage() {
                   id="trainer-last-name"
                   name="lastName"
                   required
+                  maxLength={100}
                   value={trainerLastName}
                   onChange={(e) => setTrainerLastName(e.target.value)}
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
@@ -680,22 +699,44 @@ export default function TrainingStaffPage() {
               </div>
             </div>
 
-            {/* Contact details */}
-            <div>
-              <label
-                htmlFor="trainer-contact"
-                className="block text-xs font-semibold text-black mb-1.5"
-              >
-                Contact details
-              </label>
-              <input
-                id="trainer-contact"
-                name="contact"
-                value={trainerContact}
-                onChange={(e) => setTrainerContact(e.target.value)}
-                placeholder="Phone number or email"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-              />
+            {/* Email & phone */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="trainer-email"
+                  className="block text-xs font-semibold text-black mb-1.5"
+                >
+                  Email
+                </label>
+                <input
+                  id="trainer-email"
+                  name="email"
+                  type="email"
+                  maxLength={255}
+                  value={trainerEmail}
+                  onChange={(e) => setTrainerEmail(e.target.value)}
+                  placeholder="trainer@example.com"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="trainer-phone"
+                  className="block text-xs font-semibold text-black mb-1.5"
+                >
+                  Phone
+                </label>
+                <input
+                  id="trainer-phone"
+                  name="phone"
+                  type="tel"
+                  maxLength={30}
+                  value={trainerPhone}
+                  onChange={(e) => setTrainerPhone(e.target.value)}
+                  placeholder="Phone number"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                />
+              </div>
             </div>
 
             {createTrainerError && (
@@ -754,6 +795,7 @@ export default function TrainingStaffPage() {
                   id="edit-trainer-first-name"
                   name="firstName"
                   required
+                  maxLength={100}
                   value={editFirstName}
                   onChange={(e) => setEditFirstName(e.target.value)}
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
@@ -770,6 +812,7 @@ export default function TrainingStaffPage() {
                   id="edit-trainer-last-name"
                   name="lastName"
                   required
+                  maxLength={100}
                   value={editLastName}
                   onChange={(e) => setEditLastName(e.target.value)}
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
@@ -777,22 +820,44 @@ export default function TrainingStaffPage() {
               </div>
             </div>
 
-            {/* Contact details */}
-            <div>
-              <label
-                htmlFor="edit-trainer-contact"
-                className="block text-xs font-semibold text-black mb-1.5"
-              >
-                Contact details
-              </label>
-              <input
-                id="edit-trainer-contact"
-                name="contact"
-                value={editContact}
-                onChange={(e) => setEditContact(e.target.value)}
-                placeholder="Phone number or email"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-              />
+            {/* Email & phone */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="edit-trainer-email"
+                  className="block text-xs font-semibold text-black mb-1.5"
+                >
+                  Email
+                </label>
+                <input
+                  id="edit-trainer-email"
+                  name="email"
+                  type="email"
+                  maxLength={255}
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="trainer@example.com"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="edit-trainer-phone"
+                  className="block text-xs font-semibold text-black mb-1.5"
+                >
+                  Phone
+                </label>
+                <input
+                  id="edit-trainer-phone"
+                  name="phone"
+                  type="tel"
+                  maxLength={30}
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="Phone number"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                />
+              </div>
             </div>
 
             {editTrainerError && (
@@ -822,7 +887,7 @@ export default function TrainingStaffPage() {
       )}
 
       {/*------------------------- Delete Trainer confirmation modal ---------------------------------*/}
-      
+
       {deletingTrainer && (
         <ModalOverlay onClose={() => setDeletingTrainer(null)}>
           <h2 className="text-lg font-bold text-black mb-2">Delete trainer?</h2>
