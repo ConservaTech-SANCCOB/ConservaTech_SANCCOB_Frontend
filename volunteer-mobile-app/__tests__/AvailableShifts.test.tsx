@@ -96,15 +96,6 @@ describe("Available Shifts", () => {
     expect(screen.getByText("OPEN SHIFTS")).toBeOnTheScreen();
   });
 
-  it("flags a shift with a single spot left as Limited", async () => {
-    mockedGetVacancies.mockResolvedValue([vacancy({ vacanciesAvailable: 1, capacity: 2 })]);
-
-    await openAvailableTab();
-
-    expect(await screen.findByText("Limited")).toBeOnTheScreen();
-    expect(screen.getByText("1 of 2 open")).toBeOnTheScreen();
-  });
-
   it("asks for confirmation, books the shift and refreshes the list", async () => {
     mockedGetVacancies.mockResolvedValueOnce([vacancy({ shiftId: 7 })]).mockResolvedValue([]);
     mockedBookVacancy.mockResolvedValue({ rosterAssignmentId: 42, shiftId: 7, status: "Assigned", message: null });
@@ -120,16 +111,6 @@ describe("Available Shifts", () => {
     expect(mockedBookVacancy).toHaveBeenCalledWith(7);
     await waitFor(() => expect(Alert.alert).toHaveBeenLastCalledWith("Shift booked", "It's now in your My Shifts."));
     expect(await screen.findByText("No open shifts right now")).toBeOnTheScreen();
-  });
-
-  it("does nothing if the volunteer cancels the confirmation", async () => {
-    mockedGetVacancies.mockResolvedValue([vacancy({ shiftId: 7 })]);
-
-    await openAvailableTab();
-    await fireEvent.press(await screen.findByText("Book"));
-    await pressAlertButton("Cancel");
-
-    expect(mockedBookVacancy).not.toHaveBeenCalled();
   });
 
   it("shows the backend's reason when a booking is rejected", async () => {

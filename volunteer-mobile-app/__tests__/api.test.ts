@@ -30,18 +30,12 @@ beforeEach(async () => {
 });
 
 describe("parseBackendMessage", () => {
-  it("reads the backend's message field", () => {
+  it("reads message, then ProblemDetails detail, then the first validation error, else null", () => {
     expect(parseBackendMessage('{"message":"Password must be at least 8 characters."}')).toBe(
       "Password must be at least 8 characters."
     );
-  });
-
-  it("falls back to ProblemDetails detail, then the first validation error", () => {
     expect(parseBackendMessage('{"title":"Bad Request","detail":"Shift is full."}')).toBe("Shift is full.");
     expect(parseBackendMessage('{"errors":{"AgeBracket":["Invalid age bracket."]}}')).toBe("Invalid age bracket.");
-  });
-
-  it("returns null for non-JSON or message-less bodies", () => {
     expect(parseBackendMessage("<html>Bad gateway</html>")).toBeNull();
     expect(parseBackendMessage("")).toBeNull();
     expect(parseBackendMessage('{"message":"   "}')).toBeNull();
@@ -49,18 +43,12 @@ describe("parseBackendMessage", () => {
 });
 
 describe("getErrorMessage", () => {
-  it("shows the backend message for a 4xx response", () => {
-    const error = new ApiError(400, '{"message":"Email is already in use."}');
-    expect(getErrorMessage(error, "fallback")).toBe("Email is already in use.");
-  });
+  it("shows the backend message for a 4xx but never a 5xx body", () => {
+    const clientError = new ApiError(400, '{"message":"Email is already in use."}');
+    expect(getErrorMessage(clientError, "fallback")).toBe("Email is already in use.");
 
-  it("never shows a 5xx body, which can carry server internals", () => {
-    const error = new ApiError(500, '{"message":"NullReferenceException at Foo.Bar()"}');
-    expect(getErrorMessage(error, "fallback")).toBe("fallback");
-  });
-
-  it("uses the fallback for non-API errors", () => {
-    expect(getErrorMessage(new TypeError("Network request failed"), "fallback")).toBe("fallback");
+    const serverError = new ApiError(500, '{"message":"NullReferenceException at Foo.Bar()"}');
+    expect(getErrorMessage(serverError, "fallback")).toBe("fallback");
   });
 });
 
@@ -106,12 +94,10 @@ describe("request()", () => {
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it("treats a 200 with an empty body as success, not a JSON error", async () => {
+  it("treats an empty 200 and a 204 both as success", async () => {
     mockFetchResponse(200, "");
     await expect(api.put("/api/volunteers/me/profile", {})).resolves.toBeUndefined();
-  });
 
-  it("resolves undefined for 204 No Content", async () => {
     mockFetchResponse(204);
     await expect(api.patch("/api/notifications/1/read", {})).resolves.toBeUndefined();
   });

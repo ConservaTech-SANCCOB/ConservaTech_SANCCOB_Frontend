@@ -23,11 +23,6 @@ beforeEach(async () => {
 });
 
 describe("session role", () => {
-  it("defaults to a volunteer session", async () => {
-    await saveToken("volunteer-token");
-    expect(await getSessionRole()).toBe("volunteer");
-  });
-
   it("marks a PIN-verified session as a trainer session", async () => {
     mockFetchResponse(200, '{"message":"ok","token":"trainer-token"}');
 

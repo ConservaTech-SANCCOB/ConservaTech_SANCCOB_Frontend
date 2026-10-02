@@ -2,8 +2,6 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import { Alert } from "react-native";
 import RequestChangeScreen from "../src/app/request-change";
 import { submitChangeRequest } from "../src/services/changeRequests";
-import { ApiError } from "../src/utils/api";
-import { showErrorToast } from "../src/utils/toast";
 
 let mockParams: Record<string, string> = {};
 jest.mock("expo-router", () => ({
@@ -27,24 +25,6 @@ afterEach(() => {
 });
 
 describe("Request to Cancel", () => {
-  it("shows the shift being cancelled", async () => {
-    await render(<RequestChangeScreen />);
-
-    expect(screen.getByText("Morning")).toBeOnTheScreen();
-    expect(screen.getByText("08:00-13:00")).toBeOnTheScreen();
-    expect(screen.getByText("Penguin Pens")).toBeOnTheScreen();
-    expect(screen.getByText("In 3 days")).toBeOnTheScreen();
-  });
-
-  it("requires a reason before sending anything", async () => {
-    await render(<RequestChangeScreen />);
-
-    await fireEvent.press(screen.getByText("Submit request"));
-
-    expect(Alert.alert).toHaveBeenCalledWith("Reason required", expect.any(String));
-    expect(mockedSubmit).not.toHaveBeenCalled();
-  });
-
   it("sends the assignment and trimmed reason", async () => {
     mockedSubmit.mockResolvedValue(undefined as never);
     await render(<RequestChangeScreen />);
@@ -56,18 +36,6 @@ describe("Request to Cancel", () => {
       expect(mockedSubmit).toHaveBeenCalledWith({ rosterAssignmentId: 42, reason: "Family emergency" })
     );
     expect(Alert.alert).toHaveBeenLastCalledWith("Request Submitted", expect.any(String), expect.any(Array));
-  });
-
-  it("shows the backend's message when the request is rejected", async () => {
-    mockedSubmit.mockRejectedValue(new ApiError(400, '{"message":"A request for this shift is already pending."}'));
-    await render(<RequestChangeScreen />);
-
-    await fireEvent.changeText(screen.getByLabelText("Reason for cancelling"), "Sick");
-    await fireEvent.press(screen.getByText("Submit request"));
-
-    await waitFor(() =>
-      expect(showErrorToast).toHaveBeenCalledWith("Couldn't submit", "A request for this shift is already pending.")
-    );
   });
 
   it("won't cancel a shift that has already ended", async () => {

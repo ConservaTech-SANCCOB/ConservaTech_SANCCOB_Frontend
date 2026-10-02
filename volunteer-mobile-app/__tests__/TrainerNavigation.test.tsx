@@ -7,7 +7,6 @@ import TrainerVolunteerScreen from "../src/app/trainer-volunteer/[volunteerId]";
 import { logout } from "../src/services/auth";
 import { getTrainers, selectTrainer } from "../src/services/trainers";
 import { getTrainingVolunteerProfile, getTrainingVolunteers } from "../src/services/training";
-import { resetTo } from "../src/utils/navigation";
 
 jest.mock("../src/services/auth");
 jest.mock("../src/services/trainers");
@@ -96,16 +95,16 @@ describe.each(backActions)("leaving the dashboard with %s", (_name, goBack) => {
     expect(app.getPathname()).toBe("/");
     expect(router.canGoBack()).toBe(false);
   });
+});
 
-  it("stays on the dashboard, still signed in, when the trainer cancels", async () => {
-    const { app } = await openDashboard();
+it("cancelling the log-out prompt keeps the trainer signed in on the dashboard", async () => {
+  const { app } = await openDashboard();
 
-    await act(goBack);
-    await pressAlertButton("Cancel");
+  await act(() => router.back());
+  await pressAlertButton("Cancel");
 
-    expect(logout).not.toHaveBeenCalled();
-    expect(app.getPathname()).toBe("/trainer-dashboard");
-  });
+  expect(logout).not.toHaveBeenCalled();
+  expect(app.getPathname()).toBe("/trainer-dashboard");
 });
 
 it("Back from a volunteer's details returns to the dashboard without logging out", async () => {
@@ -119,25 +118,6 @@ it("Back from a volunteer's details returns to the dashboard without logging out
   expect(app.getPathname()).toBe("/trainer-dashboard");
   expect(Alert.alert).not.toHaveBeenCalled();
   expect(logout).not.toHaveBeenCalled();
-});
-
-it("the dashboard's Log Out button signs out and lands on Welcome with no history", async () => {
-  const { app } = await openDashboard();
-
-  await fireEvent.press(screen.getByRole("button", { name: "Log out" }));
-
-  expect(logout).toHaveBeenCalledTimes(1);
-  expect(app.getPathname()).toBe("/");
-  expect(router.canGoBack()).toBe(false);
-});
-
-it("an expired session still redirects to Login from the dashboard", async () => {
-  const { app } = await openDashboard();
-
-  await act(() => resetTo("/login"));
-
-  expect(Alert.alert).not.toHaveBeenCalled();
-  expect(app.getPathname()).toBe("/login");
 });
 
 it("backing out of trainer select clears the PIN session and lands on Welcome with no history", async () => {

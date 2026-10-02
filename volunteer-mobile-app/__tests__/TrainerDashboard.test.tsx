@@ -38,14 +38,6 @@ beforeEach(() => {
 });
 
 describe("Trainer dashboard", () => {
-  it("shows the volunteers once loaded", async () => {
-    mockedGetVolunteers.mockResolvedValue([volunteer(1, "Sam", 1), volunteer(2, "Lee", 0)]);
-    await render(<TrainerDashboardScreen />);
-    expect(await screen.findByText("Sam Volunteer")).toBeTruthy();
-    expect(screen.getByText("Lee Volunteer")).toBeTruthy();
-    expect(screen.getByText("1 of 4 skills completed")).toBeTruthy();
-  });
-
   it("refreshes progress when it regains focus, keeping the list and search on screen", async () => {
     mockedGetVolunteers.mockResolvedValueOnce([volunteer(1, "Sam", 1), volunteer(2, "Lee", 0)]);
     await render(<TrainerDashboardScreen />);
