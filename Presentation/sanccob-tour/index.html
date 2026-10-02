@@ -758,10 +758,10 @@ npx expo start</code></pre>
       <div class="scroll"><table>
         <thead><tr><th>Criterion</th><th>Where we cover it</th></tr></thead>
         <tbody>
-          <tr><td>Technical demo and implementation</td><td><button class="linkbtn" data-open="volunteer">Pen A, the volunteer app</button> and <button class="linkbtn" data-open="admin">Aviary, the admin dashboard</button>, running against the hosted API</td></tr>
-          <tr><td>Architecture and system design</td><td><button class="linkbtn" data-open="hood">ICU, architecture and security</button> and <button class="linkbtn" data-open="pipeline">Release Point, the engine room</button>, plus Architecture above</td></tr>
-          <tr><td>GitHub and version control</td><td><button class="linkbtn" data-open="hood">ICU</button>, plus DevOps above</td></tr>
-          <tr><td>Requirements alignment</td><td><button class="linkbtn" data-open="brief">Quarantine Zone, the brief and data model</button>, plus What we built above</td></tr>
+          <tr><td>Technical demo and implementation</td><td><button class="linkbtn" data-open="volunteer">Pen A, mobile app demo and code</button> and <button class="linkbtn" data-open="admin">Aviary, web app demo and code</button>, running against the hosted API</td></tr>
+          <tr><td>Architecture and system design</td><td><button class="linkbtn" data-open="hood">ICU, backend code</button>, plus Architecture above</td></tr>
+          <tr><td>GitHub and version control</td><td><button class="linkbtn" data-open="pipeline">Release Point, GitHub and testing</button>, plus DevOps above</td></tr>
+          <tr><td>Requirements alignment</td><td><button class="linkbtn" data-open="brief">Quarantine Zone, the database</button>, plus What we built above</td></tr>
           <tr><td>Communication and professionalism</td><td>The whole tour, with a different team member presenting each stop</td></tr>
         </tbody>
       </table></div>
@@ -847,7 +847,7 @@ npx expo start</code></pre>
    EDIT THIS BLOCK. The tour, presenter panel and README are built from it.
    ===================================================================== */
 const CONFIG = {
-  timeLimitMinutes: 15,   // can also be changed live in the presenter panel
+  timeLimitMinutes: 36,   // matches the team's planned agenda — confirm against the actual module time cap; can also be changed live in the presenter panel
   autoplayOnOpen: true,   // a clip starts when a stop is opened, never on page load
   autostartTimer: true    // the clock starts when the first stop opens
 };
@@ -866,17 +866,17 @@ const LINKS = [
   { label: "Admin dashboard",             url: "https://sanccob-admin-dashboard.vercel.app/", note: "Next.js on Vercel" },
   { label: "API base URL",                url: "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net", note: "ASP.NET Core on Azure App Service" },
   { label: "API documentation (Swagger)", url: "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net/swagger/index.html", note: "Every endpoint, with a try-it panel" },
-  { label: "Mobile app for iOS",          url: "https://testflight.apple.com/join/SgfXfQVq", note: "TestFlight invite link" },
-  { label: "Mobile app for Android",      url: "https://expo.dev/accounts/funimms-team/projects/volunteer-mobile-app/builds/558e2fac-20bd-4f52-a88f-bf2367ea9cef", note: "APK download link" },
-  { label: "Backend repository",          url: "https://github.com/ConservaTech-SANCCOB/ConservaTech_SANCCOB_Backend", note: "ASP.NET Web API" },
-  { label: "Frontend repository",         url: "https://github.com/ConservaTech-SANCCOB/ConservaTech_SANCCOB_Frontend", note: "Dashboard and mobile app" }
+  { label: "Mobile app for iOS",          url: "", note: "TestFlight invite link" },
+  { label: "Mobile app for Android",      url: "", note: "APK download link" },
+  { label: "Backend repository",          url: "", note: "" },
+  { label: "Frontend repository",         url: "", note: "Dashboard and mobile app" }
 ];
 
 /* Stops, in tour order. video.file is tried first (works offline).
    If it is missing, video.youtube is used (paste a full link or just the id).
    If neither works, a friendly placeholder shows. Speakers are placeholders: change them. */
 const STOPS = [
-  { id: "reception", name: "Reception", sub: "Who we are", speaker: "The whole team", mins: 1.5,
+  { id: "reception", name: "Reception", sub: "Intro", speaker: "The whole team, led by Funi", mins: 2,
     video: { file: "videos/01-reception.mp4", youtube: "" },
     points: [
       "Who we are: five third-year students at The IIE, working together as ConservaTech.",
@@ -886,77 +886,68 @@ const STOPS = [
     ],
     rubric: ["Group dynamics and coordination", "Communication and professionalism"], code: [] },
 
-  { id: "brief", name: "Quarantine Zone", sub: "The brief and the data model", speaker: "TK", mins: 2,
-    video: { file: "videos/02-brief.mp4", youtube: "" },
+  { id: "brief", name: "Quarantine Zone", sub: "Database", speaker: "TK", mins: 3,
+    video: { file: "videos/02-database.mp4", youtube: "" },
     points: [
-      "Three kinds of user: volunteers, coordinators (admins) and trainers.",
-      "Volunteers need to see their shifts, share their availability, ask for a change and track their hours and training.",
-      "Coordinators need to create shifts, generate and publish a weekly roster, approve change requests and see reports.",
-      "Trainers need a quick way to sign off skills on a shared device.",
+      "The brief, in short: three kinds of user — volunteers, coordinators, trainers — each with a different job to do in the system.",
       "How the brief became the schema: User to Volunteer to Availability to Shift to Roster to RosterAssignment, with Skill and VolunteerSkillProgress gating which shifts a volunteer can take.",
-      "Which rules live in the database itself, and which are enforced in code above it."
+      "Which rules live in the database itself, and which are enforced in code above it.",
+      "A real challenge: a duplicate skill catalog (two full sets of the same skills under old and corrected category names) that silently broke sign-off visibility for a few volunteers — found it, traced it, and know exactly what it takes to clean up."
     ],
-    rubric: ["Requirements alignment"], code: ["AppDbContext", "Skill", "VolunteerSkillProgress"] },
+    rubric: ["Requirements alignment", "Architecture and system design"], code: ["AppDbContext", "Skill", "VolunteerSkillProgress"] },
 
-  { id: "volunteer", name: "Pen A", sub: "The volunteer app", speaker: "Pabi and TK", mins: 3,
-    video: { file: "videos/03-volunteer-app.mp4", youtube: "" },
+  { id: "volunteer", name: "Pen A", sub: "Mobile App — demo and code", speaker: "Pabi (demo) and TK (code)", mins: 8,
+    video: { file: "videos/03-mobile-app.mp4", youtube: "" },
     points: [
-      "Designed and built by Pabi: the screens, navigation and overall look of the app.",
-      "Picked up partway through by TK, who took over the integration with the live API.",
-      "Activate an account from the emailed code, then sign in, or reset a forgotten password.",
-      "Submit weekly availability on a Monday to Sunday grid.",
-      "See upcoming shifts and ask to change or cancel one.",
-      "Check hours worked and progress through the training skills.",
-      "Trainer mode: enter the staff PIN, choose your name, sign off a skill."
+      "Demo (Pabi) — designed and built this app: activation and sign-in, weekly availability, upcoming shifts, change/cancel requests, hours and training progress, trainer mode (PIN, select name, sign off a skill).",
+      "Code (TK) — one TypeScript codebase for iOS and Android, Expo Router (file-based navigation, folders are the nav structure).",
+      "Layered architecture: screens never call fetch directly — one file (api.ts) is the only thing that talks to the network.",
+      "Session expiry: one shared 401 handler for the whole app, with the one deliberate exception needed for the login screen's own navigation.",
+      "The shared trainer device: a trainer session never survives a restart, and signing out can't be faked around.",
+      "120 Jest and React Native Testing Library tests passing."
     ],
     rubric: ["Technical demo and implementation", "Requirements alignment"],
-    code: ["volunteer-mobile-app/src/app", "MyShiftsService", "VolunteerAvailabilityService", "MyTrainingStatsService"] },
+    code: ["src/app", "src/utils/api.ts", "src/services/vacancies.ts", "useTrainerSignOut.ts"] },
 
-  { id: "admin", name: "Aviary", sub: "The admin dashboard", speaker: "Lofentse", mins: 3,
-    video: { file: "videos/04-admin-dashboard.mp4", youtube: "" },
+  { id: "admin", name: "Aviary", sub: "Web App — demo and code", speaker: "Lofentse", mins: 8,
+    video: { file: "videos/04-web-app.mp4", youtube: "" },
     points: [
-      "Dashboard overview: today's shifts, new volunteers by age, shift split and conservation numbers.",
-      "Create volunteers, which emails them an activation code.",
-      "Schedule shifts, generate a weekly roster and publish it.",
-      "Approve or decline change requests, and watch vacancies reopen.",
-      "Reports and staff training progress."
+      "Demo — dashboard overview, create a volunteer (activation email), schedule a shift, generate and publish a roster, approve or decline a change request and watch a vacancy reopen, live admin notifications arriving in real time.",
+      "Code — Next.js App Router structure, how a page calls the backend, and how the admin notifications hook connects over SignalR.",
+      "Reports and conservation-impact figures — pulled from the same live endpoint as the dashboard, not a separate or mocked source."
     ],
-    rubric: ["Technical demo and implementation", "Requirements alignment"],
-    code: ["web-app/app/(admin)", "DashboardService", "RosterService", "ChangeRequestService", "ReportsService"] },
+    rubric: ["Technical demo and implementation", "Requirements alignment", "Architecture and system design"],
+    code: ["web-app/app/(admin)", "lib/api/dashboard.ts", "useAdminNotifications.ts"] },
 
-  { id: "hood", name: "ICU", sub: "Architecture, security and CI/CD", speaker: "Funi", mins: 4,
-    video: { file: "videos/05-under-the-hood.mp4", youtube: "" },
+  { id: "hood", name: "ICU", sub: "Backend Code", speaker: "Funi and Max", mins: 10,
+    video: { file: "videos/05-backend-code.mp4", youtube: "" },
     points: [
-      "Three tiers: the apps and dashboard, an ASP.NET Core API on Azure, and PostgreSQL on Neon.",
-      "The API is layered: controllers, services for business rules, then repositories and Entity Framework Core.",
-      "Security: hashed passwords, emailed activation and reset codes, role-based access and signed JWTs.",
-      "Logging out revokes the token on the server, so a copied token stops working.",
-      "Trainer identity comes from a signed token claim, never from something the client sends: a shared PIN gets a general token, picking your name exchanges it for one carrying a verified trainer id.",
-      "Delivery: feature branches merge to main through pull requests. GitHub Actions runs the xUnit tests on every push, and deployment to Azure only happens after they pass.",
-      "Vercel deploys the dashboard on every push to main, and Expo EAS builds the mobile app and sends JavaScript and UI fixes over the air."
+      "Funi — layered API (controllers, services, repositories, EF Core), signed JWTs with server-side revocation on logout, and the trainer identity redesign: a shared PIN issues a general token, picking your name exchanges it for one carrying a verified trainer id, so sign-off can't be faked.",
+      "Funi — real-time admin notifications over SignalR: a change request, a shift going vacant, or a new volunteer registering pushes live to every connected admin, authenticated over the same JWT.",
+      "Max — the roster engine: matching volunteers to shifts by availability and skill sign-off together, not availability alone, with Full Day/Morning/Afternoon coverage logic.",
+      "Max — hard limits enforced in code: 40 hours a week, 5 days a week, 4 consecutive days, and a separate 3-day cap specifically for quarantine shifts, plus 1 volunteer per 30 birds computed automatically from bird count.",
+      "A real bug, fixed: roster generation used to create duplicate rosters for the same week on every call — found it, reproduced it, fixed it."
     ],
-    rubric: ["Architecture and system design", "GitHub and version control"],
-    code: ["AuthService", "TokenService", "RevokedToken", "TrainerAccessService", "AppDbContext", ".github/workflows/backend-ci.yml", "SANCCOB_Backend_API.Tests"] },
+    rubric: ["Architecture and system design", "Technical demo and implementation"],
+    code: ["AuthService", "TokenService", "TrainerAccessService", "AdminNotificationService", "AdminNotificationHub", "RosterService", "AssignVolunteerAsync", "ShiftService"] },
 
-  { id: "pipeline", name: "Release Point", sub: "The engine room", speaker: "Max", mins: 3,
-    video: { file: "videos/06-engine-room.mp4", youtube: "" },
+  { id: "pipeline", name: "Release Point", sub: "GitHub + Testing", speaker: "Funi", mins: 3,
+    video: { file: "videos/06-github-testing.mp4", youtube: "" },
     points: [
-      "Roster generation matches volunteers to shifts by availability and by skill sign-off, not availability alone.",
-      "Coverage logic: a Full Day availability slot covers a Morning or Afternoon shift, but an Afternoon-only slot does not cover a Morning shift.",
-      "Hard limits enforced: 40 hours a week, 5 days a week, 4 consecutive days, and a separate 3-day limit specifically for quarantine shifts.",
-      "Skill sequencing: supporting areas must be signed off before pen routines.",
-      "What happens end to end when a change request is approved: the shift assignment becomes vacant again and the roster reflects it immediately."
+      "Feature branches merge to main through pull requests. GitHub Actions runs the xUnit tests on every push, and deployment to Azure only happens after they pass.",
+      "Vercel deploys the dashboard on every push to main, and Expo EAS builds the mobile app and sends JavaScript and UI fixes over the air — a native change like push notifications needs a full rebuild, a plain JS fix doesn't.",
+      "Test coverage across the stack: backend xUnit, mobile Jest/RTL (120 passing)."
     ],
-    rubric: ["Technical demo and implementation", "Architecture and system design"],
-    code: ["RosterService", "AssignVolunteerAsync", "ChangeRequestService"] },
+    rubric: ["GitHub and version control"],
+    code: [".github/workflows/backend-ci.yml", "SANCCOB_Backend_API.Tests", "eas.json"] },
 
-  { id: "lessons", name: "Home Pen", sub: "Lessons and what is next", speaker: "The whole team", mins: 1,
-    video: { file: "videos/07-lessons.mp4", youtube: "" },
+  { id: "lessons", name: "Home Pen", sub: "Outro", speaker: "The whole team", mins: 2,
+    video: { file: "videos/07-outro.mp4", youtube: "" },
     points: [
       "Agree the API contract early. Most integration bugs were mismatched names and shapes.",
       "Test with realistic data. Seed data hid problems that real data exposed.",
       "Add CI early. Tests find problems while the change is still fresh.",
-      "Next: token refresh, real push notifications, a roster review step and more front-end tests.",
+      "Next: token refresh, real device push notifications end to end, a roster review step and more front-end test coverage.",
       "For real use: paid hosting tiers, store distribution and a privacy review under POPIA."
     ],
     rubric: ["Challenges overcome"], code: [] },
