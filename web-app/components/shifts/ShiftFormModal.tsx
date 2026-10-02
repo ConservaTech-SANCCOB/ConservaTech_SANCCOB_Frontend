@@ -5,7 +5,6 @@ import { useAuth } from "../../app/lib/auth-context";
 import {
   VALID_TIME_SLOTS,
   fetchShiftLocations,
-  Shift,
   ShiftPayload,
   ShiftLocation,
 } from "../../app/lib/api/shifts";
@@ -21,6 +20,20 @@ const TIME_SLOT_SHORT: Record<string, string> = {
   "08:00-13:00": "Morning",
   "14:00-17:00": "Afternoon",
   "08:00-17:00": "Full Day",
+};
+
+/**
+ * The fields the form needs to pre-fill itself when editing.
+ * Both `Shift` and `Vacancy` satisfy this shape, so either can be passed in
+ * without conversion or casting.
+ */
+export type ShiftFormInitial = {
+  shiftName?: string | null;
+  shiftDate?: string;
+  timeSlot?: string;
+  location?: string | null;
+  birdCount?: number | null;
+  capacity?: number | null;
 };
 
 export function ModalOverlay({
@@ -52,7 +65,7 @@ export function ShiftFormModal({
   onSave,
 }: {
   mode: "create" | "edit";
-  shift?: Shift;
+  shift?: ShiftFormInitial;
   onCancel: () => void;
   onSave: (payload: ShiftPayload) => Promise<void>;
 }) {
@@ -80,6 +93,8 @@ export function ShiftFormModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const initialLocation = shift?.location ?? "";
+
   // Fetch only shift locations metadata from GET /api/Shifts/locations
   useEffect(() => {
     let isMounted = true;
@@ -91,10 +106,11 @@ export function ShiftFormModal({
         if (isMounted) {
           setLocations(locationsData);
 
-          // If editing an existing shift, pre-select matching skill ID by locationName
-          if (shift?.location) {
+          // If editing, pre-select the matching skill ID by locationName
+          if (initialLocation) {
             const match = locationsData.find(
-              (loc) => loc.locationName.toLowerCase() === shift.location?.toLowerCase()
+              (loc) =>
+                loc.locationName.toLowerCase() === initialLocation.toLowerCase()
             );
             if (match) {
               setSelectedSkillId(match.skillId);
@@ -113,7 +129,7 @@ export function ShiftFormModal({
     return () => {
       isMounted = false;
     };
-  }, [token, shift]);
+  }, [token, initialLocation]);
 
   // Find currently selected location metadata
   const selectedLocation = locations.find(
@@ -124,7 +140,8 @@ export function ShiftFormModal({
   const locationType = selectedLocation?.locationType || "";
   const isSupportingArea = locationType.toLowerCase().includes("supporting");
   const isPenRoutine =
-    locationType.toLowerCase().includes("pen") || (!isSupportingArea && selectedLocation !== undefined);
+    locationType.toLowerCase().includes("pen") ||
+    (!isSupportingArea && selectedLocation !== undefined);
 
   // Auto-calculated volunteer capacity (1 volunteer per 25 birds)
   const autoCalculatedCapacity = Math.max(1, Math.ceil(birdCount / 25));
@@ -194,7 +211,10 @@ export function ShiftFormModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Shift name */}
         <div>
-          <label htmlFor="shift-name" className="block text-xs font-semibold text-slate-700 mb-1.5">
+          <label
+            htmlFor="shift-name"
+            className="block text-xs font-semibold text-slate-700 mb-1.5"
+          >
             Shift name
           </label>
           <input
@@ -212,7 +232,8 @@ export function ShiftFormModal({
           />
           {!nameTouched && suggestedName && (
             <p className="text-[11px] text-slate-500 mt-1">
-              Suggested from the area and time. Edit it if you want a different name.
+              Suggested from the area and time. Edit it if you want a different
+              name.
             </p>
           )}
         </div>
@@ -220,7 +241,10 @@ export function ShiftFormModal({
         {/* Date & Time Slot */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="shift-date" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label
+              htmlFor="shift-date"
+              className="block text-xs font-semibold text-slate-700 mb-1.5"
+            >
               Date
             </label>
             <input
@@ -234,7 +258,10 @@ export function ShiftFormModal({
             />
           </div>
           <div>
-            <label htmlFor="shift-time" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label
+              htmlFor="shift-time"
+              className="block text-xs font-semibold text-slate-700 mb-1.5"
+            >
               Time
             </label>
             <select
@@ -242,7 +269,7 @@ export function ShiftFormModal({
               name="timeSlot"
               value={timeSlot}
               onChange={(e) => setTimeSlot(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-white"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-white"
             >
               {VALID_TIME_SLOTS.map((slot) => (
                 <option key={slot} value={slot}>
@@ -255,7 +282,10 @@ export function ShiftFormModal({
 
         {/* Skills Dropdown (populated via /api/Shifts/locations) */}
         <div>
-          <label htmlFor="shift-skill" className="block text-xs font-semibold text-slate-700 mb-1.5">
+          <label
+            htmlFor="shift-skill"
+            className="block text-xs font-semibold text-slate-700 mb-1.5"
+          >
             Skills
           </label>
           <select
@@ -266,7 +296,7 @@ export function ShiftFormModal({
             onChange={(e) =>
               setSelectedSkillId(e.target.value ? Number(e.target.value) : "")
             }
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 cursor-pointer bg-white"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 cursor-pointer bg-white"
           >
             <option value="" disabled>
               Select a skill...
@@ -286,7 +316,10 @@ export function ShiftFormModal({
             {isPenRoutine && (
               <>
                 <div>
-                  <label htmlFor="shift-bird-count" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <label
+                    htmlFor="shift-bird-count"
+                    className="block text-xs font-semibold text-slate-700 mb-1.5"
+                  >
                     Bird Count
                   </label>
                   <input
@@ -315,7 +348,10 @@ export function ShiftFormModal({
             {/* Supporting Areas: Editable Volunteer Capacity */}
             {isSupportingArea && (
               <div className="col-span-2">
-                <label htmlFor="shift-capacity" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label
+                  htmlFor="shift-capacity"
+                  className="block text-xs font-semibold text-slate-700 mb-1.5"
+                >
                   Volunteer Capacity Needed
                 </label>
                 <input
@@ -353,7 +389,11 @@ export function ShiftFormModal({
             disabled={isSubmitting}
             className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-60"
           >
-            {isSubmitting ? "Saving..." : "Save Changes"}
+            {isSubmitting
+              ? "Saving..."
+              : mode === "create"
+              ? "Create Shift"
+              : "Save Changes"}
           </button>
         </div>
       </form>

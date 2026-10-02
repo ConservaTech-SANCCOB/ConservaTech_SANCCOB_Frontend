@@ -2,12 +2,8 @@
 
 import { useState } from "react";
 import { useAuth } from "../app/lib/auth-context";
-import {
-  Vacancy,
-  ShiftPayload,
-  updateShift,
-  VALID_TIME_SLOTS,
-} from "../app/lib/api/shifts";
+import { Vacancy, ShiftPayload, updateShift } from "../app/lib/api/shifts";
+import { ShiftFormModal } from "./shifts/ShiftFormModal"; // adjust to where ShiftFormModal.tsx lives
 
 interface VacanciesListProps {
   vacancies: Vacancy[];
@@ -16,29 +12,22 @@ interface VacanciesListProps {
 
 export default function VacanciesList({ vacancies, onRefresh }: VacanciesListProps) {
   const { token } = useAuth();
-  
+
   // State for Edit Modal
   const [editingVacancy, setEditingVacancy] = useState<Vacancy | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // State for Notify Action
   const [notifyingShiftId, setNotifyingShiftId] = useState<number | null>(null);
   const [notifySuccess, setNotifySuccess] = useState<string | null>(null);
 
   // ---- 1. EDIT SHIFT / VACANCY HANDLER ----
+  // Errors are intentionally NOT caught here: ShiftFormModal catches them and
+  // shows the message inside the form.
   const handleSaveEdit = async (updatedPayload: ShiftPayload) => {
     if (!editingVacancy) return;
-    setIsSubmitting(true);
-    try {
-      await updateShift(token, editingVacancy.shiftId, updatedPayload);
-      setEditingVacancy(null);
-      onRefresh(); // Trigger parent reload
-    } catch (err) {
-      console.error("Failed to update vacancy/shift", err);
-      alert(err instanceof Error ? err.message : "Failed to update shift.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    await updateShift(token, editingVacancy.shiftId, updatedPayload);
+    setEditingVacancy(null);
+    onRefresh(); // Trigger parent reload
   };
 
   // ---- 2. NOTIFY QUALIFYING VOLUNTEERS HANDLER ----
@@ -83,7 +72,14 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
       {notifySuccess && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
           <span>{notifySuccess}</span>
-          <button onClick={() => setNotifySuccess(null)} className="font-bold">✕</button>
+          <button
+            type="button"
+            onClick={() => setNotifySuccess(null)}
+            className="font-bold"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -116,7 +112,7 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
               </div>
               <div>
                 <p className="text-slate-400 text-[10px]">Bird Count</p>
-                <p className="font-bold text-slate-800">{vacancy.birdCount}</p>
+                <p className="font-bold text-slate-800">{vacancy.birdCount ?? "N/A"}</p>
               </div>
             </div>
 
@@ -124,6 +120,7 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
             <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
               {/* EDIT BUTTON */}
               <button
+                type="button"
                 onClick={() => setEditingVacancy(vacancy)}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors"
               >
@@ -133,6 +130,7 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
 
               {/* NOTIFY QUALIFYING VOLUNTEERS BUTTON */}
               <button
+                type="button"
                 onClick={() => handleNotifyVolunteers(vacancy)}
                 disabled={notifyingShiftId === vacancy.shiftId}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold transition-colors disabled:opacity-60"
@@ -146,126 +144,15 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
         ))}
       </div>
 
-      {/* EDIT VACANCY MODAL */}
+      {/* EDIT MODAL: reuses the same form as "New Shift" so both stay in sync */}
       {editingVacancy && (
-        <EditVacancyModal
-          vacancy={editingVacancy}
-          isSubmitting={isSubmitting}
-          onClose={() => setEditingVacancy(null)}
+        <ShiftFormModal
+          mode="edit"
+          shift={editingVacancy}
+          onCancel={() => setEditingVacancy(null)}
           onSave={handleSaveEdit}
         />
       )}
-    </div>
-  );
-}
-
-/* ============================================================
-   EDIT VACANCY MODAL COMPONENT
-   ============================================================ */
-
-function EditVacancyModal({
-  vacancy,
-  isSubmitting,
-  onClose,
-  onSave,
-}: {
-  vacancy: Vacancy;
-  isSubmitting: boolean;
-  onClose: () => void;
-  onSave: (payload: ShiftPayload) => void;
-}) {
-  const [shiftDate, setShiftDate] = useState(vacancy.shiftDate);
-  const [timeSlot, setTimeSlot] = useState(vacancy.timeSlot);
-  const [location, setLocation] = useState(vacancy.location);
-  const [birdCount, setBirdCount] = useState(vacancy.birdCount);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      shiftDate,
-      timeSlot,
-      location,
-      birdCount: Number(birdCount),
-      requiredSkillIds: vacancy.requiredSkillIds || [],
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">Edit Vacancy / Shift</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Shift Date</label>
-            <input
-              type="date"
-              required
-              value={shiftDate}
-              onChange={(e) => setShiftDate(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Time Slot</label>
-            <select
-              value={timeSlot}
-              onChange={(e) => setTimeSlot(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
-            >
-              {VALID_TIME_SLOTS.map((slot) => (
-                <option key={slot} value={slot}>
-                  {slot}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Location</label>
-            <input
-              type="text"
-              required
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Bird Count</label>
-            <input
-              type="number"
-              min="1"
-              required
-              value={birdCount}
-              onChange={(e) => setBirdCount(Number(e.target.value))}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800 transition-colors disabled:opacity-60"
-            >
-              {isSubmitting ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 }
