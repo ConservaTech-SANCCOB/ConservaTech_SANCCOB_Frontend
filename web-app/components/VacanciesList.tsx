@@ -4,14 +4,28 @@ import { useState } from "react";
 import { useAuth } from "../app/lib/auth-context";
 import { notifyOpenVacancy } from "../app/lib/api/notifications";
 import { Vacancy, ShiftPayload, updateShift } from "../app/lib/api/shifts";
-import { ShiftFormModal } from "./shifts/ShiftFormModal"; // adjust to where ShiftFormModal.tsx lives
+import { ShiftFormModal } from "./shifts/ShiftFormModal";
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Props for VacanciesList: the vacancies to display and a callback that asks
+// the parent to reload the data.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 interface VacanciesListProps {
   vacancies: Vacancy[];
   onRefresh: () => void;
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Grid of vacancy cards for shifts that still have open spots. Each card shows
+// the location, date, time slot, assigned vs capacity and bird count, with
+// buttons to edit the shift or notify qualifying volunteers.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export default function VacanciesList({ vacancies, onRefresh }: VacanciesListProps) {
+
   const { token } = useAuth();
 
   // State for Edit Modal
@@ -21,9 +35,14 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
   const [notifyingShiftId, setNotifyingShiftId] = useState<number | null>(null);
   const [notifySuccess, setNotifySuccess] = useState<string | null>(null);
 
-  // ---- 1. EDIT SHIFT / VACANCY HANDLER ----
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // 1. EDIT SHIFT / VACANCY HANDLER
+  // Saves the edited shift, closes the edit modal and asks the parent to reload.
   // Errors are intentionally NOT caught here: ShiftFormModal catches them and
   // shows the message inside the form.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const handleSaveEdit = async (updatedPayload: ShiftPayload) => {
     if (!editingVacancy) return;
     await updateShift(token, editingVacancy.shiftId, updatedPayload);
@@ -31,7 +50,13 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
     onRefresh(); // Trigger parent reload
   };
 
-  // ---- 2. NOTIFY QUALIFYING VOLUNTEERS HANDLER ----
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // 2. NOTIFY QUALIFYING VOLUNTEERS HANDLER
+  // Sends a notification about the open vacancy to qualifying volunteers,
+  // shows a success banner that auto-dismisses after 4 seconds, and alerts on failure.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const handleNotifyVolunteers = async (vacancy: Vacancy) => {
     setNotifyingShiftId(vacancy.shiftId);
     setNotifySuccess(null);
@@ -49,7 +74,7 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
 
   return (
     <div className="space-y-4">
-      {/* Success Banner */}
+      {/*------------------------------------ Success Banner ----------------------------------------------------*/}
       {notifySuccess && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
           <span>{notifySuccess}</span>
@@ -64,13 +89,14 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
         </div>
       )}
 
-      {/* Vacancy Display Cards Grid */}
+      {/*------------------------------------ Vacancy Display Cards Grid ----------------------------------------------------*/}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {vacancies.map((vacancy) => (
           <div
             key={vacancy.shiftId}
             className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4 hover:border-slate-200 transition-all"
           >
+            {/*------------------------------------ Card Header: Location, Open Spots, Date & Time ----------------------------------------------------*/}
             <div>
               <div className="flex justify-between items-start">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
@@ -86,6 +112,7 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
               <p className="text-xs text-slate-500 font-medium">{vacancy.timeSlot}</p>
             </div>
 
+            {/*------------------------------------ Card Stats: Assigned & Bird Count ----------------------------------------------------*/}
             <div className="bg-slate-50 rounded-xl p-3 flex justify-between text-xs text-slate-600">
               <div>
                 <p className="text-slate-400 text-[10px]">Assigned</p>
@@ -97,9 +124,9 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/*------------------------------------ Action Buttons ----------------------------------------------------*/}
             <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
-              {/* EDIT BUTTON */}
+              {/*------------------------------------ Edit Button ----------------------------------------------------*/}
               <button
                 type="button"
                 onClick={() => setEditingVacancy(vacancy)}
@@ -109,7 +136,7 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
                 Edit Shift
               </button>
 
-              {/* NOTIFY QUALIFYING VOLUNTEERS BUTTON */}
+              {/*------------------------------------ Notify Qualifying Volunteers Button ----------------------------------------------------*/}
               <button
                 type="button"
                 onClick={() => handleNotifyVolunteers(vacancy)}
@@ -125,7 +152,7 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
         ))}
       </div>
 
-      {/* EDIT MODAL: reuses the same form as "New Shift" so both stay in sync */}
+      {/*------------------------------------ Edit Modal (reuses the same form as "New Shift" so both stay in sync) ----------------------------------------------------*/}
       {editingVacancy && (
         <ShiftFormModal
           mode="edit"
@@ -138,10 +165,13 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
   );
 }
 
-/* ============================================================
-   ICONS
-   ============================================================ */
+//------------------------------------------------ICONS---------------------------------------------------------------//
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Pen-and-page icon used on the "Edit Shift" button.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function EditIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -151,6 +181,11 @@ function EditIcon() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Bell icon used on the "Notify Qualified" button.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function BellIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -159,3 +194,5 @@ function BellIcon() {
     </svg>
   );
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

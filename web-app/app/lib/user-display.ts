@@ -15,11 +15,15 @@ export function getInitials(user: AuthUser | null): string {
   return "?";
 }
 
+//-------------------------------------------------------------------------------------------------//
+
 // Name shown next to the avatar. A token issued before the backend added the
 // name claim has no name, so fall back to the email, then a neutral label.
 export function getDisplayName(user: AuthUser | null): string {
   return user?.name?.trim() || user?.email?.trim() || "Admin";
 }
+
+//-------------------------------------------------------------------------------------------------//
 
 // First name for greetings ("Cathy Adams" -> "Cathy"). Falls back to the
 // email's local part, then a neutral word, for tokens without a name claim.
@@ -31,8 +35,10 @@ export function getFirstName(user: AuthUser | null): string {
   return "there";
 }
 
+//-------------------------------------------------------------------------------------------------//
 // "Admin" -> "Administrator"; any other role is shown as-is.
 export function getRoleLabel(role: string | null): string {
   if (!role) return "";
   return role.toLowerCase() === "admin" ? "Administrator" : role;
 }
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

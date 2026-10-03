@@ -1,11 +1,5 @@
 import { apiFetch } from "./http";
 
-//-----------------------------------------------------------------------------------------------//
-//<summary>
-// A single volunteer's assignment to a shift within a roster, including the
-// shift's date, time slot, location and the assignment status.
-//</summary>
-//-----------------------------------------------------------------------------------------------//
 export interface RosterAssignment {
   rosterAssignmentId: number;
   rosterId: number;
@@ -214,5 +208,4 @@ export async function fetchAttendanceForAssignment(
     "Failed to fetch attendance"
   );
 }
-
 //------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

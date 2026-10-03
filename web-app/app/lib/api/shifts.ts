@@ -1,16 +1,13 @@
 import { apiFetch, ApiError } from "./http";
 
-/* ============================================================
-   TYPES — match the confirmed backend Swagger schema exactly
-   ============================================================ */
 
 export const VALID_TIME_SLOTS = ["08:00-13:00", "14:00-17:00", "08:00-17:00"] as const;
 export type TimeSlot = (typeof VALID_TIME_SLOTS)[number];
 
+//  Added when the backend made shiftName required. Optional here because we
+// haven't confirmed that GET responses return it.
 export interface Shift {
   shiftId: number;
-  // Added when the backend made shiftName required. Optional here because we
-  // haven't confirmed that GET responses return it.
   shiftName?: string | null;
   shiftDate: string;
   timeSlot: string;
@@ -22,7 +19,7 @@ export interface Shift {
 
 // POST/PUT body matching CreateShiftDto & UpdateShiftDto
 export interface ShiftPayload {
-  shiftName: string; // required by CreateShiftDto
+  shiftName: string; 
   shiftDate: string;
   timeSlot: string;
   location: string;
@@ -62,9 +59,6 @@ export interface ShiftTimeSlotOption {
   displayName: string;
 }
 
-/* ============================================================
-   SHIFTS — Swagger Section: Shifts (/api/Shifts)
-   ============================================================ */
 
 // GET /api/Shifts
 export async function fetchShifts(token: string | null): Promise<Shift[]> {
@@ -92,6 +86,7 @@ export async function fetchShiftsForWeek(
   token: string | null,
   weekStartDate: string
 ): Promise<Shift[]> {
+
   const data = await apiFetch<Shift[]>(
     `/api/Shifts/week?weekStartDate=${encodeURIComponent(weekStartDate)}`,
     token,
@@ -199,10 +194,6 @@ export async function fetchTimeSlots(token: string | null): Promise<ShiftTimeSlo
   return Array.isArray(data) ? data : [];
 }
 
-/* ============================================================
-   VACANCIES — Swagger Section: Vacancies (/api/Vacancies)
-   ============================================================ */
-
 // GET /api/Vacancies
 export async function fetchVacancies(token: string | null): Promise<Vacancy[]> {
   const data = await apiFetch<Vacancy[]>(
@@ -241,3 +232,4 @@ export async function fetchVacanciesByLocation(
   );
   return Array.isArray(data) ? data : [];
 }
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

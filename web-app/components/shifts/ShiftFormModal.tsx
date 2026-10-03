@@ -9,24 +9,37 @@ import {
   ShiftLocation,
 } from "../../app/lib/api/shifts";
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Display labels for each time slot, shown in the Time dropdown.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+
 const TIME_SLOT_LABELS: Record<string, string> = {
   "08:00-13:00": "Morning (08:00-13:00)",
   "14:00-17:00": "Afternoon (14:00-17:00)",
   "08:00-17:00": "Full Day (08:00-17:00)",
 };
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // Short session names, only used to suggest a default shift name.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 const TIME_SLOT_SHORT: Record<string, string> = {
   "08:00-13:00": "Morning",
   "14:00-17:00": "Afternoon",
   "08:00-17:00": "Full Day",
 };
 
-/**
- * The fields the form needs to pre-fill itself when editing.
- * Both `Shift` and `Vacancy` satisfy this shape, so either can be passed in
- * without conversion or casting.
- */
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// The fields the form needs to pre-fill itself when editing.
+// Both `Shift` and `Vacancy` satisfy this shape, so either can be passed in
+// without conversion or casting.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export type ShiftFormInitial = {
   shiftName?: string | null;
   shiftDate?: string;
@@ -36,6 +49,12 @@ export type ShiftFormInitial = {
   capacity?: number | null;
 };
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Shared modal wrapper: a dimmed full-screen backdrop that closes on click,
+// with a centred white card that stops click propagation.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export function ModalOverlay({
   children,
   onClose,
@@ -48,6 +67,7 @@ export function ModalOverlay({
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
+      {/*------------------------------------ Modal Card ----------------------------------------------------*/}
       <div
         className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -58,6 +78,18 @@ export function ModalOverlay({
   );
 }
 
+//---------------------------------------------------------------------------------------------------------------//
+// Shift Form Modal
+//---------------------------------------------------------------------------------------------------------------//
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Modal form for creating or editing a shift. Collects the shift name, date,
+// time slot and skill / area, then shows either bird count (pen routines) or
+// volunteer capacity (supporting areas) depending on the chosen location type.
+// Calls onSave with the built ShiftPayload.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export function ShiftFormModal({
   mode,
   shift,
@@ -69,7 +101,15 @@ export function ShiftFormModal({
   onCancel: () => void;
   onSave: (payload: ShiftPayload) => Promise<void>;
 }) {
+  //-----------------------------------------------------------------------------------------------//
+  // Auth
+  //-----------------------------------------------------------------------------------------------//
+
   const { token } = useAuth();
+
+  //-----------------------------------------------------------------------------------------------//
+  // Form State
+  //-----------------------------------------------------------------------------------------------//
 
   const [shiftDate, setShiftDate] = useState(shift?.shiftDate || "");
   const [timeSlot, setTimeSlot] = useState<string>(
@@ -95,7 +135,13 @@ export function ShiftFormModal({
 
   const initialLocation = shift?.location ?? "";
 
-  // Fetch only shift locations metadata from GET /api/Shifts/locations
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Fetch only shift locations metadata from GET /api/Shifts/locations.
+  // When editing, pre-selects the skill whose location name matches the
+  // shift's existing location.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   useEffect(() => {
     let isMounted = true;
 
@@ -131,6 +177,8 @@ export function ShiftFormModal({
     };
   }, [token, initialLocation]);
 
+  //-----------------------------------------------------------------------------------------------//
+
   // Find currently selected location metadata
   const selectedLocation = locations.find(
     (loc) => loc.skillId === Number(selectedSkillId)
@@ -152,6 +200,13 @@ export function ShiftFormModal({
     : "";
   const displayedName = nameTouched ? shiftName : suggestedName;
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Validates the form (date, skill / area and shift name), builds the
+  // ShiftPayload and passes it to onSave. Any validation or save error is
+  // shown inside the form.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -192,8 +247,11 @@ export function ShiftFormModal({
     }
   };
 
+
   return (
     <ModalOverlay onClose={onCancel}>
+
+      {/*------------------------------------ Modal Header ----------------------------------------------------*/}
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-lg font-bold text-slate-900">
           {mode === "create" ? "New Shift" : "Edit Shift"}
@@ -209,7 +267,8 @@ export function ShiftFormModal({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Shift name */}
+
+        {/*------------------------------------ Shift Name ----------------------------------------------------*/}
         <div>
           <label
             htmlFor="shift-name"
@@ -238,8 +297,9 @@ export function ShiftFormModal({
           )}
         </div>
 
-        {/* Date & Time Slot */}
+        {/*------------------------------------ Date & Time Slot ----------------------------------------------------*/}
         <div className="grid grid-cols-2 gap-4">
+          {/*------------------------------------ Date ----------------------------------------------------*/}
           <div>
             <label
               htmlFor="shift-date"
@@ -257,6 +317,8 @@ export function ShiftFormModal({
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
             />
           </div>
+
+          {/*------------------------------------ Time Slot ----------------------------------------------------*/}
           <div>
             <label
               htmlFor="shift-time"
@@ -280,7 +342,7 @@ export function ShiftFormModal({
           </div>
         </div>
 
-        {/* Skills Dropdown (populated via /api/Shifts/locations) */}
+        {/*------------------------------------ Skills Dropdown (populated via /api/Shifts/locations) ----------------------------------------------------*/}
         <div>
           <label
             htmlFor="shift-skill"
@@ -309,10 +371,10 @@ export function ShiftFormModal({
           </select>
         </div>
 
-        {/* Dynamic Display Logic based on selected location type */}
+        {/*------------------------------------ Dynamic Display Logic (based on selected location type) ----------------------------------------------------*/}
         {selectedLocation && (
           <div className="grid grid-cols-2 gap-4 pt-1">
-            {/* Pen Routines: Bird Count + Read-only Volunteer Capacity */}
+            {/*------------------------------------ Pen Routines: Bird Count + Read-only Volunteer Capacity ----------------------------------------------------*/}
             {isPenRoutine && (
               <>
                 <div>
@@ -345,7 +407,7 @@ export function ShiftFormModal({
               </>
             )}
 
-            {/* Supporting Areas: Editable Volunteer Capacity */}
+            {/*------------------------------------ Supporting Areas: Editable Volunteer Capacity ----------------------------------------------------*/}
             {isSupportingArea && (
               <div className="col-span-2">
                 <label
@@ -370,12 +432,14 @@ export function ShiftFormModal({
           </div>
         )}
 
+        {/*------------------------------------ Error Message ----------------------------------------------------*/}
         {error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
             {error}
           </p>
         )}
 
+        {/*------------------------------------ Form Actions ----------------------------------------------------*/}
         <div className="flex justify-end gap-3 pt-2">
           <button
             type="button"
@@ -400,3 +464,5 @@ export function ShiftFormModal({
     </ModalOverlay>
   );
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

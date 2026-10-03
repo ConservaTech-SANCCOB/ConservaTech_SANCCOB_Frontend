@@ -12,16 +12,25 @@ import {
 } from "../../app/lib/api/roster";
 import { Volunteer } from "../../app/lib/api/volunteers";
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Formats a Date as a local "YYYY-MM-DD" string.
 // IMPORTANT: never build "YYYY-MM-DD" with toISOString() for a local calendar
 // day. It converts to UTC first, which in UTC+2 shifts local midnight back to
 // the previous day. Build the string from the local date fields instead.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function formatDateISO(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
     d.getDate()
   ).padStart(2, "0")}`;
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // Monday of the week containing `date`, as a local "YYYY-MM-DD" string.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function getMondayISO(date: Date): string {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -30,12 +39,24 @@ function getMondayISO(date: Date): string {
   return formatDateISO(d);
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Adds (or subtracts, if negative) a number of days to a local "YYYY-MM-DD"
+// string and returns the new local "YYYY-MM-DD" string.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function addDaysISO(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00`); // parsed as LOCAL midnight
   d.setDate(d.getDate() + days);
   return formatDateISO(d);
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Builds the week navigation label from a week start date,
+// e.g. "22 Sept – 28 Sept 2026".
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function formatWeekLabel(weekStart: string): string {
   const start = new Date(`${weekStart}T00:00:00`);
   const end = new Date(start);
@@ -45,6 +66,12 @@ function formatWeekLabel(weekStart: string): string {
   return `${fmt(start)} – ${fmt(end)} ${end.getFullYear()}`;
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Formats a shift date for display, e.g. "Tue, 22 Sept". Returns "—" for empty
+// values and the original value if it cannot be parsed as a date.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function formatShiftDate(value: string): string {
   if (!value) return "—";
   const date = new Date(`${value.slice(0, 10)}T00:00:00`);
@@ -56,14 +83,24 @@ function formatShiftDate(value: string): string {
   });
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // Shape seen in a real GET /api/Attendance/{id} response:
 // { rosterAssignmentId, attended, hoursWorked }. Parsed defensively so an
 // unexpected response just shows "Not marked yet" instead of crashing.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 interface AttendanceInfo {
   attended: boolean | null;
   hoursWorked: number | null;
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Safely converts a raw (untyped) attendance API response into an AttendanceInfo.
+// Returns null if the response is not an object.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function toAttendanceInfo(raw: unknown): AttendanceInfo | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -73,6 +110,14 @@ function toAttendanceInfo(raw: unknown): AttendanceInfo | null {
   };
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Modal for viewing and marking a volunteer's attendance. Lets the admin step
+// through weeks, see the volunteer's rostered shifts for that week with their
+// saved attendance, and mark each shift as attended or not attended. Tells the
+// parent to refresh whenever attendance changes.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 export default function AttendanceModal({
   volunteer,
   onClose,
@@ -82,14 +127,21 @@ export default function AttendanceModal({
   onClose: () => void;
   onAttendanceChanged: () => void;
 }) {
-  const { token, logout } = useAuth();
-  // Computed per render (not at module load) so it stays right if the page
+  //-----------------------------------------------------------------------------------------------//
+   //<summary>
+   // Computed per render (not at module load) so it stays right if the page
   // is left open across midnight or into a new week.
+  // Auth & State
+  // Saved attendance per rosterAssignmentId. A missing key = not loaded yet;
+  // null = loaded but nothing saved (or the lookup failed).
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
+  const { token, logout } = useAuth();
+  
   const thisWeek = getMondayISO(new Date());
   const [weekStart, setWeekStart] = useState(thisWeek);
   const [roster, setRoster] = useState<Roster | null>(null);
-  // Saved attendance per rosterAssignmentId. A missing key = not loaded yet;
-  // null = loaded but nothing saved (or the lookup failed).
+
   const [attendance, setAttendance] = useState<Record<number, AttendanceInfo | null>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -97,8 +149,15 @@ export default function AttendanceModal({
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [savedMessage, setSavedMessage] = useState("");
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Loads the roster for the selected week, then looks up the saved attendance
+  // for each of this volunteer's shifts. A week with no roster is treated as an
+  // empty state, and a 401 triggers logout.
   // `silent` reloads the data without swapping the list for the "Loading…"
   // state, so the list doesn't blink after every attendance click.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const loadRoster = async (silent = false) => {
     if (!token) return;
     if (!silent) setIsLoading(true);
@@ -148,18 +207,39 @@ export default function AttendanceModal({
     }
   };
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Reloads the roster whenever the selected week or auth token changes,
+  // and clears any previous "saved" message.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   useEffect(() => {
     setSavedMessage("");
     loadRoster();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekStart, token]);
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // This volunteer's assignments for the loaded week.
   // Same cross-reference rule used elsewhere: Volunteer.id is
   // String(userId ?? email); RosterAssignment.userId is a number.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const myAssignments: RosterAssignment[] = (roster?.assignments ?? []).filter(
     (a) => String(a.userId) === volunteer.id
   );
 
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Marks a shift as attended or not attended, then notifies the parent and
+  // silently reloads the roster so the badge updates. Shows a confirmation
+  // message on success and an alert on failure.
+  // Weekly Hours / Attendance Rate on the volunteers table are backend-
+  // computed fields — tell the parent to re-fetch the volunteer list so
+  // those columns pick up the change.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
   const handleMark = async (assignment: RosterAssignment, attended: boolean) => {
     if (!token) return;
     setUpdatingId(assignment.rosterAssignmentId);
@@ -167,9 +247,7 @@ export default function AttendanceModal({
     try {
       await updateAttendanceStatus(token, assignment.rosterAssignmentId, attended);
 
-      // Weekly Hours / Attendance Rate on the volunteers table are backend-
-      // computed fields — tell the parent to re-fetch the volunteer list so
-      // those columns pick up the change.
+      
       onAttendanceChanged();
       await loadRoster(true);
       setSavedMessage(
@@ -194,10 +272,12 @@ export default function AttendanceModal({
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
+      {/*------------------------------------ Modal Card ----------------------------------------------------*/}
       <div
         className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
+        {/*------------------------------------ Modal Header ----------------------------------------------------*/}
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-bold text-slate-900">Attendance</h2>
           <button
@@ -210,7 +290,7 @@ export default function AttendanceModal({
         </div>
         <p className="text-sm text-slate-500 mb-5">{volunteer.name}</p>
 
-        {/* Week navigation */}
+        {/*------------------------------------ Week Navigation ----------------------------------------------------*/}
         <div className="flex items-center justify-between mb-4 bg-slate-50 rounded-xl px-3 py-2">
           <button
             onClick={() => setWeekStart((w) => addDaysISO(w, -7))}
@@ -241,6 +321,7 @@ export default function AttendanceModal({
           </button>
         </div>
 
+        {/*------------------------------------ Load Error Banner ----------------------------------------------------*/}
         {loadError && (
           <div
             role="alert"
@@ -256,6 +337,7 @@ export default function AttendanceModal({
           </div>
         )}
 
+        {/*------------------------------------ Saved Confirmation Message ----------------------------------------------------*/}
         {savedMessage && (
           <p className="mb-3 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
             {savedMessage}
@@ -263,16 +345,19 @@ export default function AttendanceModal({
         )}
 
         {isLoading ? (
+          /*------------------------------------ Loading State ----------------------------------------------------*/
           <div className="py-10 text-center text-slate-400 text-sm font-medium">
             Loading shifts…
           </div>
         ) : weekHasNoRoster || myAssignments.length === 0 ? (
+          /*------------------------------------ Empty State ----------------------------------------------------*/
           <div className="py-10 text-center text-slate-400 text-sm font-medium">
             {weekHasNoRoster
               ? "No roster has been generated for this week."
               : "No shifts assigned to this volunteer this week."}
           </div>
         ) : (
+          /*------------------------------------ Shift List ----------------------------------------------------*/
           <div className="space-y-2">
             {myAssignments.map((a) => {
               const isUpdating = updatingId === a.rosterAssignmentId;
@@ -283,6 +368,7 @@ export default function AttendanceModal({
                   key={a.rosterAssignmentId}
                   className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/60"
                 >
+                  {/*------------------------------------ Shift Details & Attendance Status ----------------------------------------------------*/}
                   <div>
                     <p className="text-sm font-medium text-slate-800">
                       {formatShiftDate(a.shiftDate)}
@@ -299,6 +385,8 @@ export default function AttendanceModal({
                       )}
                     </div>
                   </div>
+
+                  {/*------------------------------------ Mark Attended / Not Attended Buttons ----------------------------------------------------*/}
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => handleMark(a, true)}
@@ -337,6 +425,12 @@ export default function AttendanceModal({
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Small pill showing a shift's attendance state: Attended (green), Not
+// attended (red) or Not marked yet (grey).
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function AttendanceBadge({ attended }: { attended: boolean | null }) {
   if (attended === true) {
     return (
@@ -359,6 +453,13 @@ function AttendanceBadge({ attended }: { attended: boolean | null }) {
   );
 }
 
+//------------------------------------------ICONS---------------------------------------------------------------------//
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// "X" icon used for closing the modal.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function CloseIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -367,6 +468,11 @@ function CloseIcon() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Left-pointing chevron used for the previous week button.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function ChevronLeftIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -375,6 +481,11 @@ function ChevronLeftIcon() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Right-pointing chevron used for the next week button.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
 function ChevronRightIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -382,3 +493,5 @@ function ChevronRightIcon() {
     </svg>
   );
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//
