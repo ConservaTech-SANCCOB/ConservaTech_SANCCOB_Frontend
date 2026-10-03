@@ -18,6 +18,7 @@ function newestFirst(list: AdminNotification[]): AdminNotification[] {
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
+//-----------------------------------------------------------------------------------------------------//
 
 export function useNotifications() {
   const { token, logout } = useAuth();
@@ -64,6 +65,7 @@ export function useNotifications() {
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Warning)
       .build();
+ //-----------------------------------------------------------------------------------------------//
 
     // Event name is case-sensitive, exactly as the backend sends it.
     connection.on("ReceiveNotification", (n: AdminNotification) => {
@@ -94,6 +96,7 @@ export function useNotifications() {
     };
   }, [token, load]);
 
+//-----------------------------------------------------------------------------------------------//
   const markRead = useCallback(
     async (id: number) => {
       setItems((prev) => prev.map((n) => (n.notificationId === id ? { ...n, isRead: true } : n)));
@@ -104,12 +107,14 @@ export function useNotifications() {
           logout();
           return;
         }
-        load(); // put the real state back if the save failed
+        // put the real state back if the save failed
+        load(); 
       }
     },
     [token, logout, load]
   );
 
+  //-------------------------------------------------------------------------------------------------//
   const markAllRead = useCallback(async () => {
     setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
     try {
@@ -127,3 +132,4 @@ export function useNotifications() {
 
   return { items, unreadCount, connected, error, markRead, markAllRead };
 }
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//

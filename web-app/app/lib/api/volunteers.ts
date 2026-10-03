@@ -1,8 +1,5 @@
 import { apiFetch } from "./http";
 
-/* ============================================================
-   TYPES  (matched to the backend Swagger schemas)
-   ============================================================ */
 
 export const AGE_BRACKETS = [
   "18-24",
@@ -16,7 +13,7 @@ export const AGE_BRACKETS = [
 export type AgeBracket = (typeof AGE_BRACKETS)[number];
 
 // Shape of one volunteer in the UI.
-// The LIST endpoint only returns: id, names, email, phone, weeklyHours, attendanceRate.
+// The LIST endpoint returns: id, names, email, phone, weeklyHours, attendanceRate.
 // nationality / ageBracket / emergency contact come from the DETAIL endpoint
 // (fetchVolunteerById) and are empty strings on list items.
 export interface Volunteer {
@@ -34,6 +31,7 @@ export interface Volunteer {
   emergencyContactName: string;
   emergencyContactPhone: string;
 }
+//-----------------------------------------------------------------------------------------------//
 
 // POST /api/admin/volunteers  (CreateVolunteerRequestDto)
 export interface CreateVolunteerPayload {
@@ -44,6 +42,8 @@ export interface CreateVolunteerPayload {
   nationality: string;
   ageBracket: string;
 }
+
+//-----------------------------------------------------------------------------------------------//
 
 // PUT /api/admin/volunteers/{id}  (AdminUpdateVolunteerDto)
 // firstName, lastName and email are REQUIRED by the backend.
@@ -58,6 +58,8 @@ export interface UpdateVolunteerPayload {
   emergencyContactPhone: string;
 }
 
+//-----------------------------------------------------------------------------------------------//
+
 // Mapped from ChangeRequestDto (GET /api/change-requests/pending)
 export interface ShiftRequest {
   id: string; // requestId
@@ -70,10 +72,9 @@ export interface ShiftRequest {
   status: "Pending" | "Approved" | "Declined";
 }
 
-/* ============================================================
-   RAW BACKEND SHAPES
-   ============================================================ */
+//----------------------------------------------------------------------------//
 
+//RAW BACKEND SHAPES
 interface RawVolunteer {
   userId?: number;
   firstName?: string | null;
@@ -88,6 +89,8 @@ interface RawVolunteer {
   attendanceRate?: number;
 }
 
+//------------------------------------------------------------------------------//
+
 interface RawChangeRequest {
   requestId?: number;
   rosterAssignmentId?: number;
@@ -98,6 +101,7 @@ interface RawChangeRequest {
   volunteerName?: string | null;
 }
 
+//---------------------------------------------------------------------------------//
 function mapVolunteer(item: RawVolunteer): Volunteer {
   const firstName = item.firstName ?? "";
   const lastName = item.lastName ?? "";
@@ -125,6 +129,8 @@ function mapVolunteer(item: RawVolunteer): Volunteer {
   };
 }
 
+//--------------------------------------------------------------------------------------//
+
 function normaliseStatus(status?: string | null): ShiftRequest["status"] {
   const s = (status ?? "").toLowerCase();
   if (s === "approved") return "Approved";
@@ -138,9 +144,11 @@ function initialsFromName(name: string): string {
   return (parts[0].charAt(0) + (parts[1]?.charAt(0) ?? "")).toUpperCase();
 }
 
-/* ============================================================
-   ADMIN VOLUNTEER ENDPOINTS
-   ============================================================ */
+//--------------------------------------------------------------------------------------//
+
+// ============================================================//
+  // ADMIN VOLUNTEER ENDPOINTS
+//============================================================ //
 
 // GET /api/admin/volunteers
 export async function fetchVolunteers(token: string | null): Promise<Volunteer[]> {
@@ -153,6 +161,7 @@ export async function fetchVolunteers(token: string | null): Promise<Volunteer[]
   return Array.isArray(data) ? data.map(mapVolunteer) : [];
 }
 
+//--------------------------------------------------------------------------------------//
 // GET /api/admin/volunteers/{id}
 export async function fetchVolunteerById(
   token: string | null,
@@ -167,8 +176,8 @@ export async function fetchVolunteerById(
   return mapVolunteer(item);
 }
 
+//--------------------------------------------------------------------------------------//
 // POST /api/admin/volunteers
-// The response schema is just an echo of the request, so we do NOT rely on it.
 // Callers should re-fetch the list afterwards to get the real userId.
 export async function createVolunteer(
   token: string | null,
@@ -192,9 +201,10 @@ export async function createVolunteer(
   );
 }
 
+//--------------------------------------------------------------------------------------//
+
 // PUT /api/admin/volunteers/{id}
 // Sends every field, so load the full detail record before editing
-// (otherwise fields you didn't include may be cleared on the backend).
 export async function updateVolunteer(
   token: string | null,
   id: string,
@@ -219,6 +229,8 @@ export async function updateVolunteer(
     "Unable to update volunteer"
   );
 }
+
+//--------------------------------------------------------------------------------------//
 
 /* ============================================================
    CHANGE REQUESTS
@@ -250,6 +262,8 @@ export async function fetchShiftRequests(token: string | null): Promise<ShiftReq
   });
 }
 
+//--------------------------------------------------------------------------------------//
+
 // PUT /api/change-requests/{id}/approve
 export async function approveShiftRequest(
   token: string | null,
@@ -263,6 +277,8 @@ export async function approveShiftRequest(
   );
 }
 
+//--------------------------------------------------------------------------------------//
+
 // PUT /api/change-requests/{id}/decline
 export async function declineShiftRequest(
   token: string | null,
@@ -275,3 +291,4 @@ export async function declineShiftRequest(
     "Failed to decline request"
   );
 }
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//
