@@ -130,6 +130,10 @@ body.stage-open{overflow:hidden}
 .player-wrap{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center}
 .part-bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 .stage.has-parts .player{width:min(100%,calc((100dvh - 190px) * 16 / 9))}
+.yt-note{margin:0;font-size:14px;color:#b7d7e8;text-align:center}
+.yt-note a{color:#fff;font-weight:700}
+.stage.has-yt .player{width:min(100%,calc((100dvh - 168px) * 16 / 9))}
+.stage.has-yt.has-parts .player{width:min(100%,calc((100dvh - 222px) * 16 / 9))}
 .player{position:relative;aspect-ratio:16/9;width:min(100%,calc((100dvh - 128px) * 16 / 9));background:#000;border-radius:16px;overflow:hidden;border:3px solid var(--ink)}
 .player video,.player iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
 .player.is-placeholder{background:#07344d}
@@ -235,7 +239,7 @@ dialog .btn{color:var(--ink);border-color:var(--ink);background:#fff}
   .stage-body{grid-template-columns:minmax(0,1fr);overflow:auto}
   .stage-info{overflow:visible}
   .player{width:100%}
-  .stage.has-parts .player{width:100%}
+  .stage.has-parts .player,.stage.has-yt .player,.stage.has-yt.has-parts .player{width:100%}
 }
 @media (max-width:860px){
   .trail{grid-template-columns:1fr;gap:2px}
@@ -387,7 +391,7 @@ dialog .btn{color:var(--ink);border-color:var(--ink);background:#fff}
   </g>
 
   <!-- 2 Quarantine Zone: the brief -->
-  <g class="spot" data-id="brief" data-tag-y="-76" transform="translate(270 330)" tabindex="0" role="button">
+  <g class="spot" data-id="database" data-tag-y="-76" transform="translate(440 510)" tabindex="0" role="button">
     <circle class="hit" r="80" fill="transparent"/>
     <circle class="pulse" r="76"/><ellipse class="ring" cx="0" cy="2" rx="86" ry="58"/>
     <g class="art">
@@ -404,7 +408,7 @@ dialog .btn{color:var(--ink);border-color:var(--ink);background:#fff}
   </g>
 
   <!-- 3 Pen A: volunteer app -->
-  <g class="spot" data-id="volunteer" data-tag-y="-76" transform="translate(440 510)" tabindex="0" role="button">
+  <g class="spot" data-id="demos" data-tag-y="-76" transform="translate(270 330)" tabindex="0" role="button">
     <circle class="hit" r="82" fill="transparent"/>
     <circle class="pulse" r="78"/><ellipse class="ring" cx="0" cy="8" rx="86" ry="58"/>
     <g class="art">
@@ -421,7 +425,7 @@ dialog .btn{color:var(--ink);border-color:var(--ink);background:#fff}
   </g>
 
   <!-- 4 Aviary: admin dashboard -->
-  <g class="spot" data-id="admin" data-tag-y="-72" transform="translate(500 240)" tabindex="0" role="button">
+  <g class="spot" data-id="frontend" data-tag-y="-72" transform="translate(500 240)" tabindex="0" role="button">
     <circle class="hit" r="82" fill="transparent"/>
     <circle class="pulse" r="78"/><ellipse class="ring" cx="0" cy="4" rx="86" ry="62"/>
     <g class="art">
@@ -761,10 +765,10 @@ npx expo start</code></pre>
       <div class="scroll"><table>
         <thead><tr><th>Criterion</th><th>Where we cover it</th></tr></thead>
         <tbody>
-          <tr><td>Technical demo and implementation</td><td><button class="linkbtn" data-open="volunteer">Pen A, mobile app demo and code</button> and <button class="linkbtn" data-open="admin">Aviary, web app demo and code</button>, running against the hosted API</td></tr>
-          <tr><td>Architecture and system design</td><td><button class="linkbtn" data-open="hood">ICU, backend code</button>, plus Architecture above</td></tr>
+          <tr><td>Technical demo and implementation</td><td><button class="linkbtn" data-open="demos">Pen A, web and mobile demos</button> and <button class="linkbtn" data-open="frontend">Aviary, web and mobile code</button>, running against the hosted API</td></tr>
+          <tr><td>Architecture and system design</td><td><button class="linkbtn" data-open="hood">ICU, backend code</button> and <button class="linkbtn" data-open="frontend">Aviary, frontend code</button>, plus Architecture above</td></tr>
           <tr><td>GitHub and version control</td><td><button class="linkbtn" data-open="pipeline">Release Point, GitHub and testing</button>, plus DevOps above</td></tr>
-          <tr><td>Requirements alignment</td><td><button class="linkbtn" data-open="brief">Quarantine Zone, the database</button>, plus What we built above</td></tr>
+          <tr><td>Requirements alignment</td><td><button class="linkbtn" data-open="database">Quarantine Zone, the database</button>, plus What we built above</td></tr>
           <tr><td>Communication and professionalism</td><td>The whole tour, with a different team member presenting each stop</td></tr>
         </tbody>
       </table></div>
@@ -789,7 +793,7 @@ npx expo start</code></pre>
     </div>
   </div>
   <div class="stage-body">
-    <div class="player-wrap"><div class="player" id="player"></div><div class="part-bar" id="part-bar" role="group" aria-label="Video parts" hidden></div></div>
+    <div class="player-wrap"><div class="player" id="player"></div><div class="part-bar" id="part-bar" role="group" aria-label="Video parts" hidden></div><p class="yt-note" id="yt-note" hidden></p></div>
     <aside class="stage-info" id="stage-info" aria-label="About this stop">
       <p>Presented by <b id="stage-speaker"></b></p>
       <p>Planned clip length <b id="stage-dur"></b></p>
@@ -889,7 +893,21 @@ const STOPS = [
     ],
     rubric: ["Group dynamics and coordination", "Communication and professionalism"], code: [] },
 
-  { id: "brief", name: "Quarantine Zone", sub: "Database", speaker: "TK", mins: 3,
+  { id: "demos", name: "Pen A", sub: "Demos — web and mobile", speaker: "Lofentse (web) and Pabi (mobile)", mins: 10,
+    parts: [
+      { label: "Web app", speaker: "Lofentse", video: { file: "videos/04-web-app.mp4", youtube: "https://youtu.be/hZy9RwO-2H4" } },
+      { label: "Mobile app", speaker: "Pabi", video: { file: "videos/03-mobile-app.mp4", youtube: "" } }
+    ],
+    points: [
+      "Web app demo (Lofentse) — dashboard overview, create a volunteer (activation email), schedule a shift, generate and publish a roster, approve or decline a change request and watch a vacancy reopen, live admin notifications arriving in real time.",
+      "Reports and conservation-impact figures on the dashboard come from the same live endpoint, not a separate or mocked source.",
+      "Mobile app demo (Pabi) — activation and sign-in, weekly availability, upcoming shifts, change and cancel requests, hours and training progress.",
+      "Trainer mode on the mobile app — enter the staff PIN, choose your name, sign off a skill."
+    ],
+    rubric: ["Technical demo and implementation", "Requirements alignment"],
+    code: [] },
+
+  { id: "database", name: "Quarantine Zone", sub: "Database", speaker: "TK", mins: 3,
     video: { file: "videos/02-database.mp4", youtube: "" },
     points: [
       "The brief, in short: three kinds of user — volunteers, coordinators, trainers — each with a different job to do in the system.",
@@ -899,31 +917,22 @@ const STOPS = [
     ],
     rubric: ["Requirements alignment", "Architecture and system design"], code: ["AppDbContext", "Skill", "VolunteerSkillProgress"] },
 
-  { id: "volunteer", name: "Pen A", sub: "Mobile App — demo and code", speaker: "Pabi (demo) and TK (code)", mins: 8,
+  { id: "frontend", name: "Aviary", sub: "Frontend Code — web and mobile", speaker: "Lofentse (web) and TK (mobile)", mins: 6,
     parts: [
-      { label: "Demo", speaker: "Pabi", video: { file: "videos/03-mobile-app.mp4", youtube: "" } },
-      { label: "Code", speaker: "TK", video: { file: "videos/03b-mobile-code.mp4", youtube: "" } }
+      { label: "Web app", speaker: "Lofentse", video: { file: "videos/04b-web-code.mp4", youtube: "https://youtu.be/xPSlVNFMcNI" } },
+      { label: "Mobile app", speaker: "TK", video: { file: "videos/03b-mobile-code.mp4", youtube: "" } }
     ],
     points: [
-      "Demo (Pabi) — designed and built this app: activation and sign-in, weekly availability, upcoming shifts, change/cancel requests, hours and training progress, trainer mode (PIN, select name, sign off a skill).",
-      "Code (TK) — one TypeScript codebase for iOS and Android, Expo Router (file-based navigation, folders are the nav structure).",
+      "Web app code (Lofentse) — Next.js App Router structure, how a page calls the backend, and how the admin notifications hook connects over SignalR.",
+      "Web app tests — Jest, 50 passing across 14 suites.",
+      "Mobile app code (TK) — one TypeScript codebase for iOS and Android, Expo Router (file-based navigation, folders are the nav structure).",
       "Layered architecture: screens never call fetch directly — one file (api.ts) is the only thing that talks to the network.",
       "Session expiry: one shared 401 handler for the whole app, with the one deliberate exception needed for the login screen's own navigation.",
       "The shared trainer device: a trainer session never survives a restart, and signing out can't be faked around.",
-      "120 Jest and React Native Testing Library tests passing."
+      "Mobile app tests — Jest and React Native Testing Library, 120 passing."
     ],
-    rubric: ["Technical demo and implementation", "Requirements alignment"],
-    code: ["src/app", "src/utils/api.ts", "src/services/vacancies.ts", "useTrainerSignOut.ts"] },
-
-  { id: "admin", name: "Aviary", sub: "Web App — demo and code", speaker: "Lofentse", mins: 8,
-    video: { file: "videos/04-web-app.mp4", youtube: "https://youtu.be/hZy9RwO-2H4" },
-    points: [
-      "Demo — dashboard overview, create a volunteer (activation email), schedule a shift, generate and publish a roster, approve or decline a change request and watch a vacancy reopen, live admin notifications arriving in real time.",
-      "Code — Next.js App Router structure, how a page calls the backend, and how the admin notifications hook connects over SignalR.",
-      "Reports and conservation-impact figures — pulled from the same live endpoint as the dashboard, not a separate or mocked source."
-    ],
-    rubric: ["Technical demo and implementation", "Requirements alignment", "Architecture and system design"],
-    code: ["web-app/app/(admin)", "lib/api/dashboard.ts", "useAdminNotifications.ts"] },
+    rubric: ["Technical demo and implementation", "Architecture and system design"],
+    code: ["web-app/app/(admin)", "lib/api/dashboard.ts", "useAdminNotifications.ts", "src/app", "src/utils/api.ts", "src/services/vacancies.ts", "useTrainerSignOut.ts"] },
 
   { id: "hood", name: "ICU", sub: "Backend Code", speaker: "Funi and Max", mins: 10,
     parts: [
@@ -1004,7 +1013,7 @@ const MAIN = STOPS.filter(s => !s.bonus);
 const byId = Object.fromEntries(STOPS.map(s => [s.id, s]));
 const numOf = s => s.bonus ? '\u2605' : String(MAIN.indexOf(s) + 1);
 
-const state = { visited: new Set(), current: null, part: 0, limit: CONFIG.timeLimitMinutes, lastFocus: null };
+const state = { visited: new Set(), current: null, part: 0, onEnd: null, limit: CONFIG.timeLimitMinutes, lastFocus: null };
 const timer = { base: 0, t0: 0, running: false };
 const KEY = 'sanccob-tour-v1';
 
@@ -1121,13 +1130,25 @@ function fmtMins(m) { const s = Math.round(m * 60); return Math.floor(s / 60) + 
 function fmtClock(sec) { sec = Math.max(0, Math.floor(sec)); return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0'); }
 
 /* ---------- stage ---------- */
-function ytEmbed(input) {
+function ytId(input) {
   if (!input) return null;
   let id = String(input).trim();
   const m = id.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{6,})/);
   if (m) id = m[1];
-  if (!/^[A-Za-z0-9_-]{6,}$/.test(id)) return null;
-  return 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1&playsinline=1' + (CONFIG.autoplayOnOpen ? '&autoplay=1' : '');
+  return /^[A-Za-z0-9_-]{6,}$/.test(id) ? id : null;
+}
+function ytEmbed(input) {
+  const id = ytId(input);
+  if (!id) return null;
+  const origin = /^https?:/.test(location.protocol) ? '&origin=' + encodeURIComponent(location.origin) : '';
+  return 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1&playsinline=1&enablejsapi=1' + origin + (CONFIG.autoplayOnOpen ? '&autoplay=1' : '');
+}
+function setYtNote(id) {
+  const n = $('#yt-note');
+  els.stage.classList.toggle('has-yt', !!id);
+  if (!id) { n.hidden = true; n.textContent = ''; return; }
+  n.hidden = false;
+  n.innerHTML = 'Video not showing? <a href="https://youtu.be/' + esc(id) + '" target="_blank" rel="noopener">Open it on YouTube</a>';
 }
 
 function showPlaceholder(stop, v) {
@@ -1150,9 +1171,18 @@ function renderCases(box) {
 function mountPlayer(stop) {
   const box = els.player;
   box.textContent = ''; box.className = 'player';
+  state.onEnd = null;
+  setYtNote(null);
   if (stop.type === 'cases') { renderCases(box); return; }
   const hasParts = Array.isArray(stop.parts) && stop.parts.length > 0;
   const v = (hasParts ? stop.parts[state.part].video : stop.video) || {};
+  let finished = false;
+  const finish = () => {
+    if (finished || state.current !== stop.id) return;
+    finished = true;
+    if (hasParts && state.part < stop.parts.length - 1) { state.part++; renderPartBar(stop); mountPlayer(stop); }
+    else markVisited(stop.id);
+  };
   const useYouTube = () => {
     if (state.current !== stop.id) return;
     const src = ytEmbed(v.youtube);
@@ -1160,22 +1190,39 @@ function mountPlayer(stop) {
     box.textContent = ''; box.classList.remove('is-placeholder');
     const f = document.createElement('iframe');
     f.src = src; f.title = stop.name + ' video'; f.allow = 'autoplay; fullscreen; picture-in-picture'; f.allowFullscreen = true;
+    f.addEventListener('load', () => {
+      try {
+        f.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), '*');
+        f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), '*');
+      } catch (e) { /* the part buttons still work */ }
+    });
     box.appendChild(f);
+    state.onEnd = finish;
+    setYtNote(ytId(v.youtube));
   };
   if (v.file) {
     const vid = document.createElement('video');
     vid.controls = true; vid.playsInline = true; vid.preload = 'metadata';
     vid.setAttribute('aria-label', stop.name + ' video');
     vid.addEventListener('error', useYouTube, { once: true });
-    vid.addEventListener('ended', () => {
-      if (hasParts && state.part < stop.parts.length - 1) { state.part++; renderPartBar(stop); mountPlayer(stop); }
-      else markVisited(stop.id);
-    });
+    vid.addEventListener('ended', finish);
     vid.src = v.file;
     box.appendChild(vid);
     if (CONFIG.autoplayOnOpen) { const p = vid.play(); if (p && p.catch) p.catch(() => {}); }
   } else { useYouTube(); }
 }
+
+window.addEventListener('message', e => {
+  if (!state.onEnd || !/^https:\/\/www\.youtube(-nocookie)?\.com$/.test(e.origin)) return;
+  const f = els.player.querySelector('iframe');
+  if (!f || e.source !== f.contentWindow) return;
+  let d = e.data;
+  if (typeof d === 'string') { try { d = JSON.parse(d); } catch (err) { return; } }
+  if (!d) return;
+  const ended = (d.event === 'onStateChange' && d.info === 0) ||
+                (d.event === 'infoDelivery' && d.info && d.info.playerState === 0);
+  if (ended) state.onEnd();
+});
 
 function renderPartBar(stop) {
   const bar = $('#part-bar');
@@ -1224,6 +1271,8 @@ function closeStage() {
   const id = state.current;
   if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
   els.player.textContent = '';
+  state.onEnd = null;
+  setYtNote(null);
   els.stage.hidden = true;
   state.current = null;
   document.body.classList.remove('stage-open');
