@@ -127,7 +127,9 @@ body.stage-open{overflow:hidden}
 .stage-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,380px);gap:clamp(14px,2vw,26px);padding:clamp(12px,2vw,24px);min-height:0}
 .stage.theatre .stage-body,.stage.cases .stage-body{grid-template-columns:minmax(0,1fr)}
 .stage.theatre .stage-info,.stage.cases .stage-info{display:none}
-.player-wrap{min-height:0;min-width:0;display:flex;align-items:center;justify-content:center}
+.player-wrap{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center}
+.part-bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.stage.has-parts .player{width:min(100%,calc((100dvh - 190px) * 16 / 9))}
 .player{position:relative;aspect-ratio:16/9;width:min(100%,calc((100dvh - 128px) * 16 / 9));background:#000;border-radius:16px;overflow:hidden;border:3px solid var(--ink)}
 .player video,.player iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
 .player.is-placeholder{background:#07344d}
@@ -233,6 +235,7 @@ dialog .btn{color:var(--ink);border-color:var(--ink);background:#fff}
   .stage-body{grid-template-columns:minmax(0,1fr);overflow:auto}
   .stage-info{overflow:visible}
   .player{width:100%}
+  .stage.has-parts .player{width:100%}
 }
 @media (max-width:860px){
   .trail{grid-template-columns:1fr;gap:2px}
@@ -786,7 +789,7 @@ npx expo start</code></pre>
     </div>
   </div>
   <div class="stage-body">
-    <div class="player-wrap"><div class="player" id="player"></div></div>
+    <div class="player-wrap"><div class="player" id="player"></div><div class="part-bar" id="part-bar" role="group" aria-label="Video parts" hidden></div></div>
     <aside class="stage-info" id="stage-info" aria-label="About this stop">
       <p>Presented by <b id="stage-speaker"></b></p>
       <p>Planned clip length <b id="stage-dur"></b></p>
@@ -847,7 +850,7 @@ npx expo start</code></pre>
    EDIT THIS BLOCK. The tour, presenter panel and README are built from it.
    ===================================================================== */
 const CONFIG = {
-  timeLimitMinutes: 36,   // matches the team's planned agenda — confirm against the actual module time cap; can also be changed live in the presenter panel
+  timeLimitMinutes: 30,   // confirmed with the lecturer — can also be changed live in the presenter panel
   autoplayOnOpen: true,   // a clip starts when a stop is opened, never on page load
   autostartTimer: true    // the clock starts when the first stop opens
 };
@@ -866,10 +869,10 @@ const LINKS = [
   { label: "Admin dashboard",             url: "https://sanccob-admin-dashboard.vercel.app/", note: "Next.js on Vercel" },
   { label: "API base URL",                url: "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net", note: "ASP.NET Core on Azure App Service" },
   { label: "API documentation (Swagger)", url: "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net/swagger/index.html", note: "Every endpoint, with a try-it panel" },
-  { label: "Mobile app for iOS",          url: "https://testflight.apple.com/join/SgfXfQVq", note: "TestFlight invite link" },
-  { label: "Mobile app for Android",      url: "https://expo.dev/accounts/funimms-team/projects/volunteer-mobile-app/builds/558e2fac-20bd-4f52-a88f-bf2367ea9cef", note: "APK download link" },
-  { label: "Backend repository",          url: "https://github.com/ConservaTech-SANCCOB/ConservaTech_SANCCOB_Backend", note: "" },
-  { label: "Frontend repository",         url: "https://github.com/ConservaTech-SANCCOB/ConservaTech_SANCCOB_Frontend", note: "Dashboard and mobile app" }
+  { label: "Mobile app for iOS",          url: "", note: "TestFlight invite link" },
+  { label: "Mobile app for Android",      url: "", note: "APK download link" },
+  { label: "Backend repository",          url: "", note: "" },
+  { label: "Frontend repository",         url: "", note: "Dashboard and mobile app" }
 ];
 
 /* Stops, in tour order. video.file is tried first (works offline).
@@ -897,7 +900,10 @@ const STOPS = [
     rubric: ["Requirements alignment", "Architecture and system design"], code: ["AppDbContext", "Skill", "VolunteerSkillProgress"] },
 
   { id: "volunteer", name: "Pen A", sub: "Mobile App — demo and code", speaker: "Pabi (demo) and TK (code)", mins: 8,
-    video: { file: "videos/03-mobile-app.mp4", youtube: "" },
+    parts: [
+      { label: "Demo", speaker: "Pabi", video: { file: "videos/03-mobile-app.mp4", youtube: "" } },
+      { label: "Code", speaker: "TK", video: { file: "videos/03b-mobile-code.mp4", youtube: "" } }
+    ],
     points: [
       "Demo (Pabi) — designed and built this app: activation and sign-in, weekly availability, upcoming shifts, change/cancel requests, hours and training progress, trainer mode (PIN, select name, sign off a skill).",
       "Code (TK) — one TypeScript codebase for iOS and Android, Expo Router (file-based navigation, folders are the nav structure).",
@@ -910,7 +916,7 @@ const STOPS = [
     code: ["src/app", "src/utils/api.ts", "src/services/vacancies.ts", "useTrainerSignOut.ts"] },
 
   { id: "admin", name: "Aviary", sub: "Web App — demo and code", speaker: "Lofentse", mins: 8,
-    video: { file: "videos/04-web-app.mp4", youtube: "" },
+    video: { file: "videos/04-web-app.mp4", youtube: "https://youtu.be/hZy9RwO-2H4" },
     points: [
       "Demo — dashboard overview, create a volunteer (activation email), schedule a shift, generate and publish a roster, approve or decline a change request and watch a vacancy reopen, live admin notifications arriving in real time.",
       "Code — Next.js App Router structure, how a page calls the backend, and how the admin notifications hook connects over SignalR.",
@@ -920,7 +926,10 @@ const STOPS = [
     code: ["web-app/app/(admin)", "lib/api/dashboard.ts", "useAdminNotifications.ts"] },
 
   { id: "hood", name: "ICU", sub: "Backend Code", speaker: "Funi and Max", mins: 10,
-    video: { file: "videos/05-backend-code.mp4", youtube: "" },
+    parts: [
+      { label: "Part 1", speaker: "Funi", video: { file: "videos/05-backend-code.mp4", youtube: "" } },
+      { label: "Part 2", speaker: "Max", video: { file: "videos/05b-roster-engine.mp4", youtube: "" } }
+    ],
     points: [
       "Funi — layered API (controllers, services, repositories, EF Core), signed JWTs with server-side revocation on logout, and the trainer identity redesign: a shared PIN issues a general token, picking your name exchanges it for one carrying a verified trainer id, so sign-off can't be faked.",
       "Funi — real-time admin notifications over SignalR: a change request, a shift going vacant, or a new volunteer registering pushes live to every connected admin, authenticated over the same JWT.",
@@ -995,7 +1004,7 @@ const MAIN = STOPS.filter(s => !s.bonus);
 const byId = Object.fromEntries(STOPS.map(s => [s.id, s]));
 const numOf = s => s.bonus ? '\u2605' : String(MAIN.indexOf(s) + 1);
 
-const state = { visited: new Set(), current: null, limit: CONFIG.timeLimitMinutes, lastFocus: null };
+const state = { visited: new Set(), current: null, part: 0, limit: CONFIG.timeLimitMinutes, lastFocus: null };
 const timer = { base: 0, t0: 0, running: false };
 const KEY = 'sanccob-tour-v1';
 
@@ -1121,9 +1130,9 @@ function ytEmbed(input) {
   return 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1&playsinline=1' + (CONFIG.autoplayOnOpen ? '&autoplay=1' : '');
 }
 
-function showPlaceholder(stop) {
+function showPlaceholder(stop, v) {
   const box = els.player; box.textContent = ''; box.classList.add('is-placeholder');
-  const file = (stop.video && stop.video.file) || 'videos/your-clip.mp4';
+  const file = (v && v.file) || (stop.video && stop.video.file) || 'videos/your-clip.mp4';
   box.innerHTML = `<div class="ph"><svg class="ph-peng" viewBox="0 0 40 58" aria-hidden="true"><use href="#penguin"/></svg>
     <p class="ph-title">Clip not added yet</p>
     <p>Save the recording as <code>${esc(file)}</code> next to this page, or paste a YouTube link into <code>STOPS</code> in the page's config.</p></div>`;
@@ -1142,11 +1151,12 @@ function mountPlayer(stop) {
   const box = els.player;
   box.textContent = ''; box.className = 'player';
   if (stop.type === 'cases') { renderCases(box); return; }
-  const v = stop.video || {};
+  const hasParts = Array.isArray(stop.parts) && stop.parts.length > 0;
+  const v = (hasParts ? stop.parts[state.part].video : stop.video) || {};
   const useYouTube = () => {
     if (state.current !== stop.id) return;
     const src = ytEmbed(v.youtube);
-    if (!src) { showPlaceholder(stop); return; }
+    if (!src) { showPlaceholder(stop, v); return; }
     box.textContent = ''; box.classList.remove('is-placeholder');
     const f = document.createElement('iframe');
     f.src = src; f.title = stop.name + ' video'; f.allow = 'autoplay; fullscreen; picture-in-picture'; f.allowFullscreen = true;
@@ -1157,11 +1167,23 @@ function mountPlayer(stop) {
     vid.controls = true; vid.playsInline = true; vid.preload = 'metadata';
     vid.setAttribute('aria-label', stop.name + ' video');
     vid.addEventListener('error', useYouTube, { once: true });
-    vid.addEventListener('ended', () => { markVisited(stop.id); });
+    vid.addEventListener('ended', () => {
+      if (hasParts && state.part < stop.parts.length - 1) { state.part++; renderPartBar(stop); mountPlayer(stop); }
+      else markVisited(stop.id);
+    });
     vid.src = v.file;
     box.appendChild(vid);
     if (CONFIG.autoplayOnOpen) { const p = vid.play(); if (p && p.catch) p.catch(() => {}); }
   } else { useYouTube(); }
+}
+
+function renderPartBar(stop) {
+  const bar = $('#part-bar');
+  if (!stop || !Array.isArray(stop.parts)) { bar.hidden = true; bar.textContent = ''; els.stage.classList.remove('has-parts'); return; }
+  els.stage.classList.add('has-parts');
+  bar.hidden = false;
+  bar.innerHTML = stop.parts.map((p, i) =>
+    `<button class="btn" data-part="${i}" aria-pressed="${i === state.part}">${esc(p.label)}: ${esc(p.speaker)}</button>`).join('');
 }
 
 function setInert(on) { els.header.inert = on; els.main.inert = on; }
@@ -1171,6 +1193,7 @@ function openStop(id) {
   if (state.current && state.current !== id) markVisited(state.current);
   else if (!state.current) state.lastFocus = document.activeElement;
   state.current = id;
+  state.part = 0;
 
   $('#stage-num').textContent = numOf(stop);
   $('#stage-title').textContent = stop.name;
@@ -1189,6 +1212,7 @@ function openStop(id) {
   els.stage.hidden = false;
   document.body.classList.add('stage-open');
   setInert(true);
+  renderPartBar(stop);
   mountPlayer(stop);
   updateStageNav();
   if (CONFIG.autostartTimer) startTimer();
@@ -1302,6 +1326,14 @@ document.addEventListener('click', e => {
   else if (t.dataset.open) openStop(t.dataset.open);
 });
 els.back.addEventListener('click', closeStage);
+$('#part-bar').addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-part]');
+  const stop = state.current && byId[state.current];
+  if (!b || !stop || !stop.parts) return;
+  state.part = Number(b.dataset.part);
+  renderPartBar(stop);
+  mountPlayer(stop);
+});
 els.prev.addEventListener('click', () => step(-1));
 els.next.addEventListener('click', () => step(1));
 $('#stage-theatre').addEventListener('click', e => {
