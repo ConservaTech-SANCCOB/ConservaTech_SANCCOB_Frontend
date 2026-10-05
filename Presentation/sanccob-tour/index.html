@@ -895,7 +895,7 @@ const STOPS = [
 
   { id: "demos", name: "Pen A", sub: "Demos: web and mobile", speaker: "Lofentse (web) and Pabi (mobile)", mins: 10,
     parts: [
-      { label: "Web app", speaker: "Lofentse", video: { file: "videos/04-web-app.mp4", youtube: "https://youtu.be/hZy9RwO-2H4" } },
+      { label: "Web app", speaker: "Lofentse", video: { file: "videos/04-web-app.mp4", youtube: "" } },
       { label: "Mobile app", speaker: "Pabi", video: { file: "videos/03-mobile-app.mp4", youtube: "" } }
     ],
     points: [
@@ -950,7 +950,7 @@ const STOPS = [
     code: ["AuthService", "TokenService", "TrainerAccessService", "AdminNotificationService", "AdminNotificationHub", "RosterService", "AssignVolunteerAsync", "ShiftService"] },
 
   { id: "pipeline", name: "Release Point", sub: "GitHub + Testing", speaker: "Funi", mins: 3,
-    video: { file: "videos/06-github-testing.mp4", youtube: "https://youtu.be/_58kuYG-SxE" },
+    video: { file: "videos/06-github-testing.mp4", youtube: "" },
     points: [
       "Feature branches merge to main through pull requests. GitHub Actions runs the xUnit tests on every push, and deployment to Azure only happens after they pass.",
       "Vercel deploys the dashboard on every push to main, and Expo EAS builds the mobile app and sends JavaScript and UI fixes over the air — a native change like push notifications needs a full rebuild, a plain JS fix doesn't.",
