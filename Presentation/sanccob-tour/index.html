@@ -873,10 +873,10 @@ const LINKS = [
   { label: "Admin dashboard",             url: "https://sanccob-admin-dashboard.vercel.app/", note: "Next.js on Vercel" },
   { label: "API base URL",                url: "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net", note: "ASP.NET Core on Azure App Service" },
   { label: "API documentation (Swagger)", url: "https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net/swagger/index.html", note: "Every endpoint, with a try-it panel" },
-  { label: "Mobile app for iOS",          url: "", note: "TestFlight invite link" },
-  { label: "Mobile app for Android",      url: "", note: "APK download link" },
-  { label: "Backend repository",          url: "", note: "" },
-  { label: "Frontend repository",         url: "", note: "Dashboard and mobile app" }
+  { label: "Mobile app for iOS",          url: "https://testflight.apple.com/join/SgfXfQVq", note: "TestFlight invite link" },
+  { label: "Mobile app for Android",      url: "https://expo.dev/accounts/funimms-team/projects/volunteer-mobile-app/builds/558e2fac-20bd-4f52-a88f-bf2367ea9cef", note: "APK download link" },
+  { label: "Backend repository",          url: "https://github.com/ConservaTech-SANCCOB/ConservaTech_SANCCOB_Backend", note: "" },
+  { label: "Frontend repository",         url: "https://github.com/ConservaTech-SANCCOB/ConservaTech_SANCCOB_Frontend", note: "Dashboard and mobile app" }
 ];
 
 /* Stops, in tour order. video.file is tried first (works offline).
@@ -893,16 +893,16 @@ const STOPS = [
     ],
     rubric: ["Group dynamics and coordination", "Communication and professionalism"], code: [] },
 
-  { id: "demos", name: "Pen A", sub: "Demos — web and mobile", speaker: "Lofentse (web) and Pabi (mobile)", mins: 10,
+  { id: "demos", name: "Pen A", sub: "Demos: web and mobile", speaker: "Lofentse (web) and Pabi (mobile)", mins: 10,
     parts: [
       { label: "Web app", speaker: "Lofentse", video: { file: "videos/04-web-app.mp4", youtube: "https://youtu.be/hZy9RwO-2H4" } },
       { label: "Mobile app", speaker: "Pabi", video: { file: "videos/03-mobile-app.mp4", youtube: "" } }
     ],
     points: [
-      "Web app demo (Lofentse) — dashboard overview, create a volunteer (activation email), schedule a shift, generate and publish a roster, approve or decline a change request and watch a vacancy reopen, live admin notifications arriving in real time.",
+      "Web app demo (Lofentse): dashboard overview, create a volunteer (activation email), schedule a shift, generate and publish a roster, approve or decline a change request and watch a vacancy reopen, live admin notifications arriving in real time.",
       "Reports and conservation-impact figures on the dashboard come from the same live endpoint, not a separate or mocked source.",
-      "Mobile app demo (Pabi) — activation and sign-in, weekly availability, upcoming shifts, change and cancel requests, hours and training progress.",
-      "Trainer mode on the mobile app — enter the staff PIN, choose your name, sign off a skill."
+      "Mobile app demo (Pabi): activation and sign-in, weekly availability, upcoming shifts, change and cancel requests, hours and training progress.",
+      "Trainer mode on the mobile app: enter the staff PIN, choose your name, sign off a skill."
     ],
     rubric: ["Technical demo and implementation", "Requirements alignment"],
     code: [] },
@@ -910,7 +910,7 @@ const STOPS = [
   { id: "database", name: "Quarantine Zone", sub: "Database", speaker: "TK", mins: 3,
     video: { file: "videos/02-database.mp4", youtube: "" },
     points: [
-      "The brief, in short: three kinds of user — volunteers, coordinators, trainers — each with a different job to do in the system.",
+      "The brief, in short: three kinds of user - volunteers, coordinators, trainers - each with a different job to do in the system.",
       "How the brief became the schema: User to Volunteer to Availability to Shift to Roster to RosterAssignment, with Skill and VolunteerSkillProgress gating which shifts a volunteer can take.",
       "Which rules live in the database itself, and which are enforced in code above it.",
       "A real challenge: a duplicate skill catalog (two full sets of the same skills under old and corrected category names) that silently broke sign-off visibility for a few volunteers — found it, traced it, and know exactly what it takes to clean up."
