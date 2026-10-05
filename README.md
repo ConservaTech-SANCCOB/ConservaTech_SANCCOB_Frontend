@@ -46,6 +46,28 @@ To install the test build:
 The TestFlight build connects to the live backend and supports the current mobile functionality, including push notifications.
 
 ---
+# Test Login Details
+
+## Admin Account
+
+```text
+Email: <cathy@sanccob.co.za>
+Password: <PasswordForCathy>
+```
+
+## Volunteer Account
+
+```text
+Email: <funimaps04@gmail.comL>
+Password: <PasswordFor@Funi04>
+```
+
+## Staff / Trainer PIN
+
+```text
+Staff PIN: <123456>
+```
+---
 # Project Demo & Interactive Tour
 
 A full demonstration of the **SANCCOB Volunteer Application and Management System** is available on YouTube:
@@ -60,6 +82,7 @@ An interactive system tour is also available online:
 ## Table of Contents
 
 - [Live Applications](#live-applications)
+- [Test Login Details](#test-login-details)
 - [Project Demo & Interactive Tour](#project-demo--interactive-tour)
 - [Frontend Architecture](#frontend-architecture)
 - [Shared Backend Integration](#shared-backend-integration)
