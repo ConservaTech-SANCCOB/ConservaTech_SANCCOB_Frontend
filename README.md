@@ -51,21 +51,21 @@ The TestFlight build connects to the live backend and supports the current mobil
 ## Admin Account
 
 ```text
-Email: <cathy@sanccob.co.za>
-Password: <PasswordForCathy>
+Email: cathy@sanccob.co.za
+Password: PasswordForCathy
 ```
 
 ## Volunteer Account
 
 ```text
-Email: <funimaps04@gmail.comL>
-Password: <PasswordFor@Funi04>
+Email: funimaps04@gmail.com
+Password: PasswordFor@Funi04
 ```
 
 ## Staff / Trainer PIN
 
 ```text
-Staff PIN: <123456>
+Staff PIN: 123456
 ```
 ---
 # Project Demo & Interactive Tour
