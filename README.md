@@ -58,6 +58,7 @@ The TestFlight build connects to the live backend and supports the current mobil
 - [Notifications](#notifications)
 - [User Experience and Feedback](#user-experience-and-feedback)
 - [Testing](#testing)
+- [Known Limitations and Planned Improvements](#known-limitations-and-planned-improvements)
 - [Deployment](#deployment)
 - [Technology Rationale](#technology-rationale)
 
@@ -697,6 +698,55 @@ Testing should be run before deployment alongside normal development checks such
 
 Where applicable, tests cover frontend logic and behaviour independently from the production backend environment.
 
+---
+# Known Limitations and Planned Improvements
+
+The current frontend applications are fully integrated with the backend for the implemented workflows. The following improvements have been identified for future development.
+
+## Roster CRUD Functionality
+
+The admin dashboard currently supports roster-related workflows, including roster generation and management.
+
+A future improvement is to provide complete CRUD functionality for roster records through the user interface.
+
+This would allow administrators to:
+
+- create rosters manually;
+- open and view individual rosters;
+- edit existing roster information;
+- delete rosters where permitted;
+- manage roster records without relying only on the automatic generation workflow.
+
+The frontend functionality will depend on the corresponding backend roster CRUD endpoints.
+
+## Dark Theme
+
+A dark theme is planned for the frontend applications.
+
+This would allow users to switch between light and dark visual themes while maintaining:
+
+- consistent SANCCOB branding;
+- readable text and interface contrast;
+- clear form controls;
+- accessible status indicators;
+- consistent colours across pages and components.
+
+Theme preferences could also be persisted so that the user's selected theme is restored when the application is reopened.
+
+## Login Page Slideshow
+
+A visual slideshow is planned for the login experience.
+
+The slideshow could display SANCCOB-related imagery and conservation content while users sign in, providing a more engaging and branded first impression.
+
+The slideshow should be designed so that it does not interfere with:
+
+- login form readability;
+- accessibility;
+- authentication error messages;
+- page performance.
+
+This feature would primarily enhance the visual design and branding of the authentication experience.
 ---
 
 # Deployment
