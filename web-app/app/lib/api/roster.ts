@@ -30,11 +30,31 @@ export interface Roster {
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
-// Request body for generating an automated roster for the week starting on weekStartDate.
+// Request body for generating an automated roster for the week starting on
+// weekStartDate. includedVolunteerIds is confirmed real (Swagger, 5 Oct 2026)
+// — IMPORTANT: it's an INCLUDE list, not an exclude list. Send the userIds
+// you want considered for this run; omit to presumably mean "everyone in the
+// pool" (unconfirmed — verify against a real response before relying on it).
 //</summary>
 //-----------------------------------------------------------------------------------------------//
 export interface GenerateRosterPayload {
   weekStartDate: string;
+  includedVolunteerIds?: number[];
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Matches RosterGenerationVolunteerDto (GET /api/Rosters/generation-pool) — a
+// week-scoped volunteer pool, distinct from volunteers.ts's Volunteer type
+// (no weeklyHours/attendanceRate/etc., since this endpoint exists
+// specifically for the generation wizard).
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+export interface RosterGenerationVolunteer {
+  userId: number;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
 }
 
 //-----------------------------------------------------------------------------------------------//
@@ -83,6 +103,27 @@ export async function fetchWeeklyRoster(
     token,
     { method: "GET" },
     "Unable to fetch weekly roster"
+  );
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// GET /api/Rosters/generation-pool?weekStartDate=
+// Fetches the volunteers eligible for roster generation in a given week. Use
+// this for the generation wizard instead of volunteers.ts's fetchVolunteers()
+// — it's scoped to who's actually eligible that week, not every volunteer in
+// the system.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+export async function fetchGenerationPool(
+  token: string | null,
+  weekStartDate: string
+): Promise<RosterGenerationVolunteer[]> {
+  return apiFetch<RosterGenerationVolunteer[]>(
+    `/api/Rosters/generation-pool?weekStartDate=${encodeURIComponent(weekStartDate)}`,
+    token,
+    { method: "GET" },
+    "Unable to fetch the roster generation pool"
   );
 }
 

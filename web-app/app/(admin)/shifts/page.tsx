@@ -142,7 +142,7 @@ export default function ShiftSchedulingPage() {
  //------------------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Lookup of shiftId -> vacancy, used to find how many volunteers are assigned.
+  // Lookup of shiftId  vacancy, used to find how many volunteers are assigned.
   //</summary>
   const vacancyMap = useMemo(() => {
     const map = new Map<number, Vacancy>();
@@ -153,7 +153,7 @@ export default function ShiftSchedulingPage() {
 //---------------------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Lookup of "YYYY-MM-DD" -> shifts on that day, used to fill each calendar cell.
+  // Lookup of "YYYY-MM-DD" shifts on that day, used to fill each calendar cell.
   //</summary>
   const shiftsByDate = useMemo(() => {
     const map = new Map<string, Shift[]>();

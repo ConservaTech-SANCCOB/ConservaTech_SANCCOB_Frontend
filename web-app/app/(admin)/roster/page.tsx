@@ -6,10 +6,12 @@ import { fetchVolunteers, Volunteer } from "../../lib/api/volunteers";
 import { fetchShiftsForWeek, fetchVacanciesForWeek, Shift, Vacancy } from "../../lib/api/shifts";
 import {
   fetchWeeklyRoster,
+  fetchGenerationPool,
   generateAutomatedRoster,
   publishRoster,
   Roster,
   RosterAssignment,
+  RosterGenerationVolunteer,
 } from "../../lib/api/roster";
 
 // Helper: Get Monday of the current or given week, normalized to local
@@ -31,16 +33,6 @@ function getMonday(d: Date = new Date()): Date {
   return date;
 }
 
-// Builds "YYYY-MM-DD" from the Date's LOCAL calendar fields.
-// NOTE: do NOT use d.toISOString().split("T")[0] here — toISOString()
-// converts to UTC first. In a UTC+2 timezone (e.g. South Africa), any local
-// time between 00:00 and 01:59 gets shifted back to the previous calendar
-// day once converted to UTC, silently turning a Monday into Sunday. That
-// off-by-one was why POST /api/Rosters/generate rejected the date with
-// "The roster week must start on a Monday" even though getMonday() had
-// computed the correct Monday.
-
-//-----------------------------------------------------------------------------------------------//
 //<summary>
 // Formats a Date using its local calendar fields as YYYY-MM-DD without converting through UTC.
 //</summary>
@@ -85,6 +77,8 @@ export default function RosterPage() {
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => getMonday());
 
   // Shared Data States
+  // Full volunteer list. Not the generation pool: it is kept so RosterMatrix
+  // can look up each assigned volunteer's name and initials.
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   // Only used to show "X volunteers assigned" per shift card below. Fetched
@@ -99,13 +93,17 @@ export default function RosterPage() {
 
   // Wizard States
   const [step, setStep] = useState<1 | 2>(1);
-  const [selectedVolunteers, setSelectedVolunteers] = useState<Volunteer[]>([]);
+  // Week-scoped pool from GET /api/Rosters/generation-pool  NOT the full
+  // volunteers.ts list. `selectedVolunteers` means "currently included in
+  // this generation run"; the minus button removes someone from this list,
+  // matching the real includedVolunteerIds payload direction (see roster.ts).
+  const [selectedVolunteers, setSelectedVolunteers] = useState<RosterGenerationVolunteer[]>([]);
   const [expandedSection, setExpandedSection] = useState<"volunteers" | "shifts" | null>("volunteers");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
-  // Confirm before jumping from the Weekly Roster tab into the Generate flow —
+  // Confirm before jumping from the Weekly Roster tab into the Generate flow 
   // that tab has no review step of its own, unlike the Generate tab's own
   // "Generate Roster for {weekLabel}" button, which already sits behind
   // Step 1 (Review Inputs).
@@ -119,19 +117,22 @@ export default function RosterPage() {
         setIsLoading(true);
         const weekStr = formatDateISO(currentWeekStart);
 
-        const [vData, sData, rData, vacData] = await Promise.all([
+        const [vData, poolData, sData, rData, vacData] = await Promise.all([
+          // Full list, used by RosterMatrix for names and initials.
           fetchVolunteers(token),
+          // Volunteers eligible for generation in this specific week.
+          fetchGenerationPool(token, weekStr),
           fetchShiftsForWeek(token, weekStr),
           // No roster exists yet for this week -> backend 404s. That's expected,
           // not an error, so we swallow it and just show an empty roster.
           fetchWeeklyRoster(token, weekStr).catch(() => null),
-          // Don't let a vacancies hiccup break the whole page — the assigned
+          // Don't let a vacancies hiccup break the whole page the assigned
           // count on each shift card just falls back to "fully assigned".
           fetchVacanciesForWeek(token, weekStr).catch(() => []),
         ]);
 
         setVolunteers(vData);
-        setSelectedVolunteers(vData);
+        setSelectedVolunteers(poolData);
         setShifts(sData);
         setRoster(rData);
         setVacancies(vacData);
@@ -161,12 +162,11 @@ export default function RosterPage() {
     });
   };
 
-  // Exclude volunteer from generation
-  // NOTE: this only affects the on-screen "pool" list. The real
-  // POST /api/Rosters/generate endpoint has no field to exclude volunteers,
-  // so this exclusion is NOT sent to the backend yet (see roster.ts).
-  const handleRemoveVolunteer = (id: string) => {
-    setSelectedVolunteers((prev) => prev.filter((v) => v.id !== id));
+  // Remove volunteer from this generation run. Now REAL — whoever remains in
+  // `selectedVolunteers` becomes the `includedVolunteerIds` sent to the
+  // backend (see handleStartGeneration below).
+  const handleRemoveVolunteer = (userId: number) => {
+    setSelectedVolunteers((prev) => prev.filter((v) => v.userId !== userId));
   };
 
   // Trigger Generation
@@ -175,20 +175,18 @@ export default function RosterPage() {
     setIsGenerating(true);
     setGenerationProgress(15);
 
+    // Progress bar is cosmetic: it climbs to 90% while the request runs,
+    // then jumps to 100% once the backend responds.
     const interval = setInterval(() => {
       setGenerationProgress((prev) => (prev >= 90 ? 90 : prev + 25));
     }, 300);
 
-    if (selectedVolunteers.length < volunteers.length) {
-      console.warn(
-        "[roster] Excluded volunteers were selected in the UI, but POST /api/Rosters/generate " +
-          "does not support excluding volunteers yet — generation will consider the full pool."
-      );
-    }
-
     try {
       const weekStr = formatDateISO(currentWeekStart);
-      const result = await generateAutomatedRoster(token, { weekStartDate: weekStr });
+      const result = await generateAutomatedRoster(token, {
+        weekStartDate: weekStr,
+        includedVolunteerIds: selectedVolunteers.map((v) => v.userId),
+      });
 
       setRoster(result);
       setGenerationProgress(100);
@@ -296,6 +294,7 @@ export default function RosterPage() {
                   ›
                 </button>
               </div>
+              {/* Roster status badge: Published (green), generated but unpublished (amber), none (grey) */}
               {!isLoading && (
                 <span
                   className={`text-xs font-semibold px-3 py-1 rounded-full border ${
@@ -371,6 +370,7 @@ export default function RosterPage() {
               </div>
             </div>
 
+            {/* Step indicator: current step is blue, completed step is green */}
             <div className="flex items-center gap-2 text-xs font-semibold">
               <span className={`px-3 py-1 rounded-full ${step === 1 ? "bg-blue-700 text-white" : "bg-emerald-100 text-emerald-700"}`}>
                 1. Review Inputs
@@ -389,14 +389,6 @@ export default function RosterPage() {
               <div className="bg-blue-50 border border-blue-200 text-blue-800 text-xs px-4 py-3 rounded-xl">
                 Generating roster for <span className="font-bold">{weekLabel}</span> based on availability and skill rules.
               </div>
-
-              {selectedVolunteers.length < volunteers.length && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-4 py-3 rounded-xl">
-                  Heads up: excluding volunteers here is not yet supported by the backend
-                  (<code>POST /api/Rosters/generate</code> only accepts a week). Generation will
-                  still consider every volunteer in the pool.
-                </div>
-              )}
 
               {/*------------------------------------ Input Statistics ----------------------------------------------------*/}
 
@@ -419,29 +411,37 @@ export default function RosterPage() {
 
                 {expandedSection === "volunteers" && (
                   <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-white">
-                    {selectedVolunteers.map((v) => (
-                      <div
-                        key={v.id}
-                        className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl p-3 hover:border-slate-300 transition-all"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#0B2447] text-white font-bold text-xs flex items-center justify-center shrink-0">
-                            {v.initials}
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-800">{v.name}</p>
-                            <p className="text-[10px] text-slate-400">{v.email}</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveVolunteer(v.id)}
-                          className="w-6 h-6 rounded-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 flex items-center justify-center font-bold text-sm transition-all"
-                          title="Exclude volunteer"
+                    {selectedVolunteers.map((v) => {
+                      // The pool items only carry firstName / lastName / email,
+                      // so the display name and initials are built here.
+                      const name = `${v.firstName ?? ""} ${v.lastName ?? ""}`.trim() || v.email || "Volunteer";
+                      const initials =
+                        ((v.firstName?.charAt(0) ?? "") + (v.lastName?.charAt(0) ?? "")).toUpperCase() ||
+                        name.charAt(0).toUpperCase();
+                      return (
+                        <div
+                          key={v.userId}
+                          className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl p-3 hover:border-slate-300 transition-all"
                         >
-                          −
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#0B2447] text-white font-bold text-xs flex items-center justify-center shrink-0">
+                              {initials}
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-800">{name}</p>
+                              <p className="text-[10px] text-slate-400">{v.email}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveVolunteer(v.userId)}
+                            className="w-6 h-6 rounded-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 flex items-center justify-center font-bold text-sm transition-all"
+                            title="Remove from this generation run"
+                          >
+                            −
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -464,6 +464,7 @@ export default function RosterPage() {
                         No shifts scheduled for {weekLabel}.
                       </p>
                     ) : (
+                      // Sorted by date, then by time slot, before rendering
                       [...shifts]
                         .sort((a, b) =>
                           a.shiftDate === b.shiftDate
@@ -528,7 +529,10 @@ export default function RosterPage() {
               </div>
 
               {/* Roster Matrix */}
-              <RosterMatrix volunteers={selectedVolunteers} assignments={assignments} mondayDate={currentWeekStart} />
+              {/* Full volunteers list (has name/initials already computed), not
+                  the generation-pool selection the matrix filters down to
+                  whoever actually has an assignment. */}
+              <RosterMatrix volunteers={volunteers} assignments={assignments} mondayDate={currentWeekStart} />
 
               {/* Footer */}
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
@@ -550,7 +554,8 @@ export default function RosterPage() {
         </div>
       )}
 
-      {/* GENERATE CONFIRM MODAL (Weekly Roster tab only) */}
+      {/*------------------------------------ Generate Confirm Modal (Weekly Roster tab only) ----------------------------------------------------*/}
+
       {isGenerateConfirmOpen && (
         <div
           className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
@@ -596,7 +601,8 @@ export default function RosterPage() {
         </div>
       )}
 
-      {/* PUBLISH MODAL */}
+      {/*------------------------------------ Publish Modal ----------------------------------------------------*/}
+
       {isPublishModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setIsPublishModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
@@ -673,7 +679,7 @@ function shiftSessionLabel(timeSlot: string): string {
 }
 
 // /api/Vacancies never returns a shift with 0 remaining capacity, so a shift
-// with no matching vacancy entry is treated as fully assigned — same default
+// with no matching vacancy entry is treated as fully assigned same default
 // used elsewhere in this project for that gap.
 //-----------------------------------------------------------------------------------------------//
 //<summary>
@@ -703,6 +709,8 @@ function ShiftDetailCard({
   shift: Shift;
   assignedInfo: { assigned: number; capacity: number };
 }) {
+  // Parsed as local midnight ("T00:00:00") so the day number and weekday
+  // can't slip a day in timezones ahead of UTC.
   const date = new Date(`${shift.shiftDate.slice(0, 10)}T00:00:00`);
   const dayNum = date.getDate();
   const dayName = date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
@@ -710,11 +718,13 @@ function ShiftDetailCard({
 
   return (
     <div className="flex items-center gap-4 bg-slate-50 border border-slate-200/80 rounded-xl p-4">
+      {/* Date tile */}
       <div className="w-14 h-14 rounded-xl bg-blue-700 text-white flex flex-col items-center justify-center shrink-0">
         <span className="text-lg font-bold leading-none">{dayNum}</span>
         <span className="text-[10px] font-semibold leading-none mt-1">{dayName}</span>
       </div>
 
+      {/* Session, time slot and location */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-slate-800">
           {shiftSessionLabel(shift.timeSlot)}{" "}
@@ -726,6 +736,7 @@ function ShiftDetailCard({
         </p>
       </div>
 
+      {/* Assigned / capacity badge: green when full, amber when places remain */}
       <div
         className={`text-right shrink-0 px-3 py-1.5 rounded-xl border ${
           isFull
@@ -756,10 +767,6 @@ function LocationIcon({ className }: { className?: string }) {
   );
 }
 
-//---------------------------------------------------------------------------------------------------------------//
-/* ============================================================
-   SHARED COMPONENTS
-   ============================================================ */
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
@@ -804,12 +811,11 @@ function RosterMatrix({
 
   // Only show volunteers who actually have at least one assignment this week,
   // so the table reflects the real roster rather than every volunteer in the pool.
-  // NOTE: comparing as strings since Volunteer.id's exact type wasn't visible
-  // when this was written — confirm it matches RosterAssignment.userId (number)
-  // and simplify this comparison once verified.
+  
   const assignedUserIds = new Set(assignments.map((a) => String(a.userId)));
   const rosteredVolunteers = volunteers.filter((v) => assignedUserIds.has(String(v.id)));
 
+  // Finds the assignment (if any) for one volunteer on one day
   function findAssignment(volunteerId: Volunteer["id"], iso: string): RosterAssignment | undefined {
     return assignments.find((a) => String(a.userId) === String(volunteerId) && a.shiftDate === iso);
   }
@@ -817,6 +823,7 @@ function RosterMatrix({
   return (
     <div className="overflow-x-auto border border-slate-100 rounded-2xl">
       <table className="w-full text-left text-xs">
+        {/* Header row: volunteer column plus Monday to Sunday */}
         <thead className="bg-slate-50/80 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
           <tr>
             <th className="py-3 px-4">Volunteer</th>
@@ -825,6 +832,7 @@ function RosterMatrix({
             ))}
           </tr>
         </thead>
+        {/* One row per rostered volunteer */}
         <tbody className="divide-y divide-slate-100">
           {rosteredVolunteers.length === 0 ? (
             <tr>
@@ -843,6 +851,7 @@ function RosterMatrix({
                     <span className="font-semibold text-slate-800">{v.name}</span>
                   </div>
                 </td>
+                {/* Day cells: the assignment card, or a dash if none */}
                 {days.map((d) => {
                   const a = findAssignment(v.id, d.iso);
                   return (
