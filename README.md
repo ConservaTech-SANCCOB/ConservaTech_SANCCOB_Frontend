@@ -46,17 +46,21 @@ To install the test build:
 The TestFlight build connects to the live backend and supports the current mobile functionality, including push notifications.
 
 ---
-# Project Demo
+# Project Demo & Interactive Tour
 
-A full demonstration of the SANCCOB Volunteer Application and Management System is available on YouTube:
+A full demonstration of the **SANCCOB Volunteer Application and Management System** is available on YouTube:
 
 [Watch the SANCCOB Project Demo](https://youtu.be/XTRUr19LNcs)
+
+An interactive system tour is also available online:
+
+[View the SANCCOB Interactive Tour](https://sanccob-tour.vercel.app/#tour)
 ---
 
 ## Table of Contents
 
 - [Live Applications](#live-applications)
-- [Project Demo](#project-demo)
+- [Project Demo & Interactive Tour](#project-demo--interactive-tour)
 - [Frontend Architecture](#frontend-architecture)
 - [Shared Backend Integration](#shared-backend-integration)
 - [Admin Dashboard](#admin-dashboard)
