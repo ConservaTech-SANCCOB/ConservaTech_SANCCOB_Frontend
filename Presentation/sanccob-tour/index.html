@@ -883,7 +883,7 @@ const LINKS = [
    If it is missing, video.youtube is used (paste a full link or just the id).
    If neither works, a friendly placeholder shows. Speakers are placeholders: change them. */
 const STOPS = [
-  { id: "reception", name: "Reception", sub: "Intro", speaker: "The whole team, led by Funi", mins: 2,
+  { id: "reception", name: "Reception", sub: "Intro", speaker: "The team", mins: 2,
     video: { file: "videos/01-reception.mp4", youtube: "" },
     points: [
       "Who we are: five third-year students at The IIE, working together as ConservaTech.",
@@ -919,7 +919,7 @@ const STOPS = [
 
   { id: "frontend", name: "Aviary", sub: "Frontend Code — web and mobile", speaker: "Lofentse (web) and TK (mobile)", mins: 6,
     parts: [
-      { label: "Web app", speaker: "Lofentse", video: { file: "videos/04b-web-code.mp4", youtube: "https://www.youtube.com/watch?v=bGNuHYT_vwU" } },
+      { label: "Web app", speaker: "Lofentse", video: { file: "videos/04b-web-code.mp4", youtube: "https://youtu.be/bGNuHYT_vwU?si=YwWht_ZXyGpCrmsB" } },
       { label: "Mobile app", speaker: "TK", video: { file: "videos/03b-mobile-code.mp4", youtube: "" } }
     ],
     points: [
@@ -950,7 +950,7 @@ const STOPS = [
     code: ["AuthService", "TokenService", "TrainerAccessService", "AdminNotificationService", "AdminNotificationHub", "RosterService", "AssignVolunteerAsync", "ShiftService"] },
 
   { id: "pipeline", name: "Release Point", sub: "GitHub + Testing", speaker: "Funi", mins: 3,
-    video: { file: "videos/06-github-testing.mp4", youtube: "" },
+    video: { file: "videos/06-github-testing.mp4", youtube: "https://youtu.be/_58kuYG-SxE" },
     points: [
       "Feature branches merge to main through pull requests. GitHub Actions runs the xUnit tests on every push, and deployment to Azure only happens after they pass.",
       "Vercel deploys the dashboard on every push to main, and Expo EAS builds the mobile app and sends JavaScript and UI fixes over the air — a native change like push notifications needs a full rebuild, a plain JS fix doesn't.",
@@ -959,7 +959,7 @@ const STOPS = [
     rubric: ["GitHub and version control"],
     code: [".github/workflows/backend-ci.yml", "SANCCOB_Backend_API.Tests", "eas.json", "web-app/__tests__"] },
 
-  { id: "lessons", name: "Home Pen", sub: "Outro", speaker: "The whole team", mins: 2,
+  { id: "lessons", name: "Home Pen", sub: "Outro", speaker: "The team", mins: 2,
     video: { file: "videos/07-outro.mp4", youtube: "" },
     points: [
       "Agree the API contract early. Most integration bugs were mismatched names and shapes.",
