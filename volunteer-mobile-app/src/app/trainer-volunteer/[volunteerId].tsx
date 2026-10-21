@@ -88,7 +88,6 @@ export default function TrainerVolunteerScreen() {
       message: `Confirm that ${volunteerLabel} has completed "${skill.skillName}"? This is recorded under your name${attribution} and can't be undone from this app.`,
       confirmLabel: "Confirm",
       cancelLabel: "Cancel",
-      destructive: true,
     });
     if (confirmed) await applySignOff(skill);
   };
