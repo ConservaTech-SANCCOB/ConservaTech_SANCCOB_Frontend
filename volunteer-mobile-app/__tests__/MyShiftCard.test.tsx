@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
-import { Alert } from "react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { ConfirmProvider } from "../src/components/ConfirmProvider";
 import MyShiftCard from "../src/components/MyShiftCard";
 import { MyShift } from "../src/services/shifts";
 
@@ -17,21 +17,40 @@ const shift: MyShift = {
   location: "Penguin Pens",
 };
 
+// Press stays pending until a dialog choice
+async function pressToOpenDialog(element: Parameters<typeof fireEvent.press>[0]) {
+  const pressing = fireEvent.press(element);
+  await new Promise(setImmediate);
+  return { pressing };
+}
+
+async function chooseInDialog({ pressing }: { pressing: Promise<void> }, label: string) {
+  await fireEvent.press(screen.getByRole("button", { name: label }));
+  await act(async () => {
+    await pressing;
+  });
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
 describe("MyShiftCard details popup", () => {
   it("says the cancellation request is pending review", async () => {
-    jest.spyOn(Alert, "alert").mockImplementation(() => {});
-    await render(<MyShiftCard item={shift} cancellationPending />);
-
-    await fireEvent.press(screen.getByText("Penguin Pens"));
-
-    expect(Alert.alert).toHaveBeenCalledWith(
-      "Morning shift",
-      expect.stringContaining("Cancellation request pending review"),
-      [{ text: "Close", style: "cancel" }]
+    await render(
+      <ConfirmProvider>
+        <MyShiftCard item={shift} cancellationPending />
+      </ConfirmProvider>
     );
+
+    const dialog = await pressToOpenDialog(screen.getByText("Penguin Pens"));
+
+    expect(screen.getByText("Morning shift")).toBeOnTheScreen();
+    expect(screen.getByText(/Cancellation request pending review/)).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Close" })).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: "Cancel Shift" })).toBeNull();
+
+    await chooseInDialog(dialog, "Close");
+    expect(screen.queryByText("Morning shift")).toBeNull();
   });
 });

@@ -1,12 +1,13 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import { Alert } from "react-native";
 import SubmitAvailabilityScreen from "../src/app/(tabs)/bookings/submit-availability";
+import { ConfirmProvider } from "../src/components/ConfirmProvider";
 import { getMyAvailability, updateMyAvailability } from "../src/services/availability";
-import { showInfoToast } from "../src/utils/toast";
+import { showInfoToast, showSuccessToast } from "../src/utils/toast";
 
+const mockBack = jest.fn();
 jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
-  useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: mockBack }),
   useNavigation: () => ({ getParent: () => ({ setOptions: jest.fn() }) }),
   useFocusEffect: (effect: () => void) => jest.requireActual("react").useEffect(effect, [effect]),
 }));
@@ -19,18 +20,22 @@ const mockedUpdateMyAvailability = jest.mocked(updateMyAvailability);
 const cell = (label: string) => screen.getByRole("button", { name: label });
 const emptySubmitButton = async () => (await screen.findAllByText("Submit Availability")).at(-1)!;
 
-async function pressAlertButton(text: string) {
-  const buttons = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2] ?? [];
-  const button = buttons.find((b) => b.text === text);
-  if (!button) throw new Error(`No "${text}" button in the last alert`);
+// Press stays pending until a dialog choice
+async function pressToOpenDialog(element: Parameters<typeof fireEvent.press>[0]) {
+  const pressing = fireEvent.press(element);
+  await new Promise(setImmediate);
+  return { pressing };
+}
+
+async function chooseInDialog({ pressing }: { pressing: Promise<void> }, label: string) {
+  await fireEvent.press(screen.getByRole("button", { name: label }));
   await act(async () => {
-    await button.onPress?.();
+    await pressing;
   });
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   mockedGetMyAvailability.mockResolvedValue([]);
   mockedUpdateMyAvailability.mockResolvedValue(undefined);
 });
@@ -50,7 +55,8 @@ describe("Submit Availability", () => {
       { dayOfWeek: "Wednesday", timeSlot: "14:00-17:00" },
       { dayOfWeek: "Sunday", timeSlot: "08:00-17:00" },
     ]);
-    expect(Alert.alert).toHaveBeenLastCalledWith("Saved", "Your availability has been updated.", expect.any(Array));
+    expect(showSuccessToast).toHaveBeenLastCalledWith("Saved", "Your availability has been updated.");
+    expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
   it("picking both Morning and Afternoon selects Full Day instead", async () => {
@@ -67,16 +73,21 @@ describe("Submit Availability", () => {
   });
 
   it("warns before saving an empty grid, since that clears all availability", async () => {
-    await render(<SubmitAvailabilityScreen />);
+    await render(
+      <ConfirmProvider>
+        <SubmitAvailabilityScreen />
+      </ConfirmProvider>
+    );
 
-    await fireEvent.press(await emptySubmitButton());
+    const cancelled = await pressToOpenDialog(await emptySubmitButton());
 
-    expect(Alert.alert).toHaveBeenLastCalledWith("No availability selected", expect.any(String), expect.any(Array));
-    await pressAlertButton("Cancel");
+    expect(screen.getByText("No availability selected")).toBeOnTheScreen();
+    await chooseInDialog(cancelled, "Cancel");
+    expect(screen.queryByText("No availability selected")).toBeNull();
     expect(mockedUpdateMyAvailability).not.toHaveBeenCalled();
 
-    await fireEvent.press(await emptySubmitButton());
-    await pressAlertButton("Save");
+    const confirmed = await pressToOpenDialog(await emptySubmitButton());
+    await chooseInDialog(confirmed, "Save");
     expect(mockedUpdateMyAvailability).toHaveBeenCalledWith([]);
   });
 

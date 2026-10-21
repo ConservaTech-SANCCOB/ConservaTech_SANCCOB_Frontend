@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,7 +7,7 @@ import KeyboardAvoidingScreen from "../components/KeyboardAvoidingScreen";
 import { COLORS } from "../utils/colors";
 import { forgotPassword, resetPassword } from "../services/auth";
 import { getErrorMessage, getErrorStatus } from "../utils/api";
-import { showErrorToast } from "../utils/toast";
+import { showErrorToast, showSuccessToast } from "../utils/toast";
 import { logError } from "../utils/logError";
 import { resetTo } from "../utils/navigation";
 
@@ -22,16 +22,15 @@ export default function ForgotPasswordScreen() {
 
   const handleRequestCode = async () => {
     if (!email.trim()) {
-      Alert.alert("Email required", "Enter your email address.");
+      showErrorToast("Email required", "Enter your email address.");
       return;
     }
     setLoading(true);
     try {
       await forgotPassword(email.trim());
       // Same reply either way so emails stay private
-      Alert.alert("Check your email", "If an account exists with this email, a reset code has been sent.", [
-        { text: "OK", onPress: () => setStep("reset") },
-      ]);
+      showSuccessToast("Check your email", "If an account exists with this email, a reset code has been sent.");
+      setStep("reset");
     } catch (error) {
       logError("Forgot password error", error);
       showErrorToast("Couldn't send reset code", getErrorMessage(error, "Something went wrong. Try again in a moment."));
@@ -42,7 +41,7 @@ export default function ForgotPasswordScreen() {
 
   const handleReset = async () => {
     if (!resetCode || !newPassword) {
-      Alert.alert("Missing details", "Enter the reset code and a new password.");
+      showErrorToast("Missing details", "Enter the reset code and a new password.");
       return;
     }
     setLoading(true);

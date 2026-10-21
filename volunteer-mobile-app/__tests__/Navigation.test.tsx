@@ -1,6 +1,7 @@
 import { router, Stack } from "expo-router";
 import { act, fireEvent, renderRouter, screen } from "expo-router/testing-library";
-import { Alert, Text } from "react-native";
+import { Text } from "react-native";
+import { ConfirmProvider } from "../src/components/ConfirmProvider";
 import HomeScreen from "../src/app/(tabs)/home/index";
 import BookingsScreen from "../src/app/(tabs)/bookings/index";
 import RequestChangeScreen from "../src/app/request-change";
@@ -20,7 +21,11 @@ jest.mock("../src/services/vacancies");
 
 const stub = (label: string) => () => <Text>{label}</Text>;
 const routes = {
-  _layout: () => <Stack screenOptions={{ headerShown: false }} />,
+  _layout: () => (
+    <ConfirmProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </ConfirmProvider>
+  ),
   index: stub("Welcome"),
   login: LoginScreen,
   "request-change": RequestChangeScreen,
@@ -46,7 +51,6 @@ async function pressTab(name: string) {
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date(2026, 8, 25, 12, 0, 0), advanceTimers: true });
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   jest.mocked(getMyShifts).mockResolvedValue([
     {
       rosterAssignmentId: 42,

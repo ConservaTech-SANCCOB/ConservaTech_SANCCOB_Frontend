@@ -1,12 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import { Alert } from "react-native";
 import RequestChangeScreen from "../src/app/request-change";
 import { submitChangeRequest } from "../src/services/changeRequests";
+import { showSuccessToast } from "../src/utils/toast";
 
 let mockParams: Record<string, string> = {};
+const mockBack = jest.fn();
 jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
-  useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: mockBack }),
   useLocalSearchParams: () => mockParams,
 }));
 jest.mock("../src/services/changeRequests");
@@ -17,7 +18,6 @@ const mockedSubmit = jest.mocked(submitChangeRequest);
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date(2026, 8, 25, 12, 0, 0), advanceTimers: true });
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   mockParams = { bookingId: "42", shiftDate: "2026-09-28", timeSlot: "08:00-13:00", location: "Penguin Pens" };
 });
 afterEach(() => {
@@ -35,7 +35,8 @@ describe("Request to Cancel", () => {
     await waitFor(() =>
       expect(mockedSubmit).toHaveBeenCalledWith({ rosterAssignmentId: 42, reason: "Family emergency" })
     );
-    expect(Alert.alert).toHaveBeenLastCalledWith("Request Submitted", expect.any(String), expect.any(Array));
+    expect(showSuccessToast).toHaveBeenLastCalledWith("Request Submitted", expect.any(String));
+    expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
   it("won't cancel a shift that has already ended", async () => {

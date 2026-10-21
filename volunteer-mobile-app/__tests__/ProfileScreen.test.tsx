@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { Alert } from "react-native";
 import ProfileScreen from "../src/app/(tabs)/profile";
 import { getMyProfile, updateMyProfile, VolunteerProfile } from "../src/services/profile";
+import { showSuccessToast } from "../src/utils/toast";
 
 jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
@@ -9,6 +9,7 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("../src/services/profile");
 jest.mock("../src/services/auth");
+jest.mock("../src/utils/toast");
 
 const mockedGetProfile = jest.mocked(getMyProfile);
 const mockedUpdateProfile = jest.mocked(updateMyProfile);
@@ -26,7 +27,6 @@ const PROFILE: VolunteerProfile = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
 });
 
 describe("Profile", () => {
@@ -58,6 +58,6 @@ describe("Profile", () => {
       emergencyContactName: "Alex Volunteer",
       emergencyContactPhone: "0831234567",
     });
-    expect(Alert.alert).toHaveBeenCalledWith("Saved", "Your profile has been updated.");
+    expect(showSuccessToast).toHaveBeenCalledWith("Saved", "Your profile has been updated.");
   });
 });

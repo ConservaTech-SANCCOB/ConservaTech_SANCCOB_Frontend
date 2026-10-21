@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -33,7 +32,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      Alert.alert("Missing details", "Enter your email and password.");
+      showErrorToast("Missing details", "Enter your email and password.");
       return;
     }
     setLoading(true);

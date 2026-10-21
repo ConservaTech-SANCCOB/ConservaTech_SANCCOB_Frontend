@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,7 +22,7 @@ export default function TrainerPinScreen() {
 
   const handleSubmit = async () => {
     if (!PIN_PATTERN.test(pin)) {
-      Alert.alert("Invalid PIN", "Enter the 6-digit trainer PIN.");
+      showErrorToast("Invalid PIN", "Enter the 6-digit trainer PIN.");
       return;
     }
     setLoading(true);

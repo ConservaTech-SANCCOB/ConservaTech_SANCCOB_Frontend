@@ -2,13 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 import { getMyTrainingProfile, TrainingSkillDto, TrainingVolunteerProfile } from "../../../services/training";
 import { Skill } from "../../../types/skill";
 import { COLORS } from "../../../utils/colors";
 import { logError } from "../../../utils/logError";
+import { showInfoToast } from "../../../utils/toast";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 import { BannerBirds, BannerPenguin, MascotFigure } from "../../../components/Wildlife";
 import { useReduceMotion } from "../../../utils/useReduceMotion";
@@ -308,7 +309,7 @@ function SkillRow({
         style={styles.pathRow}
         activeOpacity={0.6}
         onPress={() =>
-          Alert.alert(skill.name, signOffDetail(skill))
+          showInfoToast(skill.name, signOffDetail(skill))
         }
       >
         <View style={styles.pathTrack}>

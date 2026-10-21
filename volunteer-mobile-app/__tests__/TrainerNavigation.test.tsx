@@ -1,6 +1,7 @@
 import { router, Stack } from "expo-router";
 import { act, fireEvent, renderRouter, screen } from "expo-router/testing-library";
-import { Alert, AlertButton, Text } from "react-native";
+import { Text } from "react-native";
+import { ConfirmProvider } from "../src/components/ConfirmProvider";
 import TrainerDashboardScreen from "../src/app/trainer-dashboard";
 import TrainerSelectScreen from "../src/app/trainer-select";
 import TrainerVolunteerScreen from "../src/app/trainer-volunteer/[volunteerId]";
@@ -14,7 +15,11 @@ jest.mock("../src/services/training");
 
 const stub = (label: string) => () => <Text>{label}</Text>;
 const routes = {
-  _layout: () => <Stack screenOptions={{ headerShown: false }} />,
+  _layout: () => (
+    <ConfirmProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </ConfirmProvider>
+  ),
   index: stub("Welcome"),
   login: stub("Login"),
   "trainer-pin": stub("Trainer PIN"),
@@ -25,7 +30,6 @@ const routes = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   jest.mocked(logout).mockResolvedValue();
   jest.mocked(getTrainers).mockResolvedValue([
     { trainerId: 3, firstName: "Alex", lastName: "Trainer", email: null, phone: null, status: "Active" },
@@ -72,11 +76,10 @@ async function openDashboard() {
   return { app };
 }
 
-async function pressAlertButton(text: string) {
-  const buttons: AlertButton[] = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2] ?? [];
-  await act(async () => {
-    await buttons.find((button) => button.text === text)?.onPress?.();
-  });
+const LOG_OUT_PROMPT = "Are you sure you want to log out?";
+
+async function pressDialogButton(label: string) {
+  await fireEvent.press(screen.getByRole("button", { name: label }));
 }
 
 const backActions: [string, () => void][] = [
@@ -89,10 +92,10 @@ describe.each(backActions)("leaving the dashboard with %s", (_name, goBack) => {
     const { app } = await openDashboard();
 
     await act(goBack);
-    expect(Alert.alert).toHaveBeenCalledWith("Log Out", "Are you sure you want to log out?", expect.any(Array));
+    expect(screen.getByText(LOG_OUT_PROMPT)).toBeOnTheScreen();
     expect(app.getPathname()).toBe("/trainer-dashboard");
 
-    await pressAlertButton("Log Out");
+    await pressDialogButton("Log Out");
     expect(logout).toHaveBeenCalledTimes(1);
     expect(app.getPathname()).toBe("/");
     expect(router.canGoBack()).toBe(false);
@@ -103,8 +106,9 @@ it("cancelling the log-out prompt keeps the trainer signed in on the dashboard",
   const { app } = await openDashboard();
 
   await act(() => router.back());
-  await pressAlertButton("Cancel");
+  await pressDialogButton("Cancel");
 
+  expect(screen.queryByText(LOG_OUT_PROMPT)).toBeNull();
   expect(logout).not.toHaveBeenCalled();
   expect(app.getPathname()).toBe("/trainer-dashboard");
 });
@@ -118,7 +122,7 @@ it("Back from a volunteer's details returns to the dashboard without logging out
   await act(() => router.back());
 
   expect(app.getPathname()).toBe("/trainer-dashboard");
-  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(screen.queryByText(LOG_OUT_PROMPT)).toBeNull();
   expect(logout).not.toHaveBeenCalled();
 });
 
@@ -128,7 +132,7 @@ it("backing out of trainer select clears the PIN session and lands on Welcome wi
 
   await act(() => router.back());
 
-  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(screen.queryByText(LOG_OUT_PROMPT)).toBeNull();
   expect(logout).toHaveBeenCalledTimes(1);
   expect(app.getPathname()).toBe("/");
   expect(router.canGoBack()).toBe(false);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,7 +11,8 @@ import { getTabBarStyle } from "../../../constants/tabBar";
 import { TIME_SLOT_LABELS } from "../../../utils/timeSlot";
 import { getMyAvailability, updateMyAvailability, AvailabilitySlot, TimeBlock } from "../../../services/availability";
 import { getErrorMessage, SessionExpiredError } from "../../../utils/api";
-import { showErrorToast, showInfoToast } from "../../../utils/toast";
+import { showErrorToast, showInfoToast, showSuccessToast } from "../../../utils/toast";
+import { useConfirm } from "../../../components/ConfirmProvider";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 import { BannerBirds, BannerPenguin } from "../../../components/Wildlife";
@@ -36,6 +37,7 @@ function mergeHalfDays(keys: Set<string>, day: string): boolean {
 // Saving replaces all previously saved availability
 export default function SubmitAvailabilityScreen() {
   const router = useRouter();
+  const confirm = useConfirm();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -105,9 +107,8 @@ export default function SubmitAvailabilityScreen() {
     setSaving(true);
     try {
       await updateMyAvailability(slots);
-      Alert.alert("Saved", "Your availability has been updated.", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      showSuccessToast("Saved", "Your availability has been updated.");
+      router.back();
     } catch (error) {
       if (error instanceof SessionExpiredError) return;
       logError("Save availability error", error);
@@ -117,19 +118,19 @@ export default function SubmitAvailabilityScreen() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Saving before the load would wipe saved slots
     if (loading || loadError) return;
     // An empty save clears everything so confirm first
     if (selected.size === 0) {
-      Alert.alert(
-        "No availability selected",
-        "You haven't selected any availability. Saving now will clear your current availability. Continue?",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Save", style: "destructive", onPress: () => performSave() },
-        ]
-      );
+      const confirmed = await confirm({
+        title: "No availability selected",
+        message: "You haven't selected any availability. Saving now will clear your current availability. Continue?",
+        confirmLabel: "Save",
+        cancelLabel: "Cancel",
+        destructive: true,
+      });
+      if (confirmed) await performSave();
       return;
     }
     performSave();
