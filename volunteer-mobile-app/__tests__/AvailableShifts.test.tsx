@@ -1,10 +1,10 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import { Alert } from "react-native";
 import BookingsScreen from "../src/app/(tabs)/bookings/index";
 import { getPendingCancellationIds } from "../src/services/changeRequests";
 import { getMyShifts, MyShift } from "../src/services/shifts";
 import { bookVacancy, BookingRejectedError, getVacancies, Vacancy } from "../src/services/vacancies";
-import { showErrorToast } from "../src/utils/toast";
+import { ConfirmProvider } from "../src/components/ConfirmProvider";
+import { showErrorToast, showSuccessToast } from "../src/utils/toast";
 
 jest.mock("expo-router", () => {
   const { useEffect } = jest.requireActual("react");
@@ -48,23 +48,31 @@ function vacancy(overrides: Partial<Vacancy>): Vacancy {
   };
 }
 
-async function pressAlertButton(text: string) {
-  const buttons = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2] ?? [];
-  const button = buttons.find((b) => b.text === text);
-  if (!button) throw new Error(`No "${text}" button in the last alert`);
+// Press stays pending until a dialog choice
+async function pressToOpenDialog(element: Parameters<typeof fireEvent.press>[0]) {
+  const pressing = fireEvent.press(element);
+  await new Promise(setImmediate);
+  return { pressing };
+}
+
+async function chooseInDialog({ pressing }: { pressing: Promise<void> }, label: string) {
+  await fireEvent.press(screen.getByRole("button", { name: label }));
   await act(async () => {
-    await button.onPress?.();
+    await pressing;
   });
 }
 
 async function openAvailableTab() {
-  await render(<BookingsScreen />);
+  await render(
+    <ConfirmProvider>
+      <BookingsScreen />
+    </ConfirmProvider>
+  );
   await fireEvent.press(screen.getByText("Available Shifts"));
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   mockedGetMyShifts.mockResolvedValue([]);
   jest.mocked(getPendingCancellationIds).mockResolvedValue(new Set());
 });
@@ -101,15 +109,15 @@ describe("Available Shifts", () => {
     mockedBookVacancy.mockResolvedValue({ rosterAssignmentId: 42, shiftId: 7, status: "Assigned", message: null });
 
     await openAvailableTab();
-    await fireEvent.press(await screen.findByText("Book"));
+    const dialog = await pressToOpenDialog(await screen.findByText("Book"));
 
-    expect(Alert.alert).toHaveBeenLastCalledWith("Book this shift?", expect.any(String), expect.any(Array), expect.any(Object));
+    expect(screen.getByText("Book this shift?")).toBeOnTheScreen();
     expect(mockedBookVacancy).not.toHaveBeenCalled();
 
-    await pressAlertButton("Book");
+    await chooseInDialog(dialog, "Book");
 
     expect(mockedBookVacancy).toHaveBeenCalledWith(7);
-    await waitFor(() => expect(Alert.alert).toHaveBeenLastCalledWith("Shift booked", "It's now in your My Shifts."));
+    expect(showSuccessToast).toHaveBeenCalledWith("Shift booked", "It's now in your My Shifts.");
     expect(await screen.findByText("No open shifts right now")).toBeOnTheScreen();
   });
 
@@ -118,8 +126,8 @@ describe("Available Shifts", () => {
     mockedBookVacancy.mockRejectedValue(new BookingRejectedError("This shift is already full."));
 
     await openAvailableTab();
-    await fireEvent.press(await screen.findByText("Book"));
-    await pressAlertButton("Book");
+    const dialog = await pressToOpenDialog(await screen.findByText("Book"));
+    await chooseInDialog(dialog, "Book");
 
     await waitFor(() =>
       expect(showErrorToast).toHaveBeenCalledWith("Couldn't book this shift", "This shift is already full.")

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,7 +15,7 @@ import { COLORS } from "../utils/colors";
 import { getRelativeLabel } from "../utils/dateBuckets";
 import { logError } from "../utils/logError";
 import { formatTimeSlotLabel, hasShiftEnded } from "../utils/timeSlot";
-import { showErrorToast } from "../utils/toast";
+import { showErrorToast, showSuccessToast } from "../utils/toast";
 
 // Opened from Home or Shifts so Back returns there
 export default function RequestChangeScreen() {
@@ -37,7 +37,7 @@ export default function RequestChangeScreen() {
 
   const handleSubmit = async () => {
     if (!reason.trim()) {
-      Alert.alert("Reason required", "Please tell us why you'd like to cancel this shift.");
+      showErrorToast("Reason required", "Please tell us why you'd like to cancel this shift.");
       return;
     }
     // Nothing to cancel for a missing or ended shift
@@ -45,11 +45,11 @@ export default function RequestChangeScreen() {
     setSubmitting(true);
     try {
       await submitChangeRequest({ rosterAssignmentId, reason: reason.trim() });
-      Alert.alert(
+      showSuccessToast(
         "Request Submitted",
-        "Your cancellation request has been submitted and is pending review. You're still assigned to this shift until it's approved.",
-        [{ text: "OK", onPress: () => router.back() }]
+        "Your cancellation request has been submitted and is pending review. You're still assigned to this shift until it's approved."
       );
+      router.back();
     } catch (error) {
       if (error instanceof SessionExpiredError) return;
       logError("Request change error", error);

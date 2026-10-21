@@ -1,11 +1,12 @@
 import { useRef } from "react";
-import { Alert, Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { MyShift } from "../services/shifts";
 import { COLORS } from "../utils/colors";
 import { getRelativeLabel } from "../utils/dateBuckets";
 import { formatTimeSlotLabel, hasShiftEnded } from "../utils/timeSlot";
+import { useConfirm } from "./ConfirmProvider";
 import { DateBadge, SHIFT_CARD_STYLES, SlotChip, slotTheme } from "./ShiftCardParts";
 
 export default function MyShiftCard({
@@ -22,6 +23,7 @@ export default function MyShiftCard({
   accentText?: string;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const ended = hasShiftEnded(item.shiftDate, item.timeSlot);
   const slot = slotTheme(item.timeSlot);
   const scale = useRef(new Animated.Value(1)).current;
@@ -46,25 +48,24 @@ export default function MyShiftCard({
     });
   };
 
+  const showDetails = async () => {
+    const wantsToCancel = await confirm({
+      title: item.timeSlot ? `${formatTimeSlotLabel(item.timeSlot)} shift` : "Shift",
+      message: `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\nStatus: ${item.status}${
+        cancellationPending ? "\nCancellation request pending review" : ""
+      }`,
+      cancelLabel: "Close",
+      confirmLabel: ended || cancellationPending ? undefined : "Cancel Shift",
+    });
+    if (wantsToCancel) requestChange();
+  };
+
   return (
     <TouchableOpacity
       activeOpacity={0.9}
       onPressIn={pressIn}
       onPressOut={pressOut}
-      onPress={() =>
-        Alert.alert(
-          item.timeSlot ? `${formatTimeSlotLabel(item.timeSlot)} shift` : "Shift",
-          `${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\nStatus: ${item.status}${
-            cancellationPending ? "\nCancellation request pending review" : ""
-          }`,
-          ended || cancellationPending
-            ? [{ text: "Close", style: "cancel" }]
-            : [
-                { text: "Close", style: "cancel" },
-                { text: "Cancel Shift", onPress: requestChange },
-              ]
-        )
-      }
+      onPress={showDetails}
     >
       <Animated.View
         style={[SHIFT_CARD_STYLES.card, { borderLeftColor: slot.accent, transform: [{ scale }] }]}

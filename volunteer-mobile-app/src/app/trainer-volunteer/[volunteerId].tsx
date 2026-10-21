@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../utils/colors";
+import { useConfirm } from "../../components/ConfirmProvider";
 import { GLASS_CARD, GLASS_SHADOW_LG, GLASS_SHADOW_MD } from "../../constants/glassCard";
 import {
   getTrainingVolunteerProfile,
@@ -28,6 +29,7 @@ function groupsFor(profile: TrainingVolunteerProfile | null): SkillGroup[] {
 
 export default function TrainerVolunteerScreen() {
   const router = useRouter();
+  const confirm = useConfirm();
   const { volunteerId, trainerName } = useLocalSearchParams<{
     volunteerId: string;
     trainerName?: string;
@@ -79,16 +81,16 @@ export default function TrainerVolunteerScreen() {
     }
   };
 
-  const confirmSignOff = (skill: TrainingSkillDto) => {
+  const confirmSignOff = async (skill: TrainingSkillDto) => {
     const attribution = trainerName ? `, ${trainerName}` : "";
-    Alert.alert(
-      "Confirm Sign-Off",
-      `Confirm that ${volunteerLabel} has completed "${skill.skillName}"? This is recorded under your name${attribution} and can't be undone from this app.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Confirm", onPress: () => applySignOff(skill) },
-      ]
-    );
+    const confirmed = await confirm({
+      title: "Confirm Sign-Off",
+      message: `Confirm that ${volunteerLabel} has completed "${skill.skillName}"? This is recorded under your name${attribution} and can't be undone from this app.`,
+      confirmLabel: "Confirm",
+      cancelLabel: "Cancel",
+      destructive: true,
+    });
+    if (confirmed) await applySignOff(skill);
   };
 
   if (isLoading) {

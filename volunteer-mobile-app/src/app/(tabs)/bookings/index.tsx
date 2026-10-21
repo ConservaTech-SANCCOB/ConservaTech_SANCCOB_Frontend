@@ -4,7 +4,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   FlatList,
   RefreshControl,
@@ -16,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { AboveBannerFill, BelowContentFill, refreshableBannerScrollStyles } from "../../../components/BannerOverscroll";
+import { useConfirm } from "../../../components/ConfirmProvider";
 import MyShiftCard from "../../../components/MyShiftCard";
 import { DateBadge, SHIFT_CARD_STYLES, SlotChip, slotTheme } from "../../../components/ShiftCardParts";
 import { BannerBirds, BannerPenguin, EmptyStatePenguin } from "../../../components/Wildlife";
@@ -26,7 +26,7 @@ import { SessionExpiredError } from "../../../utils/api";
 import { COLORS } from "../../../utils/colors";
 import { bucketForDate, DateBucket, getRelativeLabel } from "../../../utils/dateBuckets";
 import { compareShiftsByStart, formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
-import { showErrorToast } from "../../../utils/toast";
+import { showErrorToast, showSuccessToast } from "../../../utils/toast";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 
@@ -65,6 +65,7 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
   const scale = useRef(new Animated.Value(1)).current;
   const [booking, setBooking] = useState(false);
   const confirmationOpen = useRef(false);
+  const confirm = useConfirm();
 
   const pressIn = () => {
     Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
@@ -78,7 +79,7 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
     try {
       await bookVacancy(item.shiftId);
       await onChanged();
-      Alert.alert("Shift booked", "It's now in your My Shifts.");
+      showSuccessToast("Shift booked", "It's now in your My Shifts.");
     } catch (error) {
       if (error instanceof SessionExpiredError) return;
       logError("Book shift error", error);
@@ -97,28 +98,18 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
     }
   };
 
-  const confirmBook = () => {
+  const confirmBook = async () => {
     // Stops a double tap opening two alerts
     if (booking || confirmationOpen.current) return;
     confirmationOpen.current = true;
-    const closeConfirmation = () => {
-      confirmationOpen.current = false;
-    };
-    Alert.alert(
-      "Book this shift?",
-      `${item.timeSlot ? `${formatTimeSlotLabel(item.timeSlot)} · ` : ""}${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\n${item.vacanciesAvailable} of ${item.capacity} spots open`,
-      [
-        { text: "Cancel", style: "cancel", onPress: closeConfirmation },
-        {
-          text: "Book",
-          onPress: () => {
-            closeConfirmation();
-            return book();
-          },
-        },
-      ],
-      { onDismiss: closeConfirmation }
-    );
+    const confirmed = await confirm({
+      title: "Book this shift?",
+      message: `${item.timeSlot ? `${formatTimeSlotLabel(item.timeSlot)} · ` : ""}${item.shiftDate}${item.location ? ` · ${item.location}` : ""}\n${item.vacanciesAvailable} of ${item.capacity} spots open`,
+      confirmLabel: "Book",
+      cancelLabel: "Cancel",
+    });
+    confirmationOpen.current = false;
+    if (confirmed) await book();
   };
 
   return (

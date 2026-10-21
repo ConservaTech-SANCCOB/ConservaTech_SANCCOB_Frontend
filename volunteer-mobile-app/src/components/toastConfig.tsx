@@ -25,6 +25,17 @@ export const toastConfig: ToastConfig = {
       text2NumberOfLines={5}
     />
   ),
+  success: (props) => (
+    <BaseToast
+      {...props}
+      style={[styles.toast, styles.successToast]}
+      contentContainerStyle={styles.content}
+      text1Style={styles.title}
+      text2Style={styles.message}
+      text1NumberOfLines={2}
+      text2NumberOfLines={5}
+    />
+  ),
 };
 
 const styles = StyleSheet.create({
@@ -36,6 +47,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 6,
   },
   infoToast: { borderLeftColor: COLORS.blue },
+  successToast: { borderLeftColor: COLORS.greenMid },
   content: { paddingVertical: 12, paddingHorizontal: 14 },
   title: { fontSize: 15, fontWeight: "700", color: "#1b2a33", marginBottom: 2 },
   message: { fontSize: 13.5, lineHeight: 19, color: "#3d4a52" },

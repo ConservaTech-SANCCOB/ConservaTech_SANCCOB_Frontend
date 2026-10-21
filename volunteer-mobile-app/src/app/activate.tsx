@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,11 +22,11 @@ export default function ActivateScreen() {
 
   const handleActivate = async () => {
     if (!email.trim() || !otp || !newPassword) {
-      Alert.alert("Missing details", "Fill in your email, PIN, and a new password.");
+      showErrorToast("Missing details", "Fill in your email, PIN, and a new password.");
       return;
     }
     if (otp.length !== 6) {
-      Alert.alert("Invalid PIN", "The PIN is 6 digits.");
+      showErrorToast("Invalid PIN", "The PIN is 6 digits.");
       return;
     }
     setLoading(true);

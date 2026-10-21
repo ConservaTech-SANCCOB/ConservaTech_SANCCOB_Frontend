@@ -1,7 +1,7 @@
 import { useIsFocused, useNavigation } from "expo-router";
 import { NavigationAction, usePreventRemove } from "expo-router/react-navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Alert } from "react-native";
+import { useConfirm } from "../components/ConfirmProvider";
 import { logout } from "../services/auth";
 import { resetTo } from "./navigation";
 
@@ -16,6 +16,7 @@ function isBackAction(action: NavigationAction) {
 export function useTrainerSignOut({ confirmOnBack }: { confirmOnBack: boolean }) {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
+  const confirm = useConfirm();
   const [signedOut, setSignedOut] = useState(false);
 
   const signOut = useCallback(async () => {
@@ -37,10 +38,15 @@ export function useTrainerSignOut({ confirmOnBack }: { confirmOnBack: boolean })
       signOut();
       return;
     }
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: signOut },
-    ]);
+    confirm({
+      title: "Log Out",
+      message: "Are you sure you want to log out?",
+      confirmLabel: "Log Out",
+      cancelLabel: "Cancel",
+      destructive: true,
+    }).then((confirmed) => {
+      if (confirmed) signOut();
+    });
   });
 
   return signOut;

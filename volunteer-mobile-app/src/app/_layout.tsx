@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import AnimatedSplash from "../components/AnimatedSplash";
+import { ConfirmProvider } from "../components/ConfirmProvider";
 import { toastConfig } from "../components/toastConfig";
 import { clearToken, getSessionRole, getToken } from "../utils/api";
 import { COLORS } from "../utils/colors";
@@ -70,18 +71,20 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="activate" />
-        <Stack.Screen name="forgot-password" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="request-change" />
-        <Stack.Screen name="trainer-pin" />
-        <Stack.Screen name="trainer-select" />
-        <Stack.Screen name="trainer-dashboard" />
-        <Stack.Screen name="trainer-volunteer/[volunteerId]" />
-      </Stack>
+      <ConfirmProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="activate" />
+          <Stack.Screen name="forgot-password" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="request-change" />
+          <Stack.Screen name="trainer-pin" />
+          <Stack.Screen name="trainer-select" />
+          <Stack.Screen name="trainer-dashboard" />
+          <Stack.Screen name="trainer-volunteer/[volunteerId]" />
+        </Stack>
+      </ConfirmProvider>
       {showCustomSplash && <AnimatedSplash onFinish={hideCustomSplash} />}
       <Toast config={toastConfig} />
     </SafeAreaProvider>

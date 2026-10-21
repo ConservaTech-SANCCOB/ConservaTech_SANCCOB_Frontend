@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { AboveBannerFill } from "../../components/BannerOverscroll";
+import { useConfirm } from "../../components/ConfirmProvider";
 import KeyboardAvoidingScreen from "../../components/KeyboardAvoidingScreen";
 import SelectDropdown from "../../components/SelectDropdown";
 import { AGE_BRACKETS, isAgeBracket } from "../../constants/ageBrackets";
@@ -12,7 +13,7 @@ import { logout } from "../../services/auth";
 import { getErrorMessage, SessionExpiredError } from "../../utils/api";
 import { COLORS } from "../../utils/colors";
 import { getMyProfile, updateMyProfile } from "../../services/profile";
-import { showErrorToast } from "../../utils/toast";
+import { showErrorToast, showSuccessToast } from "../../utils/toast";
 import { logError } from "../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../constants/glassCard";
 import { BannerBirds, BannerPenguin } from "../../components/Wildlife";
@@ -20,6 +21,7 @@ import { resetTo } from "../../utils/navigation";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const confirm = useConfirm();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -62,7 +64,7 @@ export default function ProfileScreen() {
     // Don't overwrite the profile with an empty form
     if (loading || loadError) return;
     if (!email.trim()) {
-      Alert.alert("Email required", "Please enter your email address.");
+      showErrorToast("Email required", "Please enter your email address.");
       return;
     }
     setSaving(true);
@@ -75,7 +77,7 @@ export default function ProfileScreen() {
         emergencyContactName: emergencyName.trim() || null,
         emergencyContactPhone: emergencyPhone.trim() || null,
       });
-      Alert.alert("Saved", "Your profile has been updated.");
+      showSuccessToast("Saved", "Your profile has been updated.");
     } catch (error) {
       // Already sent to Login so no toast
       if (error instanceof SessionExpiredError) return;
@@ -86,18 +88,17 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Log Out",
-        style: "destructive",
-        onPress: async () => {
-          await logout();
-          resetTo("/");
-        },
-      },
-    ]);
+  const handleLogout = async () => {
+    const confirmed = await confirm({
+      title: "Log Out",
+      message: "Are you sure you want to log out?",
+      confirmLabel: "Log Out",
+      cancelLabel: "Cancel",
+      destructive: true,
+    });
+    if (!confirmed) return;
+    await logout();
+    resetTo("/");
   };
 
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
