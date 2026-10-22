@@ -3,16 +3,21 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../lib/auth-context";
 import { fetchVolunteers, Volunteer } from "../../lib/api/volunteers";
+import { ApiError } from "../../lib/api/http";
 import { fetchShiftsForWeek, fetchVacanciesForWeek, Shift, Vacancy } from "../../lib/api/shifts";
 import {
   fetchWeeklyRoster,
   fetchGenerationPool,
   generateAutomatedRoster,
   publishRoster,
-  Roster,
+  Roster, 
   RosterAssignment,
   RosterGenerationVolunteer,
 } from "../../lib/api/roster";
+import {
+  AssignVolunteerModal,
+  RemoveAssignmentModal,
+} from "../../../components/roster/AssignmentModals";
 
 // Helper: Get Monday of the current or given week, normalized to local
 // midnight. Normalizing here (rather than leaving whatever time-of-day the
@@ -89,7 +94,9 @@ export default function RosterPage() {
   const [roster, setRoster] = useState<Roster | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const assignments: RosterAssignment[] = roster?.assignments ?? [];
+  const assignments: RosterAssignment[] = (roster?.assignments ?? []).filter(
+  (a) => a.status?.toLowerCase() !== "vacant"
+  );
 
   // Wizard States
   const [step, setStep] = useState<1 | 2>(1);
@@ -108,6 +115,14 @@ export default function RosterPage() {
   // "Generate Roster for {weekLabel}" button, which already sits behind
   // Step 1 (Review Inputs).
   const [isGenerateConfirmOpen, setIsGenerateConfirmOpen] = useState(false);
+
+  // Assignment CRUD modals: "add" assigns a volunteer to a shift, "swap"
+  // replaces the volunteer on an existing assignment, and removeTarget is the
+  // assignment currently being confirmed for removal.
+  const [assignModal, setAssignModal] = useState<
+    { mode: "add" } | { mode: "swap"; target: RosterAssignment } | null
+  >(null);
+  const [removeTarget, setRemoveTarget] = useState<RosterAssignment | null>(null);
 
   // Fetch data whenever week or token changes
   useEffect(() => {
@@ -144,6 +159,28 @@ export default function RosterPage() {
     }
     loadRosterData();
   }, [token, currentWeekStart]);
+
+
+// Refetch roster + vacancies after any add/remove/swap, so counts stay in sync.
+// Only a 404 means "no roster for this week". Any other failure keeps the
+// roster already on screen instead of wiping it.
+const reloadRoster = async () => {
+  if (!token) return;
+  const weekStr = formatDateISO(currentWeekStart);
+  try {
+    const [rData, vacData] = await Promise.all([
+      fetchWeeklyRoster(token, weekStr).catch((err) => {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }),
+      fetchVacanciesForWeek(token, weekStr).catch(() => []),
+    ]);
+    setRoster(rData);
+    setVacancies(vacData);
+  } catch (err) {
+    console.error("Failed to refresh roster", err);
+  }
+};
 
   // Week Navigation Handlers (+/- 7 days)
   const handlePrevWeek = () => {
@@ -219,15 +256,30 @@ export default function RosterPage() {
       setActiveTab("view");
     } catch (err) {
       console.error("Failed to publish roster", err);
-      setPublishError("Unable to publish roster. Please verify the backend service.");
+     setPublishError(
+     err instanceof Error ? err.message : "Unable to publish roster. Please try again."
+   );
     }
   };
 
   const weekLabel = formatWeekRange(currentWeekStart);
 
-  const filledCount = assignments.length;
-  const totalShiftCount = shifts.length;
-  const unfilledCount = Math.max(totalShiftCount - filledCount, 0);
+  // A roster that is already Published can't be published again.
+
+  const isPublished = roster?.status === "Published";
+// A shift counts as filled only when its assigned volunteers reach its
+// capacity. Assigned counts come from this roster's active assignments, so
+// they stay accurate after add / remove / swap.
+const assignedPerShift = new Map<number, number>();
+assignments.forEach((a) => {
+  assignedPerShift.set(a.shiftId, (assignedPerShift.get(a.shiftId) ?? 0) + 1);
+});
+
+const totalShiftCount = shifts.length;
+const filledCount = shifts.filter(
+  (s) => (assignedPerShift.get(s.shiftId) ?? 0) >= s.capacity
+).length;
+const unfilledCount = totalShiftCount - filledCount;
   // Distinct volunteers actually on this week's roster (not just the pool).
   const scheduledVolunteerCount = new Set(assignments.map((a) => a.userId)).size;
 
@@ -310,12 +362,23 @@ export default function RosterPage() {
               )}
             </div>
 
-            <button
-              onClick={() => setIsGenerateConfirmOpen(true)}
-              className="px-4 py-2 rounded-xl bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors"
-            >
-              ⚡ Generate Roster
-            </button>
+            {/* Action buttons: manual assignment (needs an existing roster) and automated generation */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setAssignModal({ mode: "add" })}
+                disabled={!roster || shifts.length === 0}
+                title={!roster ? "Generate a roster for this week first" : undefined}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                + Assign Volunteer
+              </button>
+              <button
+                onClick={() => setIsGenerateConfirmOpen(true)}
+                className="px-4 py-2 rounded-xl bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors"
+              >
+                ⚡ Generate Roster
+              </button>
+            </div>
           </div>
 
           {/*------------------------------------ Roster Statistics ----------------------------------------------------*/}
@@ -336,7 +399,13 @@ export default function RosterPage() {
               No roster has been generated for {weekLabel} yet.
             </div>
           ) : (
-            <RosterMatrix volunteers={volunteers} assignments={assignments} mondayDate={currentWeekStart} />
+            <RosterMatrix
+              volunteers={volunteers}
+              assignments={assignments}
+              mondayDate={currentWeekStart}
+              onSwap={(a) => setAssignModal({ mode: "swap", target: a })}
+              onRemove={(a) => setRemoveTarget(a)}
+            />
           )}
         </div>
       )}
@@ -544,10 +613,12 @@ export default function RosterPage() {
                 </button>
                 <button
                   onClick={() => setIsPublishModalOpen(true)}
-                  className="px-6 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs transition-colors"
-                >
-                  Publish Roster
-                </button>
+                  disabled={isPublished}
+                  title={isPublished ? "This roster has already been published" : undefined}
+                  className="px-6 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+               >
+                 {isPublished ? "Already Published" : "Publish Roster"}
+              </button>
               </div>
             </div>
           )}
@@ -651,6 +722,44 @@ export default function RosterPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/*------------------------------------ Assign / Swap Volunteer Modal ----------------------------------------------------*/}
+
+      {assignModal && roster && (
+        <AssignVolunteerModal
+          mode={assignModal.mode}
+          rosterId={roster.rosterId}
+          swapTarget={assignModal.mode === "swap" ? assignModal.target : undefined}
+          volunteers={volunteers}
+          assignments={assignments}
+          shiftOptions={[...shifts]
+            .sort((a, b) =>
+              a.shiftDate === b.shiftDate
+                ? a.timeSlot.localeCompare(b.timeSlot)
+                : a.shiftDate.localeCompare(b.shiftDate)
+            )
+            .map((s) => {
+              const info = shiftAssignedInfo(s, vacancies);
+              return {
+                shiftId: s.shiftId,
+                label: `${s.shiftDate.slice(0, 10)} · ${shiftSessionLabel(s.timeSlot)} · ${s.location} (${info.assigned}/${info.capacity})`,
+              };
+            })}
+          onClose={() => setAssignModal(null)}
+          onDone={reloadRoster}
+        />
+      )}
+
+      {/*------------------------------------ Remove Assignment Modal ----------------------------------------------------*/}
+
+      {removeTarget && roster && (
+        <RemoveAssignmentModal
+          rosterId={roster.rosterId}
+          assignment={removeTarget}
+          onClose={() => setRemoveTarget(null)}
+          onDone={reloadRoster}
+        />
       )}
     </div>
   );
@@ -785,16 +894,22 @@ function StatCard({ label, value, color = "text-slate-900", isText = false }: { 
 //---------------------------------------------------------------------------------------------------------------//
 //<summary>
 // Renders the weekly volunteer assignment matrix for Monday through Sunday.
+// When onSwap / onRemove are supplied (Weekly Roster tab only), each
+// assignment card shows Swap and Remove actions.
 //</summary>
 //---------------------------------------------------------------------------------------------------------------//
 function RosterMatrix({
   volunteers,
   assignments,
   mondayDate,
+  onSwap,
+  onRemove,
 }: {
   volunteers: Volunteer[];
   assignments: RosterAssignment[];
   mondayDate: Date;
+  onSwap?: (a: RosterAssignment) => void;
+  onRemove?: (a: RosterAssignment) => void;
 }) {
   // Generate Mon-Sun labels + ISO date keys based on selected mondayDate.
   // Was [0,1,2,3,4] (Mon-Fri only) — extended to 0-6 so Saturday and Sunday
@@ -811,13 +926,15 @@ function RosterMatrix({
 
   // Only show volunteers who actually have at least one assignment this week,
   // so the table reflects the real roster rather than every volunteer in the pool.
-  
+
   const assignedUserIds = new Set(assignments.map((a) => String(a.userId)));
   const rosteredVolunteers = volunteers.filter((v) => assignedUserIds.has(String(v.id)));
 
-  // Finds the assignment (if any) for one volunteer on one day
-  function findAssignment(volunteerId: Volunteer["id"], iso: string): RosterAssignment | undefined {
-    return assignments.find((a) => String(a.userId) === String(volunteerId) && a.shiftDate === iso);
+  // Finds every assignment for one volunteer on one day. Returns an array
+  // (not just the first match) so a volunteer with both a Morning and an
+  // Afternoon shift on the same day shows both and can have either removed.
+  function findAssignments(volunteerId: Volunteer["id"], iso: string): RosterAssignment[] {
+    return assignments.filter((a) => String(a.userId) === String(volunteerId) && a.shiftDate === iso);
   }
 
   return (
@@ -851,16 +968,43 @@ function RosterMatrix({
                     <span className="font-semibold text-slate-800">{v.name}</span>
                   </div>
                 </td>
-                {/* Day cells: the assignment card, or a dash if none */}
+                {/* Day cells: one card per assignment (with Swap / Remove when enabled), or a dash if none */}
                 {days.map((d) => {
-                  const a = findAssignment(v.id, d.iso);
+                  const cell = findAssignments(v.id, d.iso);
                   return (
-                    <td key={d.iso} className="py-3.5 px-4">
-                      {a ? (
-                        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-2 rounded-xl text-[11px] font-semibold space-y-0.5">
-                          <p className="text-[10px] text-emerald-600">{a.timeSlot}</p>
-                          <p>{a.location ?? "—"}</p>
-                          {a.status && <p className="text-[10px] font-normal text-emerald-600">{a.status}</p>}
+                    <td key={d.iso} className="py-3.5 px-4 align-top">
+                      {cell.length > 0 ? (
+                        <div className="space-y-1.5">
+                          {cell.map((a) => (
+                            <div
+                              key={a.rosterAssignmentId}
+                              className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-2 rounded-xl text-[11px] font-semibold space-y-0.5"
+                            >
+                              <p className="text-[10px] text-emerald-600">{a.timeSlot}</p>
+                              <p>{a.location ?? "—"}</p>
+                              {a.status && <p className="text-[10px] font-normal text-emerald-600">{a.status}</p>}
+                              {(onSwap || onRemove) && (
+                                <div className="flex gap-3 pt-1">
+                                  {onSwap && (
+                                    <button
+                                      onClick={() => onSwap(a)}
+                                      className="text-[10px] font-semibold text-blue-700 hover:underline"
+                                    >
+                                      Swap
+                                    </button>
+                                  )}
+                                  {onRemove && (
+                                    <button
+                                      onClick={() => onRemove(a)}
+                                      className="text-[10px] font-semibold text-red-600 hover:underline"
+                                    >
+                                      Remove
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       ) : (
                         <span className="text-slate-300">—</span>
