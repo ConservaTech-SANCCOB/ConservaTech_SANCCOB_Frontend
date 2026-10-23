@@ -7,13 +7,11 @@ import Svg, { Path } from "react-native-svg";
 import KeyboardAvoidingScreen from "../components/KeyboardAvoidingScreen";
 import { COLORS } from "../utils/colors";
 import { verifyTrainerPin } from "../services/trainers";
-import { getErrorStatus } from "../utils/api";
+import { getErrorMessage, getErrorStatus } from "../utils/api";
 import { showErrorToast } from "../utils/toast";
 import { logError } from "../utils/logError";
 
 const PIN_PATTERN = /^\d{6}$/;
-// Raw API error text that users shouldn't see
-const RAW_ERROR_FORMAT = /^API error \d+:/;
 
 export default function TrainerPinScreen() {
   const router = useRouter();
@@ -32,14 +30,14 @@ export default function TrainerPinScreen() {
     } catch (error) {
       logError("Trainer PIN error", error);
       const status = getErrorStatus(error);
-      const isRawFormat = error instanceof Error && RAW_ERROR_FORMAT.test(error.message);
-      let message = "Couldn't verify PIN. Try again in a moment.";
-      if (status === 401) {
-        message = "Incorrect PIN.";
-      } else if (error instanceof Error && !isRawFormat && error.message) {
-        message = error.message;
+      if (status === 429) {
+        // The rate limit response has no body
+        showErrorToast("Too many attempts", "Try again in a minute.");
+      } else if (status === 401) {
+        showErrorToast("Couldn't sign in", "Incorrect PIN.");
+      } else {
+        showErrorToast("Couldn't sign in", getErrorMessage(error, "Couldn't verify PIN. Try again in a moment."));
       }
-      showErrorToast("Couldn't sign in", message);
     } finally {
       setLoading(false);
     }

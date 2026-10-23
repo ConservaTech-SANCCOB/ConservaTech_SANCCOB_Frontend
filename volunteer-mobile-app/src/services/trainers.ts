@@ -1,4 +1,4 @@
-import { api, ApiError, saveToken } from "../utils/api";
+import { api, saveToken } from "../utils/api";
 
 export interface Trainer {
   trainerId: number;
@@ -26,17 +26,12 @@ export function getTrainers() {
 
 // Saves the result as a trainer session
 export async function verifyTrainerPin(pin: string) {
-  try {
-    const response = await api.post<VerifyPinResponse>(
-      "/api/trainers/verify-pin",
-      { pin },
-      { skipSessionRedirect: true },
-    );
-    await saveToken(response.token, "trainer");
-  } catch (error) {
-    // Show the backend message not raw API error text
-    throw error instanceof ApiError && error.backendMessage ? new Error(error.backendMessage) : error;
-  }
+  const response = await api.post<VerifyPinResponse>(
+    "/api/trainers/verify-pin",
+    { pin },
+    { skipSessionRedirect: true },
+  );
+  await saveToken(response.token, "trainer");
 }
 
 export async function selectTrainer(trainerId: number) {
