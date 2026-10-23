@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 11.5,
-    color: "#a8cf9e",
+    color: COLORS.greenAccentMuted,
     letterSpacing: 0.3,
     marginTop: 6,
     fontWeight: "500",

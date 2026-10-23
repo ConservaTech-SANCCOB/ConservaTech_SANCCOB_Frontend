@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
   },
   cellActive: {
     backgroundColor: COLORS.pastelYellowDeep,
-    borderColor: COLORS.pastelYellowBorder,
+    borderColor: COLORS.pastelYellowOutline,
   },
   bottomScrim: {
     position: "absolute",

@@ -86,6 +86,7 @@ export default function ActivateScreen() {
               <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
               <TextInput
                 style={styles.input}
+                placeholderTextColor={COLORS.grey}
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -98,6 +99,7 @@ export default function ActivateScreen() {
               <Ionicons name="keypad-outline" size={18} color={COLORS.grey} />
               <TextInput
                 style={styles.input}
+                placeholderTextColor={COLORS.grey}
                 value={otp}
                 onChangeText={setOtp}
                 keyboardType="number-pad"
@@ -110,6 +112,7 @@ export default function ActivateScreen() {
               <Ionicons name="lock-closed-outline" size={18} color={COLORS.grey} />
               <TextInput
                 style={styles.input}
+                placeholderTextColor={COLORS.grey}
                 value={newPassword}
                 onChangeText={setNewPassword}
                 secureTextEntry={!showPassword}
@@ -221,7 +224,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#0284c7",
+    backgroundColor: COLORS.blueButton,
   },
   loginButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
   helperText: { textAlign: "center", color: COLORS.navy, fontSize: 13, marginTop: 20 },

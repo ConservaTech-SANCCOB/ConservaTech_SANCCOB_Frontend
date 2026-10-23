@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0284c7",
+    backgroundColor: COLORS.blueButton,
     shadowColor: "#002e4c",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18,

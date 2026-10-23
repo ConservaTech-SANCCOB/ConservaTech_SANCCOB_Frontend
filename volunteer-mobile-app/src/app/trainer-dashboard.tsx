@@ -46,9 +46,9 @@ function statusFor(percent: number): Exclude<StatusFilter, "all"> {
 function badgeFor(status: Exclude<StatusFilter, "all">) {
   switch (status) {
     case "completed":
-      return { label: "Completed", bg: COLORS.greenBg, color: COLORS.green };
+      return { label: "Completed", bg: COLORS.greenBg, color: COLORS.greenText };
     case "in-progress":
-      return { label: "In Progress", bg: "rgba(83,199,255,0.15)", color: COLORS.blue };
+      return { label: "In Progress", bg: "rgba(83,199,255,0.15)", color: COLORS.blueText };
     default:
       return { label: "Not Started", bg: COLORS.lightGrey, color: COLORS.grey };
   }
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: 16,
-    backgroundColor: "#0284c7",
+    backgroundColor: COLORS.blueButton,
   },
   filterTabText: { fontSize: 12, color: COLORS.white, fontWeight: "700" },
   filterTabTextActive: { fontWeight: "900" },
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0284c7",
+    backgroundColor: COLORS.blueButton,
     shadowColor: "#002e4c",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18,

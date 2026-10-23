@@ -174,7 +174,7 @@ export default function WelcomeScreen() {
               accessibilityRole="button"
               accessibilityLabel="Activate New Account"
             >
-              <View style={[styles.activateButton, { backgroundColor: "#0284c7" }]}>
+              <View style={[styles.activateButton, { backgroundColor: COLORS.blueButton }]}>
                 <Text style={styles.loginButtonText} numberOfLines={1}>Activate Account</Text>
                 <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
               </View>
@@ -184,9 +184,9 @@ export default function WelcomeScreen() {
 
         <Animated.View style={{ alignItems: "center", opacity: footerFade, transform: [{ translateY: footerSlide }] }}>
           <View style={styles.footerBadge}>
-            <MaterialCommunityIcons name="hand-heart" size={13} color="#94a3b8" />
+            <MaterialCommunityIcons name="hand-heart" size={13} color={COLORS.slate} />
             <Text style={styles.footerText}>Caring for seabirds, one shift at a time.</Text>
-            <MaterialCommunityIcons name="feather" size={13} color="#94a3b8" />
+            <MaterialCommunityIcons name="feather" size={13} color={COLORS.slate} />
           </View>
           <Text style={styles.versionText}>v1.0.0</Text>
         </Animated.View>
@@ -256,9 +256,9 @@ const styles = StyleSheet.create({
   },
   buttonGroup: { flex: 1, justifyContent: "flex-end", alignItems: "center", gap: 14, marginTop: 4, width: "100%" },
   introGroup: { width: "100%", alignItems: "flex-start", marginBottom: 24 },
-  eyebrowLabel: { fontSize: 12, color: "#0284c7", fontWeight: "800", letterSpacing: 1.4 },
+  eyebrowLabel: { fontSize: 12, color: COLORS.blueButton, fontWeight: "800", letterSpacing: 1.4 },
   welcomeHeading: { fontSize: 24, color: COLORS.navy, fontWeight: "600", marginTop: 4 },
-  missionLabel: { width: "100%", textAlign: "center", fontSize: 13, color: "#64748b", fontWeight: "600" },
+  missionLabel: { width: "100%", textAlign: "center", fontSize: 13, color: COLORS.slate, fontWeight: "600" },
   footerBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -266,8 +266,8 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 20,
   },
-  footerText: { color: "#94a3b8", fontSize: 12, fontWeight: "500" },
-  versionText: { color: "#94a3b8", fontSize: 11, fontWeight: "500", marginTop: 10 },
+  footerText: { color: COLORS.slate, fontSize: 12, fontWeight: "500" },
+  versionText: { color: COLORS.slate, fontSize: 11, fontWeight: "500", marginTop: 10 },
   volunteerButtonWrap: {
     width: "70%",
     borderRadius: 40,
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   loginButtonText: { color: COLORS.white, fontWeight: "600", fontSize: 15.5, letterSpacing: 0.2 },
   dividerRow: { width: "70%", flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 2 },
   dividerLine: { flex: 1, height: 1.5, backgroundColor: "#cbd5e1" },
-  dividerText: { fontSize: 13, fontWeight: "800", color: "#94a3b8" },
+  dividerText: { fontSize: 13, fontWeight: "800", color: COLORS.slate },
   activateButtonWrap: {
     width: "70%",
     borderRadius: 40,

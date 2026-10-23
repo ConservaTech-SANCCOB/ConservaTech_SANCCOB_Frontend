@@ -88,6 +88,7 @@ export default function TrainerPinScreen() {
               <Ionicons name="keypad-outline" size={18} color={COLORS.grey} />
               <TextInput
                 style={styles.input}
+                placeholderTextColor={COLORS.grey}
                 value={pin}
                 onChangeText={setPin}
                 keyboardType="number-pad"

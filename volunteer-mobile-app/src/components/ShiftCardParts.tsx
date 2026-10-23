@@ -19,12 +19,12 @@ type SlotTheme = {
  * warm sunrise for mornings, sky blue for afternoons, lavender for full days.
  */
 const SLOT_THEMES: Record<string, SlotTheme> = {
-  "08:00-13:00": { accent: "#f08a3c", soft: "#ffe6d2", ink: "#8a3d06", icon: "cafe-outline" },
-  "14:00-17:00": { accent: "#2c9fd9", soft: "#d9f0fc", ink: "#0b4f73", icon: "partly-sunny-outline" },
+  "08:00-13:00": { accent: COLORS.slotMorningAccent, soft: "#ffe6d2", ink: "#8a3d06", icon: "cafe-outline" },
+  "14:00-17:00": { accent: COLORS.slotAfternoonAccent, soft: "#d9f0fc", ink: "#0b4f73", icon: "partly-sunny-outline" },
   "08:00-17:00": { accent: "#8a62d6", soft: "#ece4fb", ink: "#4a2a8f", icon: "sunny-outline" },
 };
 
-const FALLBACK_SLOT_THEME: SlotTheme = { accent: "#8aa0ad", soft: "#e8eef1", ink: "#1b2a33", icon: "time-outline" };
+const FALLBACK_SLOT_THEME: SlotTheme = { accent: COLORS.slotFallbackAccent, soft: "#e8eef1", ink: "#1b2a33", icon: "time-outline" };
 
 export function slotTheme(slot: string): SlotTheme {
   return SLOT_THEMES[slot] ?? FALLBACK_SLOT_THEME;

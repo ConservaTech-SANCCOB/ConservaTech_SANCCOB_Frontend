@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   valueText: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "700", color: COLORS.grey },
-  placeholderText: { fontWeight: "500", opacity: 0.7 },
+  placeholderText: { fontWeight: "500" },
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
