@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   metaText: { flex: 1, fontSize: 13, color: COLORS.grey },
   reasonInput: {
     borderWidth: 1.5,
-    borderColor: "#ecdcda",
+    borderColor: COLORS.borderRose,
     backgroundColor: "#fdf8f7",
     borderRadius: 16,
     padding: 14,

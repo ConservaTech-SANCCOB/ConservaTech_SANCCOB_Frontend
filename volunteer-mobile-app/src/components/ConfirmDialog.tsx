@@ -94,7 +94,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cancelButton: { backgroundColor: COLORS.lightGrey },
+  // Padding minus border width keeps the same size
+  cancelButton: {
+    backgroundColor: COLORS.lightGrey,
+    borderWidth: 1,
+    borderColor: COLORS.borderBlueGrey,
+    paddingHorizontal: 17,
+  },
   confirmButton: { backgroundColor: COLORS.blueMid },
   destructiveButton: { backgroundColor: COLORS.redMid },
   cancelText: { fontSize: 15, fontWeight: "700", color: COLORS.navy },
