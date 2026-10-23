@@ -2,6 +2,7 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
+import { logError } from "../utils/logError";
 
 export async function getExpoPushToken(): Promise<string | null> {
   try {
@@ -44,7 +45,7 @@ export async function getExpoPushToken(): Promise<string | null> {
       Constants.easConfig?.projectId;
 
     if (!projectId) {
-      console.error("Expo projectId could not be found.");
+      logError("Push token setup", new Error("Expo projectId could not be found"));
       return null;
     }
 
@@ -53,11 +54,9 @@ export async function getExpoPushToken(): Promise<string | null> {
       projectId,
     });
 
-    console.log("Expo Push Token:", pushToken.data);
-
     return pushToken.data;
   } catch (error) {
-    console.error("Failed to get Expo push token:", error);
+    logError("Failed to get Expo push token", error);
     return null;
   }
 }
