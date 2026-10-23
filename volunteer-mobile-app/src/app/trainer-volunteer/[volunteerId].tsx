@@ -228,11 +228,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    backgroundColor: "#0284c7",
+    backgroundColor: COLORS.blueButton,
   },
   signOffText: { color: COLORS.white, fontWeight: "600", fontSize: 12.5, letterSpacing: 0.1 },
   signedOffTag: { flexDirection: "row", alignItems: "center", gap: 4 },
-  signedOffText: { color: COLORS.green, fontWeight: "700", fontSize: 12 },
+  signedOffText: { color: COLORS.greenText, fontWeight: "700", fontSize: 12 },
 });
 
 //----------------------------------- END OF FILE ---------------------------------//

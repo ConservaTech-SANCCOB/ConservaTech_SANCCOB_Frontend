@@ -54,7 +54,7 @@ const SECTION_THEMES = {
     soft: "#f0f8ec",
     icon: "layers-outline",
   },
-  pen: { main: "#1f7fb8", complete: "#2aa3e0", dark: COLORS.blueMid, soft: "#ebf5fb", icon: "water-outline" },
+  pen: { main: COLORS.penBlue, complete: COLORS.penBlueComplete, dark: COLORS.blueMid, soft: "#ebf5fb", icon: "water-outline" },
   seasonal: { main: COLORS.pinkMid, complete: "#d6408a", dark: COLORS.pinkLight, soft: "#fcf0f5", icon: "leaf-outline" },
 } satisfies Record<string, SectionTheme>;
 
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 11.5,
-    color: "#a8cf9e",
+    color: COLORS.greenAccentMuted,
     letterSpacing: 0.3,
     marginTop: 6,
     fontWeight: "500",
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
   },
   introGroup: { alignItems: "flex-start" },
   summaryHeading: { fontSize: 24, color: COLORS.greenLight, fontWeight: "700" },
-  eyebrowLabel: { fontSize: 12, color: COLORS.green, fontWeight: "800", letterSpacing: 1.4, marginTop: 4 },
+  eyebrowLabel: { fontSize: 12, color: COLORS.greenText, fontWeight: "800", letterSpacing: 1.4, marginTop: 4 },
   hoursButtonWrap: {
     borderRadius: 40,
     shadowColor: COLORS.greenDark,
@@ -720,15 +720,15 @@ const styles = StyleSheet.create({
   },
   barFill: { height: "100%", borderRadius: 4 },
   barFillLocked: { backgroundColor: "#c3cac1" },
-  sectionTitleLocked: { color: "#8a938b" },
+  sectionTitleLocked: { color: COLORS.sage },
   sectionSubtitle: { fontSize: 12, fontWeight: "700", marginTop: 2 },
-  sectionSubtitleLocked: { color: "#a8aeaa" },
+  sectionSubtitleLocked: { color: COLORS.sage },
   skillList: {
     paddingBottom: 4,
   },
   emptyNote: {
     fontSize: 13,
-    color: "#8a938b",
+    color: COLORS.sage,
     paddingLeft: 44,
     paddingBottom: 12,
   },
@@ -775,7 +775,7 @@ const styles = StyleSheet.create({
   skillNameWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
   pathName: { fontSize: 15, fontWeight: "600", color: "#6b736a", flexShrink: 1 },
   pathNameCurrent: { color: "#1c2b1a", fontWeight: "700" },
-  pathStatusDone: { fontSize: 12, color: "#7f8a7c", fontWeight: "500" },
+  pathStatusDone: { fontSize: 12, color: COLORS.sage, fontWeight: "500" },
   pathStatusNext: { fontSize: 12, fontWeight: "700" },
 });
 

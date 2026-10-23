@@ -601,7 +601,14 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.amberLight },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
   availableTitleRow: { marginBottom: 12 },
-  bookAction: { backgroundColor: COLORS.pastelYellowDeep },
+  // Padding minus border width keeps the same size
+  bookAction: {
+    backgroundColor: COLORS.pastelYellowDeep,
+    borderWidth: 1,
+    borderColor: COLORS.pastelYellowOutline,
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+  },
   bookActionText: { color: COLORS.pastelInk },
   limitedTag: {
     backgroundColor: COLORS.pastelYellow,
@@ -610,7 +617,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     marginLeft: 6,
   },
-  limitedTagText: { fontSize: 11, fontWeight: "800", color: "#9A7B00" },
+  limitedTagText: { fontSize: 11, fontWeight: "800", color: COLORS.goldInk },
   skeletonBadge: {
     width: 56,
     height: 56,

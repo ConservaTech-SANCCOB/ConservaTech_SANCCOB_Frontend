@@ -147,6 +147,7 @@ export default function LoginScreen() {
               <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
               <TextInput
                 style={styles.input}
+                placeholderTextColor={COLORS.grey}
                 value={email}
                 onChangeText={setEmail}
                 accessibilityLabel="Email address"
@@ -164,6 +165,7 @@ export default function LoginScreen() {
               />
               <TextInput
                 style={styles.input}
+                placeholderTextColor={COLORS.grey}
                 value={password}
                 onChangeText={setPassword}
                 accessibilityLabel="Password"
