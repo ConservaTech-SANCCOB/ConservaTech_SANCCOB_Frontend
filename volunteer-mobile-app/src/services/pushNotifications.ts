@@ -54,8 +54,6 @@ export async function getExpoPushToken(): Promise<string | null> {
       projectId,
     });
 
-    console.log("Expo Push Token:", pushToken.data);
-
     return pushToken.data;
   } catch (error) {
     logError("Failed to get Expo push token", error);
