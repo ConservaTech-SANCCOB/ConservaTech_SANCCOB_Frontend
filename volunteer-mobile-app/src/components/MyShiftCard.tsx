@@ -14,6 +14,7 @@ export default function MyShiftCard({
   cancellationPending = false,
   accent = COLORS.blueMid,
   accentText = COLORS.white,
+  accentBorder,
 }: {
   item: MyShift;
   cancellationPending?: boolean;
@@ -21,6 +22,8 @@ export default function MyShiftCard({
   accent?: string;
   /** Text/icon colour on top of `accent`; override when the accent is too light for white. */
   accentText?: string;
+  // Outline for accents too pale against the card
+  accentBorder?: string;
 }) {
   const router = useRouter();
   const confirm = useConfirm();
@@ -118,7 +121,13 @@ export default function MyShiftCard({
             accessibilityRole="button"
             accessibilityLabel="Cancel shift"
           >
-            <View style={[SHIFT_CARD_STYLES.action, { backgroundColor: accent }]}>
+            <View
+              style={[
+                SHIFT_CARD_STYLES.action,
+                { backgroundColor: accent },
+                accentBorder ? [SHIFT_CARD_STYLES.outlinedAction, { borderColor: accentBorder }] : null,
+              ]}
+            >
               <Ionicons name="close-circle-outline" size={14} color={accentText} />
               <Text style={[SHIFT_CARD_STYLES.actionText, { color: accentText }]}>Cancel</Text>
             </View>

@@ -156,7 +156,7 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
         </View>
         <View style={SHIFT_CARD_STYLES.divider} />
         <TouchableOpacity style={SHIFT_CARD_STYLES.actionWrap} onPress={confirmBook} disabled={booking} hitSlop={6}>
-          <View style={[SHIFT_CARD_STYLES.action, styles.bookAction]}>
+          <View style={[SHIFT_CARD_STYLES.action, SHIFT_CARD_STYLES.outlinedAction, styles.bookAction]}>
             {booking ? (
               <ActivityIndicator size="small" color={COLORS.pastelInk} />
             ) : (
@@ -421,6 +421,7 @@ export default function BookingsScreen() {
                   cancellationPending={pendingCancellationIds.has(row.item.rosterAssignmentId)}
                   accent={COLORS.pastelYellowDeep}
                   accentText={COLORS.pastelInk}
+                  accentBorder={COLORS.pastelYellowOutline}
                 />
               </View>
             );
@@ -601,14 +602,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.amberLight },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
   availableTitleRow: { marginBottom: 12 },
-  // Padding minus border width keeps the same size
-  bookAction: {
-    backgroundColor: COLORS.pastelYellowDeep,
-    borderWidth: 1,
-    borderColor: COLORS.pastelYellowOutline,
-    paddingVertical: 7,
-    paddingHorizontal: 13,
-  },
+  bookAction: { backgroundColor: COLORS.pastelYellowDeep, borderColor: COLORS.pastelYellowOutline },
   bookActionText: { color: COLORS.pastelInk },
   limitedTag: {
     backgroundColor: COLORS.pastelYellow,

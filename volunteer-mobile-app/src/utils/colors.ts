@@ -55,6 +55,8 @@ export const COLORS = {
   pastelYellowBg: "#FFFBE8",
   pastelInk: "#5c4508",
   lightGrey: "#F5F7F8",
+  borderBlueGrey: "#7392a2",
+  borderRose: "#bb817a",
   slotMorningAccent: "#d36510",
   slotAfternoonAccent: "#238ec4",
   slotFallbackAccent: "#6f8a9a",

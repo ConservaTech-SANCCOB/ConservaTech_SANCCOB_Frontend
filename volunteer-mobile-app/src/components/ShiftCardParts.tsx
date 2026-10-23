@@ -125,6 +125,8 @@ export const SHIFT_CARD_STYLES = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 20,
   },
+  // Padding minus border width keeps the same size
+  outlinedAction: { borderWidth: 1, paddingVertical: 7, paddingHorizontal: 13 },
   actionText: { fontSize: 12.5, fontWeight: "700" },
 });
 
