@@ -51,6 +51,28 @@ export interface ReportsData {
   topContributors: TopContributor[];
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Shapes of the array items returned inside GET /api/admin/reports (ReportsDto).
+// Used to type the .map() callbacks below instead of `any`.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+interface RawMonthlyHours {
+  month: string | null;
+  hours: number;
+}
+
+interface RawMonthlyAttendance {
+  month: string | null;
+  ratePercent: number;
+}
+
+interface RawTopContributor {
+  volunteerName: string | null;
+  totalHours: number;
+}
+
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -169,17 +191,17 @@ export async function fetchReportsData(
     avgAttendanceRate: raw.averageAttendanceRate ?? 0,
     missedShifts: raw.missedShifts ?? 0,
     activeVolunteers: raw.activeVolunteers ?? 0,
-    monthlyHours: (raw.monthlyHours ?? []).map((m: any) => ({
-      month: m.month,
+    monthlyHours: (raw.monthlyHours ?? []).map((m: RawMonthlyHours) => ({
+      month: m.month ?? "",
       hours: m.hours,
     })),
     conservation,
-    attendanceByMonth: (raw.monthlyAttendanceRate ?? []).map((a: any) => ({
-      month: a.month,
+    attendanceByMonth: (raw.monthlyAttendanceRate ?? []).map((a: RawMonthlyAttendance) => ({
+      month: a.month ?? "",
       rate: a.ratePercent,
     })),
-    topContributors: (raw.topContributors ?? []).map((c: any) => ({
-      name: c.volunteerName,
+    topContributors: (raw.topContributors ?? []).map((c: RawTopContributor) => ({
+      name: c.volunteerName ?? "",
       hours: c.totalHours,
     })),
   };

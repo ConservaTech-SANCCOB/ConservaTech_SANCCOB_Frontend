@@ -47,6 +47,7 @@ describe("apiFetch", () => {
     delete process.env.NEXT_PUBLIC_API_URL;
     let isolatedApiFetch: typeof apiFetch = apiFetch;
     jest.isolateModules(() => {
+       // eslint-disable-next-line @typescript-eslint/no-require-imports
       isolatedApiFetch = require("../app/lib/api/http").apiFetch;
     });
     process.env.NEXT_PUBLIC_API_URL = savedUrl;

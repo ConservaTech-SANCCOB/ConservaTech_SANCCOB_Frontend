@@ -55,9 +55,13 @@ export default function LoginPage() {
     // Trim whitespace before passing to login
     await login(email.trim(), password, keepSignedIn);
     router.push("/dashboard");
-  } catch (err: any) {
+  } catch (err) {
     console.error("[Login Error]:", err);
-    setError(err?.message || "Invalid email or password. Please try again.");
+    setError(
+      err instanceof Error && err.message 
+      ? err.message
+       :"Invalid email or password. Please try again."
+    );
   } finally {
     setIsSubmitting(false);
   }

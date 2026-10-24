@@ -410,7 +410,7 @@ export default function ShiftSchedulingPage() {
           <h2 className="text-lg font-bold text-slate-900">Delete Shift</h2>
           <p className="text-sm text-slate-500 mt-2 mb-6">
             Are you sure you want to delete the {deletingShift.location} shift on{" "}
-            {deletingShift.shiftDate}? This can't be undone.
+            {deletingShift.shiftDate}? This can&apos;t be undone.
           </p>
           <div className="flex justify-end gap-3">
             <button
