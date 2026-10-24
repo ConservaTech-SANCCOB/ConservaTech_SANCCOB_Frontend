@@ -193,8 +193,6 @@ function SkillsSection({ profile }: { profile: TrainingVolunteerProfile }) {
       {done > 0 ? (
         <PieChart
           slices={sections.filter((s) => s.done > 0).map((s) => ({ label: s.label, value: s.done, color: s.color }))}
-          totalLabel={`${done} of ${total} signed off`}
-          theme={theme}
           accessibilityLabel={`Skills signed off by section: ${spokenBreakdown}. ${done} of ${total} in total.`}
         />
       ) : (

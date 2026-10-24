@@ -244,13 +244,9 @@ function pointOnCircle(centre: number, radius: number, angle: number) {
 
 export function PieChart({
   slices,
-  totalLabel,
-  theme,
   accessibilityLabel,
 }: {
   slices: PieSlice[];
-  totalLabel: string;
-  theme: StatTheme;
   accessibilityLabel: string;
 }) {
   const centre = PIE_SIZE / 2;
@@ -301,7 +297,6 @@ export function PieChart({
             })}
         </Svg>
       </ChartEntrance>
-      <Text style={[styles.pieTotal, { color: theme.text }]}>{totalLabel}</Text>
     </View>
   );
 }
@@ -340,8 +335,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", gap: 6, paddingVertical: 18, paddingHorizontal: 8 },
   emptyTitle: { fontSize: 15, fontWeight: "700", textAlign: "center" },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
-  pieWrap: { alignItems: "center", gap: 10, marginTop: 8, marginBottom: 4 },
-  pieTotal: { fontSize: 15, fontWeight: "800", textAlign: "center" },
+  pieWrap: { alignItems: "center", marginTop: 8, marginBottom: 4 },
 });
 
 //----------------------------------- END OF FILE ---------------------------------//
