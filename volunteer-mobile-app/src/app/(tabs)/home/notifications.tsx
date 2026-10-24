@@ -5,7 +5,13 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { AppNotification, getMyNotifications, markNotificationRead } from "../../../services/notifications";
+import { useConfirm } from "../../../components/ConfirmProvider";
+import {
+  AppNotification,
+  clearAllNotifications,
+  getMyNotifications,
+  markNotificationRead,
+} from "../../../services/notifications";
 import { COLORS } from "../../../utils/colors";
 import { AboveBannerFill } from "../../../components/BannerOverscroll";
 import { formatTimestamp } from "../../../utils/dateBuckets";
@@ -21,6 +27,8 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const confirm = useConfirm();
 
   useEffect(() => {
     getMyNotifications()
@@ -33,14 +41,40 @@ export default function NotificationsScreen() {
   }, []);
 
   const handlePress = async (item: AppNotification) => {
-    setNotifications((prev) => prev.filter((n) => n.notificationId !== item.notificationId));
+    if (item.isRead) return;
     try {
       await markNotificationRead(item.notificationId);
+      // Update in place instead of reloading
+      setNotifications((prev) =>
+        prev.map((n) => (n.notificationId === item.notificationId ? { ...n, isRead: true } : n))
+      );
     } catch (error) {
-      setNotifications((prev) => [...prev, item].sort((a, b) => b.notificationId - a.notificationId));
-      if (error instanceof SessionExpiredError) return;
       logError("Mark read error", error);
-      showErrorToast("Couldn't mark as read", getErrorMessage(error, "Try again in a moment."));
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (clearing) return;
+    const confirmed = await confirm({
+      title: "Clear all notifications?",
+      message: "They'll be marked as read and removed from this list.",
+      confirmLabel: "Clear all",
+      cancelLabel: "Cancel",
+      destructive: true,
+    });
+    if (!confirmed) return;
+    const previous = notifications;
+    setClearing(true);
+    setNotifications([]);
+    try {
+      await clearAllNotifications(previous);
+    } catch (error) {
+      setNotifications(previous);
+      if (error instanceof SessionExpiredError) return;
+      logError("Clear notifications error", error);
+      showErrorToast("Couldn't clear notifications", getErrorMessage(error, "Try again in a moment."));
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -110,7 +144,21 @@ export default function NotificationsScreen() {
               </View>
             </LinearGradient>
 
-            <View style={styles.sheetTop} />
+            <View style={styles.sheetTop}>
+              {notifications.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearAllButton}
+                  onPress={handleClearAll}
+                  disabled={clearing}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear all notifications"
+                  accessibilityState={{ disabled: clearing, busy: clearing }}
+                >
+                  <Ionicons name="checkmark-done-outline" size={16} color={COLORS.blueMid} />
+                  <Text style={styles.clearAllText}>Clear all</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </>
         }
         renderItem={({ item }) => {
@@ -120,8 +168,6 @@ export default function NotificationsScreen() {
               <TouchableOpacity
                 style={[styles.notificationCard, !item.isRead && styles.notificationCardUnread]}
                 onPress={() => handlePress(item)}
-                accessibilityRole="button"
-                accessibilityHint="Marks it as read and removes it from the list"
               >
                 {!item.isRead && <View style={styles.unreadDot} />}
                 <View style={styles.body}>
@@ -193,7 +239,11 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   sheetTop: {
-    height: 48,
+    minHeight: 48,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingHorizontal: 14,
     backgroundColor: COLORS.white,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -201,6 +251,14 @@ const styles = StyleSheet.create({
     shadowColor: COLORS.blueDark,
     ...SHEET_TOP_SHADOW,
   },
+  clearAllButton: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+  },
+  clearAllText: { fontSize: 13.5, fontWeight: "800", color: COLORS.blueMid },
   emptyStateCard: {
     alignItems: "center",
     backgroundColor: COLORS.white,

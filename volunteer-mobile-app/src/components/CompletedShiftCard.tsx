@@ -23,8 +23,6 @@ export default function CompletedShiftCard({ shift, hoursLabel }: { shift: Compl
 
   return (
     <View style={[SHIFT_CARD_STYLES.card, { borderLeftColor: slot.accent }]} accessible accessibilityLabel={label}>
-      <View style={[SHIFT_CARD_STYLES.notch, SHIFT_CARD_STYLES.notchBottomLeft]} />
-      <View style={SHIFT_CARD_STYLES.topNotch} />
       <View style={styles.titleRow}>
         {shift.timeSlot ? <SlotChip slot={shift.timeSlot} /> : <View />}
         <View style={styles.hoursPill}>

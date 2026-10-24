@@ -260,13 +260,13 @@ export default function HomeScreen() {
             </View>
           )}
 
-          <Text style={[styles.sectionChipText, styles.spotlightHeading]}>MEET THE SEABIRDS</Text>
-          <SeabirdSpotlight />
-
           <Text style={[styles.sectionChipText, styles.spotlightHeading]} accessibilityRole="header">
             VOLUNTEER NEWS
           </Text>
           <VolunteerNews />
+
+          <Text style={[styles.sectionChipText, styles.spotlightHeading]}>MEET THE SEABIRDS</Text>
+          <SeabirdSpotlight />
         </View>
         <BelowContentFill />
       </ScrollView>

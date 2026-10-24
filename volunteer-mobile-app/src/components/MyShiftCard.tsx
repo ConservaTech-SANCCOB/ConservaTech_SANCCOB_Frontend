@@ -90,8 +90,6 @@ export default function MyShiftCard({
       <Animated.View
         style={[SHIFT_CARD_STYLES.card, { borderLeftColor: slot.accent, transform: [{ scale }] }]}
       >
-        <View style={[SHIFT_CARD_STYLES.notch, SHIFT_CARD_STYLES.notchBottomLeft]} />
-        <View style={SHIFT_CARD_STYLES.topNotch} />
         <View style={styles.titleRow}>
           <SlotChip slot={item.timeSlot} />
           {showPending && (
