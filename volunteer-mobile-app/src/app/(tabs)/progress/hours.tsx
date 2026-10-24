@@ -17,7 +17,7 @@ import CompletedShiftCard from "../../../components/CompletedShiftCard";
 import {
   BarChart,
   ChartEmpty,
-  DonutChart,
+  PieChart,
   PeriodTabs,
   STAT_THEMES,
   StatSection,
@@ -191,11 +191,8 @@ function SkillsSection({ profile }: { profile: TrainingVolunteerProfile }) {
   return (
     <StatSection title="Skills signed off" theme={theme} summary={`${done} of ${total} skills`}>
       {done > 0 ? (
-        <DonutChart
+        <PieChart
           slices={sections.filter((s) => s.done > 0).map((s) => ({ label: s.label, value: s.done, color: s.color }))}
-          centreValue={`${done}/${total}`}
-          centreCaption="signed off"
-          theme={theme}
           accessibilityLabel={`Skills signed off by section: ${spokenBreakdown}. ${done} of ${total} in total.`}
         />
       ) : (

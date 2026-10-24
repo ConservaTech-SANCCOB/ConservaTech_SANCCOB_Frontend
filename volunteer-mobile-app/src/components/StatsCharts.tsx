@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Svg, { Circle, Rect } from "react-native-svg";
+import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import { COLORS } from "../utils/colors";
 import { formatStat, StatPeriod } from "../utils/statsPeriods";
 
@@ -229,65 +229,73 @@ export function BarChart({
   );
 }
 
-export interface DonutSlice {
+export interface PieSlice {
   label: string;
   value: number;
   color: string;
 }
 
-export function DonutChart({
+const PIE_SIZE = 168;
+
+function pointOnCircle(centre: number, radius: number, angle: number) {
+  const radians = (angle * Math.PI) / 180;
+  return { x: centre + radius * Math.cos(radians), y: centre + radius * Math.sin(radians) };
+}
+
+export function PieChart({
   slices,
-  centreValue,
-  centreCaption,
-  theme,
   accessibilityLabel,
 }: {
-  slices: DonutSlice[];
-  centreValue: string;
-  centreCaption: string;
-  theme: StatTheme;
+  slices: PieSlice[];
   accessibilityLabel: string;
 }) {
-  const size = 168;
-  const stroke = 26;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
+  const centre = PIE_SIZE / 2;
+  const radius = PIE_SIZE / 2;
   const sum = slices.reduce((total, slice) => total + slice.value, 0);
-  // A small gap keeps neighbouring slices apart
-  const gap = slices.length > 1 ? 3 : 0;
-  let startAngle = -90;
+  let angle = -90;
+  const arcs = slices.map((slice) => {
+    const start = angle;
+    angle += (slice.value / sum) * 360;
+    return { ...slice, start, end: angle };
+  });
 
   return (
-    <View style={styles.donutWrap} accessible accessibilityRole="image" accessibilityLabel={accessibilityLabel}>
-      <ChartEntrance animationKey="donut">
-        <View style={styles.donut}>
-          <Svg width={size} height={size}>
-            {slices.map((slice) => {
-              const length = (slice.value / sum) * circumference;
-              const dash = Math.max(0, length - gap);
-              const rotation = startAngle;
-              startAngle += (slice.value / sum) * 360;
+    <View style={styles.pieWrap} accessible accessibilityRole="image" accessibilityLabel={accessibilityLabel}>
+      <ChartEntrance animationKey="pie">
+        <Svg width={PIE_SIZE} height={PIE_SIZE}>
+          {arcs.length === 1 ? (
+            <Circle cx={centre} cy={centre} r={radius} fill={arcs[0].color} />
+          ) : (
+            arcs.map((arc) => {
+              const from = pointOnCircle(centre, radius, arc.start);
+              const to = pointOnCircle(centre, radius, arc.end);
+              const largeArc = arc.end - arc.start > 180 ? 1 : 0;
               return (
-                <Circle
-                  key={slice.label}
-                  cx={size / 2}
-                  cy={size / 2}
-                  r={radius}
-                  stroke={slice.color}
-                  strokeWidth={stroke}
-                  fill="none"
-                  strokeDasharray={`${dash} ${circumference - dash}`}
-                  rotation={rotation}
-                  origin={`${size / 2}, ${size / 2}`}
+                <Path
+                  key={arc.label}
+                  d={`M${centre},${centre} L${from.x},${from.y} A${radius},${radius} 0 ${largeArc} 1 ${to.x},${to.y} Z`}
+                  fill={arc.color}
+                />
+              );
+            })
+          )}
+          {arcs.length > 1 &&
+            arcs.map((arc) => {
+              const edge = pointOnCircle(centre, radius, arc.start);
+              return (
+                <Line
+                  key={`gap-${arc.label}`}
+                  x1={centre}
+                  y1={centre}
+                  x2={edge.x}
+                  y2={edge.y}
+                  stroke={COLORS.white}
+                  strokeWidth={3}
+                  strokeLinecap="round"
                 />
               );
             })}
-          </Svg>
-          <View style={styles.donutCentre}>
-            <Text style={[styles.donutValue, { color: theme.text }]}>{centreValue}</Text>
-            <Text style={styles.donutCaption}>{centreCaption}</Text>
-          </View>
-        </View>
+        </Svg>
       </ChartEntrance>
     </View>
   );
@@ -327,19 +335,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", gap: 6, paddingVertical: 18, paddingHorizontal: 8 },
   emptyTitle: { fontSize: 15, fontWeight: "700", textAlign: "center" },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
-  donutWrap: { alignItems: "center", marginTop: 8, marginBottom: 4 },
-  donut: { width: 168, height: 168 },
-  donutCentre: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  donutValue: { fontSize: 26, fontWeight: "900" },
-  donutCaption: { fontSize: 11.5, fontWeight: "600", color: COLORS.grey },
+  pieWrap: { alignItems: "center", marginTop: 8, marginBottom: 4 },
 });
 
 //----------------------------------- END OF FILE ---------------------------------//
