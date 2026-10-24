@@ -6,12 +6,12 @@ on:
   push:
     branches: [main]
     paths:
-      - "Frontend/web-app/**"
+      - "web-app/**"
       - ".github/workflows/web-ci.yml"
   pull_request:
     branches: [main]
     paths:
-      - "Frontend/web-app/**"
+      - "web-app/**"
       - ".github/workflows/web-ci.yml"
 
 # A newer push to the same branch cancels the older run still in progress.
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Frontend/web-app
+        working-directory: web-app
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: Frontend/web-app/package-lock.json
+          cache-dependency-path: web-app/package-lock.json
 
       - name: Install dependencies
         run: npm ci
