@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Svg, { Circle, Path, Rect } from "react-native-svg";
+import Svg, { Circle, Rect } from "react-native-svg";
 import { COLORS } from "../utils/colors";
 import { formatStat, StatPeriod } from "../utils/statsPeriods";
 
@@ -229,97 +229,66 @@ export function BarChart({
   );
 }
 
-export function LineChart({
-  values,
-  labels,
-  theme,
-  step = false,
-  accessibilityLabel,
-  animationKey,
-}: {
-  values: (number | null)[];
-  labels: string[];
-  theme: StatTheme;
-  step?: boolean;
-  accessibilityLabel: string;
-  animationKey: string;
-}) {
-  const [width, setWidth] = useState(0);
-  const pad = 8;
-  const known = values.filter((v): v is number => v !== null);
-  const max = Math.max(...known, 1);
-  const columnWidth = values.length > 0 ? width / values.length : 0;
-  const points = values.flatMap((value, i) =>
-    value === null ? [] : [{ x: (i + 0.5) * columnWidth, y: pad + (1 - value / max) * (CHART_HEIGHT - 2 * pad) }]
-  );
-  const line = points
-    .map((p, i) => (i === 0 ? `M${p.x},${p.y}` : step ? `H${p.x}V${p.y}` : `L${p.x},${p.y}`))
-    .join(" ");
-  const area =
-    points.length > 1
-      ? `${line} L${points[points.length - 1].x},${CHART_HEIGHT} L${points[0].x},${CHART_HEIGHT} Z`
-      : "";
-
-  return (
-    <View
-      accessible
-      accessibilityRole="image"
-      accessibilityLabel={accessibilityLabel}
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-    >
-      <ChartEntrance animationKey={animationKey}>
-        {width > 0 ? (
-          <Svg width={width} height={CHART_HEIGHT}>
-            {area ? <Path d={area} fill={theme.chart} opacity={0.14} /> : null}
-            {points.length > 1 ? (
-              <Path
-                d={line}
-                stroke={theme.chart}
-                strokeWidth={2.5}
-                fill="none"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-            ) : null}
-            {points.map((p, i) => (
-              <Circle key={i} cx={p.x} cy={p.y} r={3.5} fill={theme.chart} />
-            ))}
-          </Svg>
-        ) : (
-          <View style={styles.chartSpace} />
-        )}
-      </ChartEntrance>
-      <AxisLabels labels={labels} />
-    </View>
-  );
+export interface DonutSlice {
+  label: string;
+  value: number;
+  color: string;
 }
 
-export function ProgressRing({ percent, theme, label }: { percent: number; theme: StatTheme; label: string }) {
-  const size = 120;
-  const stroke = 12;
+export function DonutChart({
+  slices,
+  centreValue,
+  centreCaption,
+  theme,
+  accessibilityLabel,
+}: {
+  slices: DonutSlice[];
+  centreValue: string;
+  centreCaption: string;
+  theme: StatTheme;
+  accessibilityLabel: string;
+}) {
+  const size = 168;
+  const stroke = 26;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
+  const sum = slices.reduce((total, slice) => total + slice.value, 0);
+  // A small gap keeps neighbouring slices apart
+  const gap = slices.length > 1 ? 3 : 0;
+  let startAngle = -90;
+
   return (
-    <View style={styles.ringWrap} accessible accessibilityRole="image" accessibilityLabel={label}>
-      <Svg width={size} height={size}>
-        <Circle cx={size / 2} cy={size / 2} r={radius} stroke={COLORS.white} strokeWidth={stroke} fill="none" />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={theme.chart}
-          strokeWidth={stroke}
-          fill="none"
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference * (1 - percent / 100)}
-          strokeLinecap="round"
-          rotation={-90}
-          origin={`${size / 2}, ${size / 2}`}
-        />
-      </Svg>
-      <View style={styles.ringLabel}>
-        <Text style={[styles.ringPercent, { color: theme.text }]}>{percent}%</Text>
-      </View>
+    <View style={styles.donutWrap} accessible accessibilityRole="image" accessibilityLabel={accessibilityLabel}>
+      <ChartEntrance animationKey="donut">
+        <View style={styles.donut}>
+          <Svg width={size} height={size}>
+            {slices.map((slice) => {
+              const length = (slice.value / sum) * circumference;
+              const dash = Math.max(0, length - gap);
+              const rotation = startAngle;
+              startAngle += (slice.value / sum) * 360;
+              return (
+                <Circle
+                  key={slice.label}
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke={slice.color}
+                  strokeWidth={stroke}
+                  fill="none"
+                  strokeDasharray={`${dash} ${circumference - dash}`}
+                  rotation={rotation}
+                  origin={`${size / 2}, ${size / 2}`}
+                />
+              );
+            })}
+          </Svg>
+          <View style={styles.donutCentre}>
+            <Text style={[styles.donutValue, { color: theme.text }]}>{centreValue}</Text>
+            <Text style={styles.donutCaption}>{centreCaption}</Text>
+          </View>
+        </View>
+      </ChartEntrance>
     </View>
   );
 }
@@ -358,9 +327,19 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", gap: 6, paddingVertical: 18, paddingHorizontal: 8 },
   emptyTitle: { fontSize: 15, fontWeight: "700", textAlign: "center" },
   emptyText: { fontSize: 13, color: COLORS.grey, textAlign: "center", lineHeight: 18 },
-  ringWrap: { alignSelf: "center", width: 120, height: 120, marginVertical: 8 },
-  ringLabel: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center" },
-  ringPercent: { fontSize: 24, fontWeight: "900" },
+  donutWrap: { alignItems: "center", marginTop: 8, marginBottom: 4 },
+  donut: { width: 168, height: 168 },
+  donutCentre: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  donutValue: { fontSize: 26, fontWeight: "900" },
+  donutCaption: { fontSize: 11.5, fontWeight: "600", color: COLORS.grey },
 });
 
 //----------------------------------- END OF FILE ---------------------------------//

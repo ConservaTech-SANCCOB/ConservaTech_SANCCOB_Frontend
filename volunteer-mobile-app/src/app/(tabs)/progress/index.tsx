@@ -63,7 +63,7 @@ const SECTION_THEMES = {
  * nod to the chicks SANCCOB hand-rears, and a friendlier read than a bare number.
  */
 function trainingStage(percent: number): { title: string; message: string; icon: keyof typeof Ionicons.glyphMap } {
-  if (percent >= 100) return { title: "Fully fledged!", message: "Every required skill is signed off. Amazing work!", icon: "trophy" };
+  if (percent >= 100) return { title: "Fully fledged!", message: "Every skill is signed off. Amazing work!", icon: "trophy" };
   if (percent >= 75) return { title: "Almost waterproof", message: "Nearly ready for the big swim!", icon: "rocket" };
   if (percent >= 50) return { title: "Finding your flippers", message: "Past halfway, keep it up!", icon: "water" };
   if (percent >= 25) return { title: "Growing feathers", message: "You're building real momentum.", icon: "trending-up" };
@@ -419,9 +419,11 @@ export default function TrainingScreen() {
   const penRoutines = (profile?.penRoutines ?? []).map((s) => toSkill(s));
   const seasonalSkills = (profile?.seasonalSkills ?? []).map((s) => toSkill(s));
   const allSupportingAreasComplete = supportingAreas.length > 0 && supportingAreas.every((s) => s.completed);
-  const completedCount = profile?.completedRequiredSkills ?? 0;
-  const totalCount = profile?.totalRequiredSkills ?? 0;
-  const percent = Math.round(profile?.progressPercentage ?? 0);
+  // Backend totals skip seasonal so count every section here
+  const allSkills = [...supportingAreas, ...penRoutines, ...seasonalSkills];
+  const completedCount = allSkills.filter((s) => s.completed).length;
+  const totalCount = allSkills.length;
+  const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const supportingCompletedCount = supportingAreas.filter((s) => s.completed).length;
   const penCompletedCount = penRoutines.filter((s) => s.completed).length;
   const seasonalCompletedCount = seasonalSkills.filter((s) => s.completed).length;
