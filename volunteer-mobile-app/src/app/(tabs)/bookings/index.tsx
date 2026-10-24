@@ -24,7 +24,7 @@ import { getMyShifts, MyShift } from "../../../services/shifts";
 import { bookVacancy, BookingRejectedError, getVacancies, Vacancy } from "../../../services/vacancies";
 import { SessionExpiredError } from "../../../utils/api";
 import { COLORS } from "../../../utils/colors";
-import { bucketForDate, DateBucket, getRelativeLabel } from "../../../utils/dateBuckets";
+import { bucketForDate, DateBucket, getRelativeLabel, parseLocalDate } from "../../../utils/dateBuckets";
 import { compareShiftsByStart, formatTimeSlotLabel, hasShiftEnded } from "../../../utils/timeSlot";
 import { showErrorToast, showSuccessToast } from "../../../utils/toast";
 import { logError } from "../../../utils/logError";
@@ -34,10 +34,19 @@ import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 
 type ListRow =
   | { type: "header"; key: string; title: string }
+  | { type: "month"; key: string; title: string }
   | { type: "mine"; key: string; item: MyShift }
   | { type: "available"; key: string; item: Vacancy };
 
 const BANNER_SCROLL = refreshableBannerScrollStyles(COLORS.pastelYellowLight);
+
+function monthTitle(dateStr: string): string {
+  const date = parseLocalDate(dateStr);
+  const withYear = date.getFullYear() !== new Date().getFullYear();
+  return date.toLocaleDateString("en-GB", withYear ? { month: "long", year: "numeric" } : { month: "long" });
+}
+
+// ------------------------------------------------------------ //
 
 function groupMyShifts(shifts: MyShift[]): ListRow[] {
   const order: DateBucket[] = ["Today", "This Week", "Later"];
@@ -52,7 +61,16 @@ function groupMyShifts(shifts: MyShift[]): ListRow[] {
     const items = buckets[title];
     if (!items || items.length === 0) return;
     rows.push({ type: "header", key: `header-${title}`, title });
-    items.forEach((item) => rows.push({ type: "mine", key: `mine-${item.rosterAssignmentId}`, item }));
+    let currentMonth = "";
+    items.forEach((item) => {
+      const month = item.shiftDate.slice(0, 7);
+      // Today is a single date so it needs no month
+      if (title !== "Today" && month !== currentMonth) {
+        currentMonth = month;
+        rows.push({ type: "month", key: `month-${title}-${month}`, title: monthTitle(item.shiftDate) });
+      }
+      rows.push({ type: "mine", key: `mine-${item.rosterAssignmentId}`, item });
+    });
   });
   return rows;
 }
@@ -299,7 +317,7 @@ export default function BookingsScreen() {
       ? groupMyShifts(myShifts.filter((s) => !hasShiftEnded(s.shiftDate, s.timeSlot)))
       : availableShifts.map((item) => ({ type: "available", key: `available-${item.shiftId}`, item }));
 
-  const shiftCount = rows.filter((row) => row.type !== "header").length;
+  const shiftCount = rows.filter((row) => row.type === "mine" || row.type === "available").length;
 
   const header = (
     <>
@@ -410,6 +428,15 @@ export default function BookingsScreen() {
             return (
               <View style={styles.rowWrap}>
                 <Text style={styles.sectionHeader}>{row.title}</Text>
+              </View>
+            );
+          }
+          if (row.type === "month") {
+            return (
+              <View style={styles.rowWrap}>
+                <Text style={styles.monthHeader} accessibilityRole="header">
+                  {row.title}
+                </Text>
               </View>
             );
           }
@@ -589,6 +616,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 4,
   },
+  monthHeader: { fontSize: 16, fontWeight: "800", color: COLORS.pastelInk, marginTop: 4, marginBottom: 10 },
   emptyStateCard: {
     alignItems: "center",
     backgroundColor: COLORS.white,

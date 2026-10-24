@@ -13,11 +13,17 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { CompletedShift, getMyTrainingStats, MyTrainingStats } from "../../../services/training";
+import CompletedShiftCard from "../../../components/CompletedShiftCard";
+import {
+  CompletedShift,
+  getMyTrainingProfile,
+  getMyTrainingStats,
+  MyTrainingStats,
+  TrainingVolunteerProfile,
+} from "../../../services/training";
 import { COLORS } from "../../../utils/colors";
 import { AboveBannerFill, BelowContentFill, refreshableBannerScrollStyles } from "../../../components/BannerOverscroll";
 import { parseLocalDate } from "../../../utils/dateBuckets";
-import { formatTimeSlotLabel } from "../../../utils/timeSlot";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 import { BannerBirds } from "../../../components/Wildlife";
@@ -43,10 +49,100 @@ function formatStat(value: number): string {
   return String(Number(value.toFixed(1)));
 }
 
+// ------------------------------------------------------------ //
+
+const CHART_WEEKS = 8;
+
+type WeekBar = { start: Date; hours: number };
+
+function startOfWeek(date: Date): Date {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  // Weeks start on Monday
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  return start;
+}
+
+function hoursPerWeek(shifts: CompletedShift[]): WeekBar[] {
+  const thisWeek = startOfWeek(new Date());
+  const weeks = Array.from({ length: CHART_WEEKS }, (_, i) => {
+    const start = new Date(thisWeek);
+    start.setDate(start.getDate() - (CHART_WEEKS - 1 - i) * 7);
+    return { start, hours: 0 };
+  });
+  shifts.forEach((shift) => {
+    const weekStart = startOfWeek(parseLocalDate(shift.shiftDate)).getTime();
+    const bar = weeks.find((week) => week.start.getTime() === weekStart);
+    if (bar) bar.hours += shift.hoursWorked;
+  });
+  return weeks;
+}
+
+// ------------------------------------------------------------ //
+
+// Skills are a bonus so the screen still loads without them
+async function loadSkillsProgress(): Promise<TrainingVolunteerProfile | null> {
+  try {
+    return (await getMyTrainingProfile()) ?? null;
+  } catch (error) {
+    logError("Load training profile error", error);
+    return null;
+  }
+}
+
+//--------------------CHART--------------------//
+
+function WeeklyHoursChart({ weeks }: { weeks: WeekBar[] }) {
+  const max = Math.max(...weeks.map((week) => week.hours));
+
+  if (max === 0) {
+    return (
+      <View style={styles.chartCard}>
+        <View style={styles.chartEmpty}>
+          <Ionicons name="bar-chart-outline" size={28} color={COLORS.grey} />
+          <Text style={styles.emptyTitle}>No hours in the last {CHART_WEEKS} weeks</Text>
+          <Text style={styles.emptyText}>Your completed shifts will show up here as bars.</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const peak = weeks.find((week) => week.hours === max) ?? weeks[0];
+  const total = weeks.reduce((sum, week) => sum + week.hours, 0);
+  const peakWeek = peak.start.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+  const summary =
+    `Hours per week for the last ${CHART_WEEKS} weeks. ` +
+    `Highest ${formatStat(max)} hours in the week of ${peakWeek}. ` +
+    `${formatStat(total)} hours in total.`;
+
+  return (
+    <View style={styles.chartCard} accessible accessibilityRole="image" accessibilityLabel={summary}>
+      <View style={styles.chartBars}>
+        {weeks.map((week) => (
+          <View key={week.start.getTime()} style={styles.chartColumn}>
+            <Text style={styles.chartValue} numberOfLines={1}>
+              {week.hours > 0 ? `${formatStat(week.hours)}h` : " "}
+            </Text>
+            <View style={styles.chartTrack}>
+              {week.hours > 0 && (
+                <View style={[styles.chartBar, { height: `${Math.max(4, (week.hours / max) * 100)}%` }]} />
+              )}
+            </View>
+            <Text style={styles.chartLabel} numberOfLines={1}>
+              {week.start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export default function HoursWorkedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<MyTrainingStats | null>(null);
+  const [skills, setSkills] = useState<TrainingVolunteerProfile | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,6 +150,7 @@ export default function HoursWorkedScreen() {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
+    const skillsRequest = loadSkillsProgress();
     try {
       setStats(await getMyTrainingStats());
       setLoadError(false);
@@ -61,6 +158,7 @@ export default function HoursWorkedScreen() {
       logError("Load hours stats error", error);
       setLoadError(true);
     } finally {
+      setSkills(await skillsRequest);
       if (isRefresh) setRefreshing(false);
       else setLoading(false);
     }
@@ -75,6 +173,10 @@ export default function HoursWorkedScreen() {
   // Show a dash not 0 when loading failed
   const statValue = (value: number | undefined) =>
     loadError || value === undefined ? "—" : formatStat(value);
+  const weeks = hoursPerWeek(completedShifts);
+  const skillsDone = skills?.completedRequiredSkills ?? 0;
+  const skillsTotal = skills?.totalRequiredSkills ?? 0;
+  const skillsPercent = skillsTotal > 0 ? Math.round((skillsDone / skillsTotal) * 100) : 0;
 
   if (loading) {
     return (
@@ -158,12 +260,46 @@ export default function HoursWorkedScreen() {
               <Text style={styles.statValue}>{statValue(stats?.shiftsCompleted)}</Text>
               <Text style={styles.statLabel}>Shifts Done</Text>
             </View>
+          </View>
+          <View style={[styles.statsRow, styles.statsRowLast]}>
             <View style={styles.statCard}>
               <Ionicons name="trending-up-outline" size={18} color={COLORS.greenMid} />
               <Text style={styles.statValue}>{statValue(stats?.hoursThisMonth)}</Text>
               <Text style={styles.statLabel}>This Month</Text>
             </View>
+            <View style={styles.statCard}>
+              <Ionicons name="ribbon-outline" size={18} color={COLORS.greenMid} />
+              <Text style={styles.statValue}>{skills ? `${skillsDone}/${skillsTotal}` : "—"}</Text>
+              <Text style={styles.statLabel}>Skills Signed Off</Text>
+            </View>
           </View>
+
+          {skills && skillsTotal > 0 && (
+            <View
+              style={styles.skillsCard}
+              accessible
+              accessibilityLabel={`Training progress, ${skillsDone} of ${skillsTotal} required skills signed off`}
+            >
+              <View style={styles.skillsHeader}>
+                <Text style={styles.skillsTitle}>Training progress</Text>
+                <Text style={styles.skillsPercent}>{skillsPercent}%</Text>
+              </View>
+              <View style={styles.skillsTrack}>
+                <View style={[styles.skillsFill, { width: `${skillsPercent}%` }]} />
+              </View>
+              <Text style={styles.skillsCaption}>
+                {skillsDone} of {skillsTotal} required skills signed off
+              </Text>
+            </View>
+          )}
+
+          {!loadError && (
+            <>
+              <Text style={styles.logTitle}>Hours per week</Text>
+              <Text style={styles.chartCaption}>Last {CHART_WEEKS} weeks</Text>
+              <WeeklyHoursChart weeks={weeks} />
+            </>
+          )}
 
           <Text style={styles.logTitle}>Completed Shifts Log</Text>
 
@@ -180,21 +316,11 @@ export default function HoursWorkedScreen() {
                 <View key={month}>
                   <Text style={styles.monthLabel}>{month.toUpperCase()}</Text>
                   {monthShifts.map((shift, i) => (
-                    <View
+                    <CompletedShiftCard
                       key={`${shift.shiftDate}-${shift.timeSlot}-${i}`}
-                      style={[styles.shiftRow, i < monthShifts.length - 1 && styles.shiftRowDivider]}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.shiftDate}>{shift.shiftDate}</Text>
-                        <Text style={styles.shiftDescription} numberOfLines={1}>
-                          {shift.location ?? "Volunteer shift"}
-                        </Text>
-                      </View>
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Text style={styles.shiftHours}>{formatStat(shift.hoursWorked)} hrs</Text>
-                        <Text style={styles.shiftTime}>{formatTimeSlotLabel(shift.timeSlot ?? "")}</Text>
-                      </View>
-                    </View>
+                      shift={shift}
+                      hoursLabel={`${formatStat(shift.hoursWorked)} hrs`}
+                    />
                   ))}
                 </View>
               );
@@ -266,7 +392,8 @@ const styles = StyleSheet.create({
     shadowColor: "#0d3305",
     ...SHEET_TOP_SHADOW,
   },
-  statsRow: { flexDirection: "row", gap: 10, marginBottom: 28 },
+  statsRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
+  statsRowLast: { marginBottom: 20 },
   statCard: {
     flex: 1,
     alignItems: "center",
@@ -284,23 +411,54 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.6,
     marginTop: 18,
-    marginBottom: 4,
+    marginBottom: 10,
   },
-  shiftRow: {
-    flexDirection: "row",
+  skillsCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    gap: 10,
+    backgroundColor: COLORS.greenBg,
+  },
+  skillsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  skillsTitle: { fontSize: 15, fontWeight: "700", color: COLORS.greenLight },
+  skillsPercent: { fontSize: 15, fontWeight: "800", color: COLORS.greenLight },
+  skillsTrack: { height: 8, borderRadius: 4, backgroundColor: COLORS.white, overflow: "hidden" },
+  skillsFill: { height: "100%", borderRadius: 4, backgroundColor: COLORS.greenMid },
+  skillsCaption: { fontSize: 12.5, fontWeight: "600", color: COLORS.grey },
+  chartCaption: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
+  chartCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.greenBg,
+    paddingHorizontal: 10,
+    paddingTop: 14,
+    paddingBottom: 10,
+    marginTop: 12,
+    marginBottom: 24,
+  },
+  chartBars: { flexDirection: "row", alignItems: "flex-end" },
+  chartColumn: { flex: 1, alignItems: "center" },
+  chartValue: { fontSize: 10.5, fontWeight: "700", color: COLORS.greenLight, marginBottom: 4 },
+  // Holds bars only so its fixed height clips no text
+  chartTrack: {
+    alignSelf: "stretch",
+    height: 110,
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    paddingVertical: 13,
-  },
-  shiftRowDivider: {
+    justifyContent: "flex-end",
     borderBottomWidth: 1,
-    borderBottomColor: "#eef2ec",
+    borderBottomColor: COLORS.borderBlueGrey,
   },
-  shiftDate: { fontSize: 14.5, fontWeight: "600", color: "#1c2b1a" },
-  shiftDescription: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
-  shiftHours: { fontSize: 14.5, fontWeight: "800", color: COLORS.greenMid },
-  shiftTime: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
+  chartBar: {
+    width: "58%",
+    maxWidth: 22,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+    backgroundColor: COLORS.greenMid,
+  },
+  chartLabel: { fontSize: 10, fontWeight: "600", color: COLORS.grey, marginTop: 6 },
+  chartEmpty: { alignItems: "center", gap: 8, paddingVertical: 12, paddingHorizontal: 8 },
   emptyStateCard: {
     alignItems: "center",
     backgroundColor: COLORS.white,

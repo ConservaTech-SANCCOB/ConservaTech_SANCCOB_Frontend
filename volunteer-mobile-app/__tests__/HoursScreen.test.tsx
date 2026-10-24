@@ -41,6 +41,6 @@ describe("Hours / Volunteering Stats", () => {
     await render(<HoursWorkedScreen />);
 
     expect(await screen.findByText("Couldn't load your shift history")).toBeOnTheScreen();
-    expect(screen.getAllByText("—")).toHaveLength(3);
+    expect(screen.getAllByText("—")).toHaveLength(4);
   });
 });
