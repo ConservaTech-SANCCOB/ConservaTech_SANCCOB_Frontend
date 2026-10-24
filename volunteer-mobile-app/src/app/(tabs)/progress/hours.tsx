@@ -92,14 +92,15 @@ function findBestWeek(points: DatedValue[]): { start: Date; hours: number } | nu
   return best;
 }
 
-// Matches the Training tab colours and required set
-const REQUIRED_SKILL_SECTIONS = [
+// Matches the Training tab sections and colours
+const SKILL_SECTIONS = [
   { key: "supportingAreas", label: "Supporting areas", color: COLORS.greenMid, text: COLORS.greenLight },
   { key: "penRoutines", label: "Pen routines", color: COLORS.penBlue, text: COLORS.blueMid },
+  { key: "seasonalSkills", label: "Seasonal skills", color: COLORS.pinkMid, text: COLORS.pinkLight },
 ] as const;
 
-function requiredSkillCounts(profile: TrainingVolunteerProfile) {
-  const sections = REQUIRED_SKILL_SECTIONS.map((section) => {
+function skillCounts(profile: TrainingVolunteerProfile) {
+  const sections = SKILL_SECTIONS.map((section) => {
     const list = profile[section.key] ?? [];
     return { ...section, done: list.filter((s) => s.isSignedOff).length, total: list.length };
   });
@@ -184,19 +185,18 @@ function PeriodBarSection({
 
 function SkillsSection({ profile }: { profile: TrainingVolunteerProfile }) {
   const theme = STAT_THEMES.skills;
-  const { sections, done, total } = requiredSkillCounts(profile);
+  const { sections, done, total } = skillCounts(profile);
   const spokenBreakdown = sections.map((s) => `${s.label.toLowerCase()} ${s.done} of ${s.total}`).join(", ");
-  const hasSeasonal = (profile.seasonalSkills ?? []).length > 0;
 
   return (
-    <StatSection title="Required skills signed off" theme={theme} summary={`${done} of ${total} skills`}>
+    <StatSection title="Skills signed off" theme={theme} summary={`${done} of ${total} skills`}>
       {done > 0 ? (
         <DonutChart
           slices={sections.filter((s) => s.done > 0).map((s) => ({ label: s.label, value: s.done, color: s.color }))}
           centreValue={`${done}/${total}`}
           centreCaption="signed off"
           theme={theme}
-          accessibilityLabel={`Required skills signed off by section: ${spokenBreakdown}. ${done} of ${total} in total.`}
+          accessibilityLabel={`Skills signed off by section: ${spokenBreakdown}. ${done} of ${total} in total.`}
         />
       ) : (
         <ChartEmpty
@@ -221,7 +221,6 @@ function SkillsSection({ profile }: { profile: TrainingVolunteerProfile }) {
           </View>
         ))}
       </View>
-      {hasSeasonal && <Text style={styles.areaNote}>Seasonal skills are optional so they aren&apos;t counted here.</Text>}
     </StatSection>
   );
 }
@@ -266,7 +265,7 @@ export default function HoursWorkedScreen() {
   const hourPoints: DatedValue[] = completedShifts.map((s) => ({ date: parseLocalDate(s.shiftDate), value: s.hoursWorked }));
   const shiftPoints: DatedValue[] = completedShifts.map((s) => ({ date: parseLocalDate(s.shiftDate), value: 1 }));
   const bestWeek = findBestWeek(hourPoints);
-  const requiredSkills = skills ? requiredSkillCounts(skills) : null;
+  const skillTotals = skills ? skillCounts(skills) : null;
 
   if (loading) {
     return (
@@ -363,8 +362,8 @@ export default function HoursWorkedScreen() {
             />
             <StatCard
               theme={STAT_THEMES.skills}
-              value={requiredSkills ? `${requiredSkills.done}/${requiredSkills.total}` : "—"}
-              label="Required Skills Signed Off"
+              value={skillTotals ? `${skillTotals.done}/${skillTotals.total}` : "—"}
+              label="Skills Signed Off"
             />
           </View>
 
@@ -513,7 +512,6 @@ const styles = StyleSheet.create({
   areaDot: { width: 10, height: 10, borderRadius: 5 },
   areaName: { flex: 1, fontSize: 13, fontWeight: "700" },
   areaCount: { fontSize: 13, fontWeight: "800" },
-  areaNote: { fontSize: 12, color: COLORS.grey, marginTop: 8 },
   emptyStateCard: {
     alignItems: "center",
     backgroundColor: COLORS.white,
