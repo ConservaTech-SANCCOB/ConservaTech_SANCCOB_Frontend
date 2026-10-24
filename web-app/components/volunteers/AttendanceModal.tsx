@@ -112,6 +112,18 @@ function toAttendanceInfo(raw: unknown): AttendanceInfo | null {
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
+// True when an assignment is still active. The backend soft-deletes removed
+// assignments by setting their status to "Vacant" and keeping the row in the
+// roster, so those rows are history and must not appear as the volunteer's
+// shifts.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+function isActiveAssignment(a: RosterAssignment): boolean {
+  return a.status?.toLowerCase() !== "vacant";
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // Modal for viewing and marking a volunteer's attendance. Lets the admin step
 // through weeks, see the volunteer's rostered shifts for that week with their
 // saved attendance, and mark each shift as attended or not attended. Tells the
@@ -170,7 +182,7 @@ export default function AttendanceModal({
       // The roster response has no attended field, so look up each of this
       // volunteer's shifts from the Attendance endpoint.
       const mine = (data.assignments ?? []).filter(
-        (a) => String(a.userId) === volunteer.id
+        (a) => String(a.userId) === volunteer.id && isActiveAssignment(a)
       );
       const entries = await Promise.all(
         mine.map(async (a) => {
@@ -227,7 +239,7 @@ export default function AttendanceModal({
   //</summary>
   //-----------------------------------------------------------------------------------------------//
   const myAssignments: RosterAssignment[] = (roster?.assignments ?? []).filter(
-    (a) => String(a.userId) === volunteer.id
+    (a) => String(a.userId) === volunteer.id && isActiveAssignment(a)
   );
 
   //-----------------------------------------------------------------------------------------------//
