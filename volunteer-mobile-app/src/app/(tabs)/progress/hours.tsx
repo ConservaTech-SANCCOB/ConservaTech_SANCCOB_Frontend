@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -17,9 +17,8 @@ import CompletedShiftCard from "../../../components/CompletedShiftCard";
 import {
   BarChart,
   ChartEmpty,
-  LineChart,
+  DonutChart,
   PeriodTabs,
-  ProgressRing,
   STAT_THEMES,
   StatSection,
   StatTheme,
@@ -33,7 +32,6 @@ import {
 } from "../../../services/training";
 import {
   bucketTotals,
-  cumulativeTotals,
   DatedValue,
   describeChange,
   formatStat,
@@ -46,7 +44,7 @@ import {
 } from "../../../utils/statsPeriods";
 import { COLORS } from "../../../utils/colors";
 import { AboveBannerFill, BelowContentFill, refreshableBannerScrollStyles } from "../../../components/BannerOverscroll";
-import { parseBackendTimestamp, parseLocalDate } from "../../../utils/dateBuckets";
+import { parseLocalDate } from "../../../utils/dateBuckets";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 import { BannerBirds } from "../../../components/Wildlife";
@@ -94,8 +92,22 @@ function findBestWeek(points: DatedValue[]): { start: Date; hours: number } | nu
   return best;
 }
 
-function latestValue(values: (number | null)[], fallback: number): number {
-  return [...values].reverse().find((v): v is number => v !== null) ?? fallback;
+// Matches the Training tab colours and required set
+const REQUIRED_SKILL_SECTIONS = [
+  { key: "supportingAreas", label: "Supporting areas", color: COLORS.greenMid, text: COLORS.greenLight },
+  { key: "penRoutines", label: "Pen routines", color: COLORS.penBlue, text: COLORS.blueMid },
+] as const;
+
+function requiredSkillCounts(profile: TrainingVolunteerProfile) {
+  const sections = REQUIRED_SKILL_SECTIONS.map((section) => {
+    const list = profile[section.key] ?? [];
+    return { ...section, done: list.filter((s) => s.isSignedOff).length, total: list.length };
+  });
+  return {
+    sections,
+    done: sections.reduce((sum, section) => sum + section.done, 0),
+    total: sections.reduce((sum, section) => sum + section.total, 0),
+  };
 }
 
 //--------------------STAT SECTIONS--------------------//
@@ -170,127 +182,46 @@ function PeriodBarSection({
   );
 }
 
-function TotalHoursSection({ points }: { points: DatedValue[] }) {
-  const theme = STAT_THEMES.total;
-  const [period, setPeriod] = useState<StatPeriod>("month");
-  const buckets = periodBuckets(period);
-  const values = cumulativeTotals(points, buckets);
-  const allTime = points.reduce((sum, p) => sum + p.value, 0);
-  const startValue = sumBetween(points, new Date(0), buckets[0].start);
-  const latest = latestValue(values, startValue);
-  const added = latest - startValue;
-  const phrase = PERIOD_PHRASE[period];
-  const label =
-    `Total hours ${phrase} by ${UNIT_WORD[period]}. ` +
-    `${formatStat(startValue)} hours at the start and ${formatStat(latest)} hours by now.`;
+function SkillsSection({ profile }: { profile: TrainingVolunteerProfile }) {
+  const theme = STAT_THEMES.skills;
+  const { sections, done, total } = requiredSkillCounts(profile);
+  const spokenBreakdown = sections.map((s) => `${s.label.toLowerCase()} ${s.done} of ${s.total}`).join(", ");
+  const hasSeasonal = (profile.seasonalSkills ?? []).length > 0;
 
   return (
-    <StatSection
-      title="Total hours"
-      theme={theme}
-      summary={`${formatStat(allTime)} hours in total`}
-      change={added > 0 ? `+${formatStat(added)}h ${phrase}` : `No new hours ${phrase}`}
-    >
-      <PeriodTabs value={period} onChange={setPeriod} theme={theme} chartName="Total hours" />
-      {allTime > 0 ? (
-        <LineChart
-          values={values}
-          labels={buckets.map((b) => b.label)}
+    <StatSection title="Required skills signed off" theme={theme} summary={`${done} of ${total} skills`}>
+      {done > 0 ? (
+        <DonutChart
+          slices={sections.filter((s) => s.done > 0).map((s) => ({ label: s.label, value: s.done, color: s.color }))}
+          centreValue={`${done}/${total}`}
+          centreCaption="signed off"
           theme={theme}
-          accessibilityLabel={label}
-          animationKey={period}
+          accessibilityLabel={`Required skills signed off by section: ${spokenBreakdown}. ${done} of ${total} in total.`}
         />
       ) : (
         <ChartEmpty
           theme={theme}
-          title="No hours logged yet"
-          text="Your running total grows here as you complete shifts."
+          title="No skills signed off yet"
+          text="Ask a trainer on shift to sign off your next skill."
         />
       )}
-    </StatSection>
-  );
-}
-
-const SKILL_AREAS = [
-  { key: "supportingAreas", label: "Supporting areas" },
-  { key: "penRoutines", label: "Pen routines" },
-  { key: "seasonalSkills", label: "Seasonal skills" },
-] as const;
-
-function SkillsSection({ profile }: { profile: TrainingVolunteerProfile }) {
-  const theme = STAT_THEMES.skills;
-  const [period, setPeriod] = useState<StatPeriod>("month");
-  const areas = SKILL_AREAS.map((area) => {
-    const list = profile[area.key] ?? [];
-    return { label: area.label, done: list.filter((s) => s.isSignedOff).length, total: list.length };
-  }).filter((area) => area.total > 0);
-  const all = SKILL_AREAS.flatMap((area) => profile[area.key] ?? []);
-  const signedOff = all.filter((s) => s.isSignedOff);
-  const points: DatedValue[] = signedOff.flatMap((s) => {
-    if (!s.signedOffAt) return [];
-    const date = parseBackendTimestamp(s.signedOffAt);
-    return Number.isNaN(date.getTime()) ? [] : [{ date, value: 1 }];
-  });
-  const buckets = periodBuckets(period);
-  const values = cumulativeTotals(points, buckets);
-  const startCount = sumBetween(points, new Date(0), buckets[0].start);
-  const latest = latestValue(values, startCount);
-  const added = latest - startCount;
-  const phrase = PERIOD_PHRASE[period];
-  const percent = all.length > 0 ? Math.round((signedOff.length / all.length) * 100) : 0;
-  const breakdown = areas.map((a) => `${a.label} ${a.done} of ${a.total}`).join(", ");
-
-  let body: ReactNode;
-  if (signedOff.length === 0) {
-    body = (
-      <ChartEmpty
-        theme={theme}
-        title="No skills signed off yet"
-        text="Ask a trainer on shift to sign off your next skill."
-      />
-    );
-  } else if (points.length === 0) {
-    // No sign-off dates so show overall progress
-    body = <ProgressRing percent={percent} theme={theme} label={`${percent}% of skills signed off. ${breakdown}.`} />;
-  } else {
-    body = (
-      <>
-        <PeriodTabs value={period} onChange={setPeriod} theme={theme} chartName="Skills signed off" />
-        <LineChart
-          step
-          values={values}
-          labels={buckets.map((b) => b.label)}
-          theme={theme}
-          accessibilityLabel={`Skills signed off ${phrase} by ${UNIT_WORD[period]}. ${startCount} at the start and ${latest} by now.`}
-          animationKey={period}
-        />
-      </>
-    );
-  }
-
-  return (
-    <StatSection
-      title="Skills signed off"
-      theme={theme}
-      summary={`${signedOff.length} of ${all.length} skills`}
-      change={points.length > 0 ? (added > 0 ? `+${added} ${phrase}` : `None signed off ${phrase}`) : undefined}
-    >
-      {body}
       <View style={styles.areaList}>
-        {areas.map((area) => (
+        {sections.map((section) => (
           <View
-            key={area.label}
+            key={section.key}
             style={styles.areaRow}
             accessible
-            accessibilityLabel={`${area.label}, ${area.done} of ${area.total} signed off`}
+            accessibilityLabel={`${section.label}, ${section.done} of ${section.total} signed off`}
           >
-            <Text style={styles.areaName}>{area.label}</Text>
-            <Text style={[styles.areaCount, { color: theme.text }]}>
-              {area.done}/{area.total}
+            <View style={[styles.areaDot, { backgroundColor: section.color }]} />
+            <Text style={[styles.areaName, { color: section.text }]}>{section.label}</Text>
+            <Text style={[styles.areaCount, { color: section.text }]}>
+              {section.done}/{section.total}
             </Text>
           </View>
         ))}
       </View>
+      {hasSeasonal && <Text style={styles.areaNote}>Seasonal skills are optional so they aren&apos;t counted here.</Text>}
     </StatSection>
   );
 }
@@ -335,8 +266,7 @@ export default function HoursWorkedScreen() {
   const hourPoints: DatedValue[] = completedShifts.map((s) => ({ date: parseLocalDate(s.shiftDate), value: s.hoursWorked }));
   const shiftPoints: DatedValue[] = completedShifts.map((s) => ({ date: parseLocalDate(s.shiftDate), value: 1 }));
   const bestWeek = findBestWeek(hourPoints);
-  const skillsDone = skills?.completedRequiredSkills ?? 0;
-  const skillsTotal = skills?.totalRequiredSkills ?? 0;
+  const requiredSkills = skills ? requiredSkillCounts(skills) : null;
 
   if (loading) {
     return (
@@ -433,8 +363,8 @@ export default function HoursWorkedScreen() {
             />
             <StatCard
               theme={STAT_THEMES.skills}
-              value={skills ? `${skillsDone}/${skillsTotal}` : "—"}
-              label="Skills Signed Off"
+              value={requiredSkills ? `${requiredSkills.done}/${requiredSkills.total}` : "—"}
+              label="Required Skills Signed Off"
             />
           </View>
 
@@ -452,7 +382,6 @@ export default function HoursWorkedScreen() {
                 points={shiftPoints}
                 measure={{ one: "shift", many: "shifts", unit: "", emptyText: "Each shift you complete adds a bar here." }}
               />
-              <TotalHoursSection points={hourPoints} />
             </>
           )}
           {skills && <SkillsSection profile={skills} />}
@@ -581,8 +510,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
-  areaName: { flexShrink: 1, fontSize: 13, fontWeight: "600", color: COLORS.navy },
+  areaDot: { width: 10, height: 10, borderRadius: 5 },
+  areaName: { flex: 1, fontSize: 13, fontWeight: "700" },
   areaCount: { fontSize: 13, fontWeight: "800" },
+  areaNote: { fontSize: 12, color: COLORS.grey, marginTop: 8 },
   emptyStateCard: {
     alignItems: "center",
     backgroundColor: COLORS.white,

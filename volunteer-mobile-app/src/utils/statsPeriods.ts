@@ -102,14 +102,6 @@ export function bucketTotals(points: DatedValue[], buckets: PeriodBucket[]): num
   return buckets.map((b) => sumBetween(points, b.start, b.end));
 }
 
-// Running totals stop at today
-export function cumulativeTotals(points: DatedValue[], buckets: PeriodBucket[], now = new Date()): (number | null)[] {
-  return buckets.map((b) => {
-    if (b.start > now) return null;
-    return points.reduce((sum, p) => (p.date < b.end ? sum + p.value : sum), 0);
-  });
-}
-
 export function describeChange(diff: number, unit: string, period: StatPeriod): string {
   if (diff === 0) return `Same as ${PREVIOUS_PHRASE[period]}`;
   return `${diff > 0 ? "+" : "−"}${formatStat(Math.abs(diff))}${unit} vs ${PREVIOUS_PHRASE[period]}`;
