@@ -9,7 +9,9 @@ import { AppNotification, getMyNotifications, markNotificationRead } from "../..
 import { COLORS } from "../../../utils/colors";
 import { AboveBannerFill } from "../../../components/BannerOverscroll";
 import { formatTimestamp } from "../../../utils/dateBuckets";
+import { getErrorMessage, SessionExpiredError } from "../../../utils/api";
 import { logError } from "../../../utils/logError";
+import { showErrorToast } from "../../../utils/toast";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 import { BannerBirds } from "../../../components/Wildlife";
 
@@ -31,15 +33,14 @@ export default function NotificationsScreen() {
   }, []);
 
   const handlePress = async (item: AppNotification) => {
-    if (item.isRead) return;
+    setNotifications((prev) => prev.filter((n) => n.notificationId !== item.notificationId));
     try {
       await markNotificationRead(item.notificationId);
-      // Update in place instead of reloading
-      setNotifications((prev) =>
-        prev.map((n) => (n.notificationId === item.notificationId ? { ...n, isRead: true } : n))
-      );
     } catch (error) {
+      setNotifications((prev) => [...prev, item].sort((a, b) => b.notificationId - a.notificationId));
+      if (error instanceof SessionExpiredError) return;
       logError("Mark read error", error);
+      showErrorToast("Couldn't mark as read", getErrorMessage(error, "Try again in a moment."));
     }
   };
 
@@ -119,6 +120,8 @@ export default function NotificationsScreen() {
               <TouchableOpacity
                 style={[styles.notificationCard, !item.isRead && styles.notificationCardUnread]}
                 onPress={() => handlePress(item)}
+                accessibilityRole="button"
+                accessibilityHint="Marks it as read and removes it from the list"
               >
                 {!item.isRead && <View style={styles.unreadDot} />}
                 <View style={styles.body}>

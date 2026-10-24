@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import MyShiftCard from "../../../components/MyShiftCard";
 import SeabirdSpotlight from "../../../components/SeabirdSpotlight";
+import VolunteerNews from "../../../components/VolunteerNews";
 import { getPendingCancellationIds } from "../../../services/changeRequests";
 import { getMyNotifications } from "../../../services/notifications";
 import { getMyProfile } from "../../../services/profile";
@@ -261,6 +262,11 @@ export default function HomeScreen() {
 
           <Text style={[styles.sectionChipText, styles.spotlightHeading]}>MEET THE SEABIRDS</Text>
           <SeabirdSpotlight />
+
+          <Text style={[styles.sectionChipText, styles.spotlightHeading]} accessibilityRole="header">
+            VOLUNTEER NEWS
+          </Text>
+          <VolunteerNews />
         </View>
         <BelowContentFill />
       </ScrollView>
