@@ -52,12 +52,12 @@ jobs:
       # --if-present: skipped (not failed) if the script isn't defined yet.
       - name: Lint
         run: npm run lint --if-present
-
+      
       # Next.js 16 generates global types (e.g. LayoutProps) on demand. A clean
       # CI checkout doesn't have them yet, so generate them before type-checking.
       - name: Generate Next.js route types
-        run: npx next typegen
-
+        run: npx next typegen 
+        
       - name: Type-check
         run: npx tsc --noEmit
 
