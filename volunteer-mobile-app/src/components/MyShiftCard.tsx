@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { MyShift } from "../services/shifts";
 import { COLORS } from "../utils/colors";
-import { getRelativeLabel } from "../utils/dateBuckets";
+import { getRelativeLabel, parseLocalDate } from "../utils/dateBuckets";
 import { formatTimeSlotLabel, hasShiftEnded } from "../utils/timeSlot";
 import { useConfirm } from "./ConfirmProvider";
 import { DateBadge, SHIFT_CARD_STYLES, SlotChip, slotTheme } from "./ShiftCardParts";
@@ -30,6 +30,20 @@ export default function MyShiftCard({
   const ended = hasShiftEnded(item.shiftDate, item.timeSlot);
   const slot = slotTheme(item.timeSlot);
   const scale = useRef(new Animated.Value(1)).current;
+  const showPending = cancellationPending && !ended;
+  const longDate = parseLocalDate(item.shiftDate).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  const cardLabel = [
+    `${formatTimeSlotLabel(item.timeSlot)} shift`,
+    longDate,
+    item.location,
+    showPending ? "change requested" : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   const pressIn = () => {
     Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
@@ -69,14 +83,21 @@ export default function MyShiftCard({
       onPressIn={pressIn}
       onPressOut={pressOut}
       onPress={showDetails}
+      accessibilityRole="button"
+      accessibilityLabel={cardLabel}
+      accessibilityHint="Shows shift details"
     >
       <Animated.View
         style={[SHIFT_CARD_STYLES.card, { borderLeftColor: slot.accent, transform: [{ scale }] }]}
       >
-        <View style={[SHIFT_CARD_STYLES.notch, SHIFT_CARD_STYLES.notchBottomLeft]} />
-        <View style={SHIFT_CARD_STYLES.topNotch} />
         <View style={styles.titleRow}>
           <SlotChip slot={item.timeSlot} />
+          {showPending && (
+            <View style={styles.pendingBadge}>
+              <View style={styles.pendingDot} />
+              <Text style={styles.pendingText}>Change requested</Text>
+            </View>
+          )}
         </View>
         <View style={SHIFT_CARD_STYLES.badgeRow}>
           <DateBadge dateStr={item.shiftDate} size={56} color={slot.soft} textColor={slot.ink} />
@@ -139,7 +160,18 @@ export default function MyShiftCard({
 }
 
 const styles = StyleSheet.create({
-  titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  titleRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 },
+  pendingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    backgroundColor: COLORS.amberBg,
+  },
+  pendingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.amberMid },
+  pendingText: { fontSize: 11.5, fontWeight: "800", color: COLORS.amberDark },
   hidden: { opacity: 0 },
 });
 

@@ -30,7 +30,8 @@ describe("Hours / Volunteering Stats", () => {
 
     expect(await screen.findByText("12.5")).toBeOnTheScreen();
     expect(screen.getByText("3")).toBeOnTheScreen();
-    expect(screen.getByText("4.5")).toBeOnTheScreen();
+    expect(screen.getByText("Best Week")).toBeOnTheScreen();
+    expect(screen.getByText("8")).toBeOnTheScreen();
     expect(screen.getByText("4.5 hrs")).toBeOnTheScreen();
     expect(screen.getByText("8 hrs")).toBeOnTheScreen();
   });
@@ -41,6 +42,6 @@ describe("Hours / Volunteering Stats", () => {
     await render(<HoursWorkedScreen />);
 
     expect(await screen.findByText("Couldn't load your shift history")).toBeOnTheScreen();
-    expect(screen.getAllByText("—")).toHaveLength(3);
+    expect(screen.getAllByText("—")).toHaveLength(4);
   });
 });

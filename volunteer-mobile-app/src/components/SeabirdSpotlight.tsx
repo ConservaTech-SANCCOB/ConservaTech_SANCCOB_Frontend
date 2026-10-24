@@ -144,3 +144,6 @@ const styles = StyleSheet.create({
   nextHint: { flexDirection: "row", alignItems: "center", gap: 2 },
   nextHintText: { fontSize: 12.5, fontWeight: "800", color: COLORS.blueMid },
 });
+
+// Shared so the news card matches this one
+export { styles as SPOTLIGHT_STYLES };

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -13,11 +13,40 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { CompletedShift, getMyTrainingStats, MyTrainingStats } from "../../../services/training";
+import CompletedShiftCard from "../../../components/CompletedShiftCard";
+import {
+  BarChart,
+  ChartEmpty,
+  LineChart,
+  PeriodTabs,
+  ProgressRing,
+  STAT_THEMES,
+  StatSection,
+  StatTheme,
+} from "../../../components/StatsCharts";
+import {
+  CompletedShift,
+  getMyTrainingProfile,
+  getMyTrainingStats,
+  MyTrainingStats,
+  TrainingVolunteerProfile,
+} from "../../../services/training";
+import {
+  bucketTotals,
+  cumulativeTotals,
+  DatedValue,
+  describeChange,
+  formatStat,
+  PERIOD_PHRASE,
+  periodBuckets,
+  previousRange,
+  startOfWeek,
+  StatPeriod,
+  sumBetween,
+} from "../../../utils/statsPeriods";
 import { COLORS } from "../../../utils/colors";
 import { AboveBannerFill, BelowContentFill, refreshableBannerScrollStyles } from "../../../components/BannerOverscroll";
-import { parseLocalDate } from "../../../utils/dateBuckets";
-import { formatTimeSlotLabel } from "../../../utils/timeSlot";
+import { parseBackendTimestamp, parseLocalDate } from "../../../utils/dateBuckets";
 import { logError } from "../../../utils/logError";
 import { SHEET_TOP_SHADOW } from "../../../constants/glassCard";
 import { BannerBirds } from "../../../components/Wildlife";
@@ -38,15 +67,241 @@ function newestFirst(a: CompletedShift, b: CompletedShift): number {
 
 // ------------------------------------------------------------ //
 
-// Whole numbers show without a decimal but half hours stay
-function formatStat(value: number): string {
-  return String(Number(value.toFixed(1)));
+// Skills are a bonus so the screen still loads without them
+async function loadSkillsProgress(): Promise<TrainingVolunteerProfile | null> {
+  try {
+    return (await getMyTrainingProfile()) ?? null;
+  } catch (error) {
+    logError("Load training profile error", error);
+    return null;
+  }
 }
+
+// ------------------------------------------------------------ //
+
+const UNIT_WORD: Record<StatPeriod, string> = { week: "day", month: "week", year: "month" };
+
+function findBestWeek(points: DatedValue[]): { start: Date; hours: number } | null {
+  const totals = new Map<number, number>();
+  points.forEach((point) => {
+    const key = startOfWeek(point.date).getTime();
+    totals.set(key, (totals.get(key) ?? 0) + point.value);
+  });
+  let best: { start: Date; hours: number } | null = null;
+  for (const [key, hours] of totals) {
+    if (hours > 0 && (!best || hours > best.hours)) best = { start: new Date(key), hours };
+  }
+  return best;
+}
+
+function latestValue(values: (number | null)[], fallback: number): number {
+  return [...values].reverse().find((v): v is number => v !== null) ?? fallback;
+}
+
+//--------------------STAT SECTIONS--------------------//
+
+function StatCard({
+  theme,
+  icon,
+  value,
+  label,
+  caption,
+}: {
+  theme: StatTheme;
+  icon?: StatTheme["icon"];
+  value: string;
+  label: string;
+  caption?: string;
+}) {
+  return (
+    <View style={[styles.statCard, { backgroundColor: theme.bg }]}>
+      <Ionicons name={icon ?? theme.icon} size={18} color={theme.text} />
+      <Text style={[styles.statValue, { color: theme.text }]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+      {caption ? <Text style={styles.statCaption}>{caption}</Text> : null}
+    </View>
+  );
+}
+
+type Measure = { one: string; many: string; unit: string; emptyText: string };
+
+function PeriodBarSection({
+  title,
+  theme,
+  points,
+  measure,
+}: {
+  title: string;
+  theme: StatTheme;
+  points: DatedValue[];
+  measure: Measure;
+}) {
+  const [period, setPeriod] = useState<StatPeriod>("month");
+  const buckets = periodBuckets(period);
+  const totals = bucketTotals(points, buckets);
+  const total = totals.reduce((sum, v) => sum + v, 0);
+  const previous = previousRange(period, buckets);
+  const change = describeChange(total - sumBetween(points, previous.start, previous.end), measure.unit, period);
+  const max = Math.max(...totals);
+  const peak = buckets[Math.max(0, totals.indexOf(max))];
+  const noun = (n: number) => (n === 1 ? measure.one : measure.many);
+  const phrase = PERIOD_PHRASE[period];
+  const label =
+    `${title} ${phrase} by ${UNIT_WORD[period]}. ` +
+    `Highest ${formatStat(max)} ${noun(max)} ${peak.spoken}. ` +
+    `${formatStat(total)} ${noun(total)} in total.`;
+
+  return (
+    <StatSection title={title} theme={theme} summary={`${formatStat(total)} ${noun(total)} ${phrase}`} change={change}>
+      <PeriodTabs value={period} onChange={setPeriod} theme={theme} chartName={title} />
+      {total > 0 ? (
+        <BarChart
+          values={totals}
+          labels={buckets.map((b) => b.label)}
+          theme={theme}
+          unit={measure.unit}
+          accessibilityLabel={label}
+          animationKey={period}
+        />
+      ) : (
+        <ChartEmpty theme={theme} title={`No ${measure.many} ${phrase}`} text={measure.emptyText} />
+      )}
+    </StatSection>
+  );
+}
+
+function TotalHoursSection({ points }: { points: DatedValue[] }) {
+  const theme = STAT_THEMES.total;
+  const [period, setPeriod] = useState<StatPeriod>("month");
+  const buckets = periodBuckets(period);
+  const values = cumulativeTotals(points, buckets);
+  const allTime = points.reduce((sum, p) => sum + p.value, 0);
+  const startValue = sumBetween(points, new Date(0), buckets[0].start);
+  const latest = latestValue(values, startValue);
+  const added = latest - startValue;
+  const phrase = PERIOD_PHRASE[period];
+  const label =
+    `Total hours ${phrase} by ${UNIT_WORD[period]}. ` +
+    `${formatStat(startValue)} hours at the start and ${formatStat(latest)} hours by now.`;
+
+  return (
+    <StatSection
+      title="Total hours"
+      theme={theme}
+      summary={`${formatStat(allTime)} hours in total`}
+      change={added > 0 ? `+${formatStat(added)}h ${phrase}` : `No new hours ${phrase}`}
+    >
+      <PeriodTabs value={period} onChange={setPeriod} theme={theme} chartName="Total hours" />
+      {allTime > 0 ? (
+        <LineChart
+          values={values}
+          labels={buckets.map((b) => b.label)}
+          theme={theme}
+          accessibilityLabel={label}
+          animationKey={period}
+        />
+      ) : (
+        <ChartEmpty
+          theme={theme}
+          title="No hours logged yet"
+          text="Your running total grows here as you complete shifts."
+        />
+      )}
+    </StatSection>
+  );
+}
+
+const SKILL_AREAS = [
+  { key: "supportingAreas", label: "Supporting areas" },
+  { key: "penRoutines", label: "Pen routines" },
+  { key: "seasonalSkills", label: "Seasonal skills" },
+] as const;
+
+function SkillsSection({ profile }: { profile: TrainingVolunteerProfile }) {
+  const theme = STAT_THEMES.skills;
+  const [period, setPeriod] = useState<StatPeriod>("month");
+  const areas = SKILL_AREAS.map((area) => {
+    const list = profile[area.key] ?? [];
+    return { label: area.label, done: list.filter((s) => s.isSignedOff).length, total: list.length };
+  }).filter((area) => area.total > 0);
+  const all = SKILL_AREAS.flatMap((area) => profile[area.key] ?? []);
+  const signedOff = all.filter((s) => s.isSignedOff);
+  const points: DatedValue[] = signedOff.flatMap((s) => {
+    if (!s.signedOffAt) return [];
+    const date = parseBackendTimestamp(s.signedOffAt);
+    return Number.isNaN(date.getTime()) ? [] : [{ date, value: 1 }];
+  });
+  const buckets = periodBuckets(period);
+  const values = cumulativeTotals(points, buckets);
+  const startCount = sumBetween(points, new Date(0), buckets[0].start);
+  const latest = latestValue(values, startCount);
+  const added = latest - startCount;
+  const phrase = PERIOD_PHRASE[period];
+  const percent = all.length > 0 ? Math.round((signedOff.length / all.length) * 100) : 0;
+  const breakdown = areas.map((a) => `${a.label} ${a.done} of ${a.total}`).join(", ");
+
+  let body: ReactNode;
+  if (signedOff.length === 0) {
+    body = (
+      <ChartEmpty
+        theme={theme}
+        title="No skills signed off yet"
+        text="Ask a trainer on shift to sign off your next skill."
+      />
+    );
+  } else if (points.length === 0) {
+    // No sign-off dates so show overall progress
+    body = <ProgressRing percent={percent} theme={theme} label={`${percent}% of skills signed off. ${breakdown}.`} />;
+  } else {
+    body = (
+      <>
+        <PeriodTabs value={period} onChange={setPeriod} theme={theme} chartName="Skills signed off" />
+        <LineChart
+          step
+          values={values}
+          labels={buckets.map((b) => b.label)}
+          theme={theme}
+          accessibilityLabel={`Skills signed off ${phrase} by ${UNIT_WORD[period]}. ${startCount} at the start and ${latest} by now.`}
+          animationKey={period}
+        />
+      </>
+    );
+  }
+
+  return (
+    <StatSection
+      title="Skills signed off"
+      theme={theme}
+      summary={`${signedOff.length} of ${all.length} skills`}
+      change={points.length > 0 ? (added > 0 ? `+${added} ${phrase}` : `None signed off ${phrase}`) : undefined}
+    >
+      {body}
+      <View style={styles.areaList}>
+        {areas.map((area) => (
+          <View
+            key={area.label}
+            style={styles.areaRow}
+            accessible
+            accessibilityLabel={`${area.label}, ${area.done} of ${area.total} signed off`}
+          >
+            <Text style={styles.areaName}>{area.label}</Text>
+            <Text style={[styles.areaCount, { color: theme.text }]}>
+              {area.done}/{area.total}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </StatSection>
+  );
+}
+
+//--------------------SCREEN--------------------//
 
 export default function HoursWorkedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<MyTrainingStats | null>(null);
+  const [skills, setSkills] = useState<TrainingVolunteerProfile | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,6 +309,7 @@ export default function HoursWorkedScreen() {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
+    const skillsRequest = loadSkillsProgress();
     try {
       setStats(await getMyTrainingStats());
       setLoadError(false);
@@ -61,6 +317,7 @@ export default function HoursWorkedScreen() {
       logError("Load hours stats error", error);
       setLoadError(true);
     } finally {
+      setSkills(await skillsRequest);
       if (isRefresh) setRefreshing(false);
       else setLoading(false);
     }
@@ -75,6 +332,11 @@ export default function HoursWorkedScreen() {
   // Show a dash not 0 when loading failed
   const statValue = (value: number | undefined) =>
     loadError || value === undefined ? "—" : formatStat(value);
+  const hourPoints: DatedValue[] = completedShifts.map((s) => ({ date: parseLocalDate(s.shiftDate), value: s.hoursWorked }));
+  const shiftPoints: DatedValue[] = completedShifts.map((s) => ({ date: parseLocalDate(s.shiftDate), value: 1 }));
+  const bestWeek = findBestWeek(hourPoints);
+  const skillsDone = skills?.completedRequiredSkills ?? 0;
+  const skillsTotal = skills?.totalRequiredSkills ?? 0;
 
   if (loading) {
     return (
@@ -146,24 +408,54 @@ export default function HoursWorkedScreen() {
 
         <View style={styles.sheet}>
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Ionicons name="time-outline" size={18} color={COLORS.greenMid} />
-              <Text style={styles.statValue}>
-                {statValue(stats?.totalHours)}
-              </Text>
-              <Text style={styles.statLabel}>Total Hours</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Ionicons name="calendar-outline" size={18} color={COLORS.greenMid} />
-              <Text style={styles.statValue}>{statValue(stats?.shiftsCompleted)}</Text>
-              <Text style={styles.statLabel}>Shifts Done</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Ionicons name="trending-up-outline" size={18} color={COLORS.greenMid} />
-              <Text style={styles.statValue}>{statValue(stats?.hoursThisMonth)}</Text>
-              <Text style={styles.statLabel}>This Month</Text>
-            </View>
+            <StatCard
+              theme={STAT_THEMES.total}
+              value={statValue(stats?.totalHours)}
+              label="Total Hours"
+            />
+            <StatCard
+              theme={STAT_THEMES.shifts}
+              value={statValue(stats?.shiftsCompleted)}
+              label="Shifts Done"
+            />
           </View>
+          <View style={[styles.statsRow, styles.statsRowLast]}>
+            <StatCard
+              theme={STAT_THEMES.hours}
+              icon="trophy-outline"
+              value={loadError ? "—" : formatStat(bestWeek?.hours ?? 0)}
+              label="Best Week"
+              caption={
+                !loadError && bestWeek
+                  ? `Week of ${bestWeek.start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+                  : undefined
+              }
+            />
+            <StatCard
+              theme={STAT_THEMES.skills}
+              value={skills ? `${skillsDone}/${skillsTotal}` : "—"}
+              label="Skills Signed Off"
+            />
+          </View>
+
+          {!loadError && (
+            <>
+              <PeriodBarSection
+                title="Hours worked"
+                theme={STAT_THEMES.hours}
+                points={hourPoints}
+                measure={{ one: "hour", many: "hours", unit: "h", emptyText: "Completed shifts will show up here." }}
+              />
+              <PeriodBarSection
+                title="Shifts done"
+                theme={STAT_THEMES.shifts}
+                points={shiftPoints}
+                measure={{ one: "shift", many: "shifts", unit: "", emptyText: "Each shift you complete adds a bar here." }}
+              />
+              <TotalHoursSection points={hourPoints} />
+            </>
+          )}
+          {skills && <SkillsSection profile={skills} />}
 
           <Text style={styles.logTitle}>Completed Shifts Log</Text>
 
@@ -180,21 +472,11 @@ export default function HoursWorkedScreen() {
                 <View key={month}>
                   <Text style={styles.monthLabel}>{month.toUpperCase()}</Text>
                   {monthShifts.map((shift, i) => (
-                    <View
+                    <CompletedShiftCard
                       key={`${shift.shiftDate}-${shift.timeSlot}-${i}`}
-                      style={[styles.shiftRow, i < monthShifts.length - 1 && styles.shiftRowDivider]}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.shiftDate}>{shift.shiftDate}</Text>
-                        <Text style={styles.shiftDescription} numberOfLines={1}>
-                          {shift.location ?? "Volunteer shift"}
-                        </Text>
-                      </View>
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Text style={styles.shiftHours}>{formatStat(shift.hoursWorked)} hrs</Text>
-                        <Text style={styles.shiftTime}>{formatTimeSlotLabel(shift.timeSlot ?? "")}</Text>
-                      </View>
-                    </View>
+                      shift={shift}
+                      hoursLabel={`${formatStat(shift.hoursWorked)} hrs`}
+                    />
                   ))}
                 </View>
               );
@@ -266,41 +548,41 @@ const styles = StyleSheet.create({
     shadowColor: "#0d3305",
     ...SHEET_TOP_SHADOW,
   },
-  statsRow: { flexDirection: "row", gap: 10, marginBottom: 28 },
+  statsRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
+  statsRowLast: { marginBottom: 20 },
   statCard: {
     flex: 1,
     alignItems: "center",
     gap: 4,
     borderRadius: 16,
     paddingVertical: 16,
-    backgroundColor: COLORS.greenBg,
+    paddingHorizontal: 8,
   },
-  statValue: { fontSize: 20, fontWeight: "800", color: COLORS.greenLight },
+  statValue: { fontSize: 20, fontWeight: "800" },
   statLabel: { fontSize: 10, fontWeight: "700", color: COLORS.grey, textAlign: "center" },
-  logTitle: { fontSize: 15.5, fontWeight: "700", color: COLORS.greenLight },
+  statCaption: { fontSize: 10.5, fontWeight: "600", color: COLORS.grey, textAlign: "center" },
+  logTitle: { fontSize: 15.5, fontWeight: "700", color: COLORS.greenLight, marginTop: 8 },
   monthLabel: {
     fontSize: 12,
     color: COLORS.greenMid,
     fontWeight: "700",
     letterSpacing: 0.6,
     marginTop: 18,
-    marginBottom: 4,
+    marginBottom: 10,
   },
-  shiftRow: {
+  areaList: { gap: 6, marginTop: 10 },
+  areaRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
-    paddingVertical: 13,
+    gap: 8,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
-  shiftRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#eef2ec",
-  },
-  shiftDate: { fontSize: 14.5, fontWeight: "600", color: "#1c2b1a" },
-  shiftDescription: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
-  shiftHours: { fontSize: 14.5, fontWeight: "800", color: COLORS.greenMid },
-  shiftTime: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
+  areaName: { flexShrink: 1, fontSize: 13, fontWeight: "600", color: COLORS.navy },
+  areaCount: { fontSize: 13, fontWeight: "800" },
   emptyStateCard: {
     alignItems: "center",
     backgroundColor: COLORS.white,
