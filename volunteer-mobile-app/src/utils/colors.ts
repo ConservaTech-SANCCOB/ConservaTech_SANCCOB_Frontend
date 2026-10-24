@@ -60,4 +60,9 @@ export const COLORS = {
   slotMorningAccent: "#d36510",
   slotAfternoonAccent: "#238ec4",
   slotFallbackAccent: "#6f8a9a",
+  // Stats chart palette with a tint per stat
+  blueBg: "#eaf5fc",
+  coral: "#d36510",
+  coralText: "#b0540d",
+  coralBg: "#fff1e7",
 };

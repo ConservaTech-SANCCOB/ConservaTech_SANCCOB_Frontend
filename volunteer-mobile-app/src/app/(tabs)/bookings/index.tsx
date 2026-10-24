@@ -135,8 +135,6 @@ function AvailableShiftCard({ item, onChanged }: { item: Vacancy; onChanged: () 
       <Animated.View
         style={[SHIFT_CARD_STYLES.card, { borderLeftColor: slot.accent, transform: [{ scale }] }]}
       >
-        <View style={[SHIFT_CARD_STYLES.notch, SHIFT_CARD_STYLES.notchBottomLeft]} />
-        <View style={SHIFT_CARD_STYLES.topNotch} />
         <View style={styles.availableTitleRow}>
           <SlotChip slot={item.timeSlot} />
         </View>
