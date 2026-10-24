@@ -49,7 +49,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-           # --if-present: skipped (not failed) if the script isn't defined yet.
+      # --if-present: skipped (not failed) if the script isn't defined yet.
       - name: Lint
         run: npm run lint --if-present
 
@@ -70,7 +70,7 @@ jobs:
   # ---------------------------------------------------------------------------
   # CD: deploy to Vercel. Only on pushes to main, and only if CI passed.
   # Runs from the repo root on purpose: the Vercel project's Root Directory
-  # setting (Frontend/web-app) handles the sub-folder.
+  # setting (web-app) handles the sub-folder.
   # ---------------------------------------------------------------------------
   deploy:
     name: Deploy to Vercel
