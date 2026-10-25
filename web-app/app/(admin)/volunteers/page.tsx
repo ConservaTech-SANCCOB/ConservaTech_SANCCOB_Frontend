@@ -269,8 +269,8 @@ export default function VolunteersPage() {
     <div className="space-y-6">
       {/*------------------------------------ Page Heading ----------------------------------------------------*/}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Volunteers</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Volunteers</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
           Manage volunteer profiles and shift change requests
         </p>
       </div>
@@ -281,8 +281,8 @@ export default function VolunteersPage() {
           onClick={() => setActiveTab("management")}
           className={`px-5 py-2.5 rounded-full text-xs font-semibold transition-all ${
             activeTab === "management"
-              ? "bg-white text-slate-900 shadow-sm border border-slate-200/60"
-              : "text-slate-500 hover:text-slate-700"
+              ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm border border-slate-200/60 dark:border-slate-700"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           }`}
         >
           Volunteer Management
@@ -291,8 +291,8 @@ export default function VolunteersPage() {
           onClick={() => setActiveTab("requests")}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold transition-all ${
             activeTab === "requests"
-              ? "bg-white text-slate-900 shadow-sm border border-slate-200/60"
-              : "text-slate-500 hover:text-slate-700"
+              ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm border border-slate-200/60 dark:border-slate-700"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           }`}
         >
           Request Change
@@ -306,8 +306,8 @@ export default function VolunteersPage() {
           onClick={() => setActiveTab("create")}
           className={`px-5 py-2.5 rounded-full text-xs font-semibold transition-all ${
             activeTab === "create"
-              ? "bg-white text-slate-900 shadow-sm border border-slate-200/60"
-              : "text-slate-500 hover:text-slate-700"
+              ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm border border-slate-200/60 dark:border-slate-700"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           }`}
         >
           Create Volunteer
@@ -315,17 +315,17 @@ export default function VolunteersPage() {
       </div>
 
       {/*------------------------------------ Main Container Card ----------------------------------------------------*/}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-5">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 space-y-5">
         {/*------------------------------------ Load Error Banner ----------------------------------------------------*/}
         {loadError && (
           <div
             role="alert"
-            className="flex items-center justify-between gap-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-600"
+            className="flex items-center justify-between gap-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs font-medium text-red-600 dark:text-red-400"
           >
             <span>{loadError}</span>
             <button
               onClick={() => loadData()}
-              className="shrink-0 px-3 py-1 rounded-lg bg-white border border-red-200 hover:bg-red-100 transition-colors"
+              className="shrink-0 px-3 py-1 rounded-lg bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors"
             >
               Try again
             </button>
@@ -334,7 +334,7 @@ export default function VolunteersPage() {
 
         {isLoading ? (
           /*------------------------------------ Loading State ----------------------------------------------------*/
-          <div className="py-16 text-center text-slate-400 text-sm font-medium">
+          <div className="py-16 text-center text-slate-400 dark:text-slate-500 text-sm font-medium">
             Loading volunteer data…
           </div>
         ) : activeTab === "management" ? (
@@ -349,7 +349,7 @@ export default function VolunteersPage() {
                     placeholder="Search volunteers..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full bg-slate-50/80 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   />
                   <SearchIcon className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 </div>
@@ -357,21 +357,21 @@ export default function VolunteersPage() {
                 <button
                   disabled
                   title="Filters coming soon"
-                  className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200/80 bg-slate-50/80 rounded-xl text-xs font-semibold text-slate-400 cursor-not-allowed"
+                  className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200/80 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800 rounded-xl text-xs font-semibold text-slate-400 dark:text-slate-500 cursor-not-allowed"
                 >
                   <FilterIcon className="w-3.5 h-3.5" />
                   Filter
                 </button>
               </div>
-              <span className="text-xs font-medium text-slate-400">
+              <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
                 {filteredVolunteers.length} volunteers
               </span>
             </div>
 
             {/*------------------------------------ Volunteers Table ----------------------------------------------------*/}
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600">
-                <thead className="text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
+              <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
+                <thead className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100 dark:border-slate-800">
                   <tr>
                     <th className="pb-3 px-4">Profile</th>
                     <th className="pb-3 px-4">Volunteer Name</th>
@@ -381,10 +381,10 @@ export default function VolunteersPage() {
                     <th className="pb-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100/80">
+                <tbody className="divide-y divide-slate-100/80 dark:divide-slate-800">
                   {filteredVolunteers.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                      <td colSpan={6} className="py-8 text-center text-slate-400 dark:text-slate-500 font-medium">
                         No volunteers found.
                       </td>
                     </tr>
@@ -394,32 +394,32 @@ export default function VolunteersPage() {
                       const isOpening = openingId === v.id;
 
                       return (
-                        <tr key={v.id} className="hover:bg-slate-50/70 transition-colors group">
+                        <tr key={v.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors group">
                           {/*------------------------------------ Profile Avatar ----------------------------------------------------*/}
                           <td className="py-4 px-4">
-                            <div className="w-9 h-9 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                            <div className="w-9 h-9 rounded-full bg-[#0B2447] dark:bg-blue-800 text-white font-bold flex items-center justify-center text-xs shadow-sm">
                               {v.initials}
                             </div>
                           </td>
 
                           {/*------------------------------------ Volunteer Name ----------------------------------------------------*/}
                           <td className="py-4 px-4">
-                            <p className="font-medium text-slate-800 text-sm group-hover:text-blue-600 transition-colors">
+                            <p className="font-medium text-slate-800 dark:text-slate-100 text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                               {v.name}
                             </p>
                           </td>
 
                           {/*------------------------------------ Contact Information ----------------------------------------------------*/}
                           <td className="py-4 px-4 space-y-1">
-                            <p className="text-slate-600 text-[11px]">{v.email}</p>
-                            <p className="text-slate-400 text-[11px]">{v.phone || "—"}</p>
+                            <p className="text-slate-600 dark:text-slate-300 text-[11px]">{v.email}</p>
+                            <p className="text-slate-400 dark:text-slate-500 text-[11px]">{v.phone || "—"}</p>
                           </td>
 
                           {/*------------------------------------ Weekly Hours ----------------------------------------------------*/}
                           <td className="py-4 px-4">
                             <div className="flex items-baseline gap-1">
-                              <span className="font-bold text-slate-900">{v.weeklyHours}</span>
-                              <span className="text-[10px] text-slate-400">hrs this week</span>
+                              <span className="font-bold text-slate-900 dark:text-slate-100">{v.weeklyHours}</span>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500">hrs this week</span>
                             </div>
                           </td>
 
@@ -431,17 +431,17 @@ export default function VolunteersPage() {
                               title="Manage attendance"
                             >
                               <div>
-                                <span className="font-bold text-slate-900 group-hover/att:text-blue-600 transition-colors">
+                                <span className="font-bold text-slate-900 dark:text-slate-100 group-hover/att:text-blue-600 dark:group-hover/att:text-blue-400 transition-colors">
                                   {attendance}%
                                 </span>
-                                <div className="w-28 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                                <div className="w-28 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
                                   <div
                                     className="h-full bg-blue-600 rounded-full"
                                     style={{ width: `${attendance}%` }}
                                   />
                                 </div>
                               </div>
-                              <CalendarCheckIcon className="w-3.5 h-3.5 text-slate-300 group-hover/att:text-blue-600 transition-colors shrink-0" />
+                              <CalendarCheckIcon className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover/att:text-blue-600 dark:group-hover/att:text-blue-400 transition-colors shrink-0" />
                             </button>
                           </td>
 
@@ -450,7 +450,7 @@ export default function VolunteersPage() {
                             <button
                               onClick={() => openDetail(v, "view")}
                               disabled={isOpening}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all disabled:opacity-50"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all disabled:opacity-50"
                               aria-label="View volunteer"
                             >
                               <EyeIcon />
@@ -458,7 +458,7 @@ export default function VolunteersPage() {
                             <button
                               onClick={() => openDetail(v, "edit")}
                               disabled={isOpening}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all disabled:opacity-50"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all disabled:opacity-50"
                               aria-label="Edit volunteer"
                             >
                               <EditNoteIcon />
@@ -477,14 +477,14 @@ export default function VolunteersPage() {
           <div className="space-y-4">
             {/*------------------------------------ Requests Heading ----------------------------------------------------*/}
             <div>
-              <h2 className="font-bold text-slate-900 text-sm">Pending Requests</h2>
-              <p className="text-xs text-slate-400 mt-0.5">{pendingCount} pending approval</p>
+              <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Pending Requests</h2>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{pendingCount} pending approval</p>
             </div>
 
             {/*------------------------------------ Requests Table ----------------------------------------------------*/}
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600">
-                <thead className="text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
+              <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
+                <thead className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100 dark:border-slate-800">
                   <tr>
                     <th className="pb-3 px-4">Volunteer</th>
                     <th className="pb-3 px-4">Shift Date</th>
@@ -494,39 +494,39 @@ export default function VolunteersPage() {
                     <th className="pb-3 px-4 text-center">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100/80">
+                <tbody className="divide-y divide-slate-100/80 dark:divide-slate-800">
                   {requests.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                      <td colSpan={6} className="py-8 text-center text-slate-400 dark:text-slate-500 font-medium">
                         No pending shift requests.
                       </td>
                     </tr>
                   ) : (
                     requests.map((r) => (
-                      <tr key={r.id} className="hover:bg-slate-50/70 transition-colors">
+                      <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                         {/*------------------------------------ Requesting Volunteer ----------------------------------------------------*/}
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-[#0B2447] text-white font-bold flex items-center justify-center text-xs shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-[#0B2447] dark:bg-blue-800 text-white font-bold flex items-center justify-center text-xs shrink-0">
                               {r.volunteerInitials}
                             </div>
-                            <span className="font-medium text-slate-800 text-xs">
+                            <span className="font-medium text-slate-800 dark:text-slate-100 text-xs">
                               {r.volunteerName}
                             </span>
                           </div>
                         </td>
 
                         {/*------------------------------------ Shift Date & Time ----------------------------------------------------*/}
-                        <td className="py-4 px-4 font-medium text-slate-700">
+                        <td className="py-4 px-4 font-medium text-slate-700 dark:text-slate-300">
                           {formatShiftDate(r.shiftDate)}
                         </td>
-                        <td className="py-4 px-4 font-medium text-slate-700">
+                        <td className="py-4 px-4 font-medium text-slate-700 dark:text-slate-300">
                           {r.timeSlot || "—"}
                         </td>
 
                         {/*------------------------------------ Reason ----------------------------------------------------*/}
                         <td
-                          className="py-4 px-4 max-w-[240px] text-slate-500 font-medium"
+                          className="py-4 px-4 max-w-[240px] text-slate-500 dark:text-slate-400 font-medium"
                           title={r.reason}
                         >
                           <span className="line-clamp-2">{r.reason || "—"}</span>
@@ -537,10 +537,10 @@ export default function VolunteersPage() {
                           <span
                             className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
                               r.status === "Approved"
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900"
                                 : r.status === "Declined"
-                                ? "bg-red-50 text-red-600 border border-red-100"
-                                : "bg-amber-50 text-amber-600 border border-amber-100"
+                                ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 border border-red-100 dark:border-red-900"
+                                : "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-300 border border-amber-100 dark:border-amber-900"
                             }`}
                           >
                             {r.status}
@@ -559,7 +559,7 @@ export default function VolunteersPage() {
                                     volunteerName: r.volunteerName,
                                   })
                                 }
-                                className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
+                                className="w-7 h-7 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white flex items-center justify-center transition-all font-bold text-xs"
                                 title="Approve"
                               >
                                 ✓
@@ -572,14 +572,14 @@ export default function VolunteersPage() {
                                     volunteerName: r.volunteerName,
                                   })
                                 }
-                                className="w-7 h-7 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all font-bold text-xs"
+                                className="w-7 h-7 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-900 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white flex items-center justify-center transition-all font-bold text-xs"
                                 title="Decline"
                               >
                                 ✕
                               </button>
                             </div>
                           ) : (
-                            <span className="text-slate-300 font-bold">-</span>
+                            <span className="text-slate-300 dark:text-slate-600 font-bold">-</span>
                           )}
                         </td>
                       </tr>
@@ -699,15 +699,15 @@ function CreateVolunteerForm({
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
       {/*------------------------------------ Form Heading ----------------------------------------------------*/}
       <div>
-        <h2 className="font-bold text-slate-900 text-sm">Create Volunteer Profile</h2>
-        <p className="text-xs text-slate-400 mt-0.5">Add a new volunteer to the system</p>
+        <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Create Volunteer Profile</h2>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Add a new volunteer to the system</p>
       </div>
 
       {/*------------------------------------ Error Banner ----------------------------------------------------*/}
       {error && (
         <div
           role="alert"
-          className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-600"
+          className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs font-medium text-red-600 dark:text-red-400"
         >
           {error}
         </div>
@@ -728,7 +728,7 @@ function CreateVolunteerForm({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+          className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           Cancel
         </button>
@@ -769,7 +769,7 @@ function FormField({
   return (
     <div>
       {/*------------------------------------ Field Label ----------------------------------------------------*/}
-      <label className="block text-xs font-semibold text-slate-700 mb-1.5">{label}</label>
+      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{label}</label>
 
       {/*------------------------------------ Field Input ----------------------------------------------------*/}
       <input
@@ -777,7 +777,7 @@ function FormField({
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+        className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
       />
     </div>
   );
@@ -804,14 +804,14 @@ function AgeBracketSelect({
   return (
     <div>
       {/*------------------------------------ Select Label ----------------------------------------------------*/}
-      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Age Bracket</label>
+      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Age Bracket</label>
 
       {/*------------------------------------ Select Options ----------------------------------------------------*/}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 cursor-pointer"
+        className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 cursor-pointer"
       >
         <option value="" disabled={required}>
           {required ? "Select age bracket" : "Not specified"}
@@ -849,8 +849,8 @@ function ViewVolunteerModal({
     <ModalOverlay onClose={onClose}>
       {/*------------------------------------ Modal Header ----------------------------------------------------*/}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-slate-900">Volunteer Profile</h2>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Volunteer Profile</h2>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" aria-label="Close">
           <CloseIcon />
         </button>
       </div>
@@ -861,8 +861,8 @@ function ViewVolunteerModal({
           {volunteer.initials}
         </div>
         <div>
-          <p className="font-bold text-slate-900">{volunteer.name}</p>
-          <p className="text-sm text-slate-500">{details || "No details provided"}</p>
+          <p className="font-bold text-slate-900 dark:text-slate-100">{volunteer.name}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{details || "No details provided"}</p>
         </div>
       </div>
 
@@ -882,17 +882,17 @@ function ViewVolunteerModal({
       </div>
 
       {/*------------------------------------ Hours & Attendance Stats ----------------------------------------------------*/}
-      <div className="bg-slate-50 rounded-xl p-4 space-y-3">
+      <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-3">
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-slate-600">Hours this week</span>
-          <span className="text-sm font-bold text-slate-900">{volunteer.weeklyHours} hrs</span>
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Hours this week</span>
+          <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{volunteer.weeklyHours} hrs</span>
         </div>
         <div>
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-slate-600">Attendance rate</span>
-            <span className="text-sm font-bold text-slate-900">{attendance}%</span>
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Attendance rate</span>
+            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{attendance}%</span>
           </div>
-          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
             <div className="h-full bg-blue-600 rounded-full" style={{ width: `${attendance}%` }} />
           </div>
         </div>
@@ -918,14 +918,14 @@ function ContactRow({
   return (
     <div className="flex items-center gap-3">
       {/*------------------------------------ Row Icon ----------------------------------------------------*/}
-      <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+      <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-300 flex items-center justify-center shrink-0">
         {icon}
       </div>
 
       {/*------------------------------------ Row Text ----------------------------------------------------*/}
       <div>
-        <p className="text-xs text-slate-400">{label}</p>
-        <p className="text-sm text-slate-800 font-medium">{value}</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">{label}</p>
+        <p className="text-sm text-slate-800 dark:text-slate-100 font-medium">{value}</p>
       </div>
     </div>
   );
@@ -991,11 +991,11 @@ function EditVolunteerModal({
       <form onSubmit={handleSubmit}>
         {/*------------------------------------ Modal Header ----------------------------------------------------*/}
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-slate-900">Edit Volunteer</h2>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Edit Volunteer</h2>
           <button
             type="button"
             onClick={onCancel}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             aria-label="Close"
           >
             <CloseIcon />
@@ -1027,7 +1027,7 @@ function EditVolunteerModal({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             Cancel
           </button>
@@ -1070,19 +1070,19 @@ function ConfirmActionModal({
   return (
     <ModalOverlay onClose={onCancel}>
       {/*------------------------------------ Modal Title & Message ----------------------------------------------------*/}
-      <h2 className="text-lg font-bold text-slate-900">
+      <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
         {isApprove ? "Approve Request" : "Decline Request"}
       </h2>
-      <p className="text-sm text-slate-500 mt-2 mb-6">
+      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-6">
         Are you sure you want to {isApprove ? "approve" : "decline"} the change request from{" "}
-        <span className="font-semibold text-slate-700">{volunteerName}</span>?
+        <span className="font-semibold text-slate-700 dark:text-slate-200">{volunteerName}</span>?
       </p>
 
       {/*------------------------------------ Modal Actions ----------------------------------------------------*/}
       <div className="flex items-center justify-end gap-3">
         <button
           onClick={onCancel}
-          className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+          className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           Cancel
         </button>
@@ -1106,7 +1106,7 @@ function ConfirmActionModal({
 //-----------------------------------------------------------------------------------------------//
 //<summary>
 // Shared modal wrapper: a dimmed full-screen backdrop that closes on click,
-// with a centred white card that stops click propagation.
+// with a centred card that stops click propagation.
 //</summary>
 //-----------------------------------------------------------------------------------------------//
 function ModalOverlay({
@@ -1123,7 +1123,7 @@ function ModalOverlay({
     >
       {/*------------------------------------ Modal Card ----------------------------------------------------*/}
       <div
-        className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-2xl shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
