@@ -246,8 +246,8 @@ export default function ShiftSchedulingPage() {
    {/*------------------------------------ Page header: title, month navigation, New Shift button ----------------------------------------------------*/}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Shift Scheduling</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Shift Scheduling</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
           </p>
         </div>
@@ -256,16 +256,16 @@ export default function ShiftSchedulingPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               ‹ Previous
             </button>
-            <span className="text-sm font-semibold text-slate-800 w-32 text-center">
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 w-32 text-center">
               {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </span>
             <button
               onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               Next ›
             </button>
@@ -281,7 +281,7 @@ export default function ShiftSchedulingPage() {
 
     {/*------------------------------------ Error banner ----------------------------------------------------*/}
       {errorMessage && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">
           {errorMessage}
         </div>
       )}
@@ -290,11 +290,11 @@ export default function ShiftSchedulingPage() {
 
     {/*------------------------------------ Calendar ----------------------------------------------------*/}
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
           {/* Weekday headings */}
-          <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-100">
+          <div className="grid grid-cols-7 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
             {WEEKDAY_LABELS.map((day) => (
-              <div key={day} className="py-3 text-center text-xs font-bold text-slate-400">
+              <div key={day} className="py-3 text-center text-xs font-bold text-slate-400 dark:text-slate-500">
                 {day}
               </div>
             ))}
@@ -302,20 +302,20 @@ export default function ShiftSchedulingPage() {
 
           {/* Weeks and day cells */}
           {isLoading ? (
-            <div className="py-16 text-center text-slate-400 text-sm">Loading shifts…</div>
+            <div className="py-16 text-center text-slate-400 dark:text-slate-500 text-sm">Loading shifts…</div>
           ) : (
             weeks.map((week, wi) => (
-              <div key={wi} className="grid grid-cols-7 border-b border-slate-100 last:border-b-0">
+              <div key={wi} className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800 last:border-b-0">
                 {week.map((date, di) => {
                   const dayShifts = date ? shiftsByDate.get(toDateKey(date)) || [] : [];
                   const isToday = date && toDateKey(date) === toDateKey(new Date());
                   return (
-                    <div key={di} className="min-h-[110px] border-r border-slate-100 last:border-r-0 p-2">
+                    <div key={di} className="min-h-[110px] border-r border-slate-100 dark:border-slate-800 last:border-r-0 p-2">
                       {date && (
                         <>
                           <span
                             className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold ${
-                              isToday ? "bg-blue-700 text-white" : "text-slate-500"
+                              isToday ? "bg-blue-700 text-white" : "text-slate-500 dark:text-slate-400"
                             }`}
                           >
                             {date.getDate()}
@@ -326,10 +326,10 @@ export default function ShiftSchedulingPage() {
                               const status = getStatus(shift);
                               const colorClasses =
                                 status.color === "green"
-                                  ? "bg-emerald-50 text-emerald-700"
+                                  ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
                                   : status.color === "amber"
-                                  ? "bg-amber-50 text-amber-700"
-                                  : "bg-red-50 text-red-700";
+                                  ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300"
+                                  : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300";
                               return (
                                 <button
                                   key={shift.shiftId}
@@ -357,10 +357,10 @@ export default function ShiftSchedulingPage() {
    {/*------------------------------------ Side panel: shift details + status legend ----------------------------------------------------*/}
         <div className="space-y-4">
           {!selectedShift ? (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 text-center">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 text-center">
               <p className="text-4xl mb-2">📅</p>
-              <p className="font-semibold text-slate-800">No shift selected</p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="font-semibold text-slate-800 dark:text-slate-100">No shift selected</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                 Click a shift badge on the calendar to view details
               </p>
             </div>
@@ -380,8 +380,8 @@ export default function ShiftSchedulingPage() {
             />
           )}
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">
               Capacity Status
             </h3>
             <div className="space-y-2 text-sm">
@@ -407,15 +407,15 @@ export default function ShiftSchedulingPage() {
   {/*------------------------------------ Delete confirmation modal ----------------------------------------------------*/}
       {deletingShift && (
         <ModalOverlay onClose={() => setDeletingShift(null)}>
-          <h2 className="text-lg font-bold text-slate-900">Delete Shift</h2>
-          <p className="text-sm text-slate-500 mt-2 mb-6">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Delete Shift</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-6">
             Are you sure you want to delete the {deletingShift.location} shift on{" "}
             {deletingShift.shiftDate}? This can&apos;t be undone.
           </p>
           <div className="flex justify-end gap-3">
             <button
               onClick={() => setDeletingShift(null)}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100"
+              className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               Cancel
             </button>
@@ -464,20 +464,20 @@ function ShiftDetailPanel({
   const percent = shift.capacity > 0 ? Math.min((status.assigned / shift.capacity) * 100, 100) : 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
 
       {/*------------------------------------ Panel header ----------------------------------------------------*/}
       <div className="px-5 pt-5 flex items-start justify-between">
         <div>
-          <span className="inline-block text-[10px] font-bold uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full mb-1.5">
+          <span className="inline-block text-[10px] font-bold uppercase text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full mb-1.5">
             {TIME_SLOT_LABELS[shift.timeSlot]?.split(" ")[0] || shift.timeSlot}
           </span>
-          <h3 className="font-bold text-slate-900">{shift.location}</h3>
-          <p className="text-xs text-slate-400">
+          <h3 className="font-bold text-slate-900 dark:text-slate-100">{shift.location}</h3>
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             {shift.shiftDate} · {shift.timeSlot}
           </p>
         </div>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
           ✕
         </button>
       </div>
@@ -486,17 +486,17 @@ function ShiftDetailPanel({
      {/*------------------------------------ Capacity (People / Birds toggle) ----------------------------------------------------*/}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Capacity Mode</span>
-            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-semibold">
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Capacity Mode</span>
+            <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs font-semibold">
               <button
                 onClick={() => onCapacityModeChange("people")}
-                className={`px-2.5 py-1 ${capacityMode === "people" ? "bg-blue-700 text-white" : "text-slate-500"}`}
+                className={`px-2.5 py-1 ${capacityMode === "people" ? "bg-blue-700 text-white" : "text-slate-500 dark:text-slate-400"}`}
               >
                 People
               </button>
               <button
                 onClick={() => onCapacityModeChange("birds")}
-                className={`px-2.5 py-1 ${capacityMode === "birds" ? "bg-blue-700 text-white" : "text-slate-500"}`}
+                className={`px-2.5 py-1 ${capacityMode === "birds" ? "bg-blue-700 text-white" : "text-slate-500 dark:text-slate-400"}`}
               >
                 Birds
               </button>
@@ -504,20 +504,24 @@ function ShiftDetailPanel({
           </div>
 
           {capacityMode === "people" ? (
-            <p className="text-2xl font-bold text-slate-900">
-              {status.assigned} <span className="text-sm font-normal text-slate-400">/ {shift.capacity} Volunteers</span>
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {status.assigned} <span className="text-sm font-normal text-slate-400 dark:text-slate-500">/ {shift.capacity} Volunteers</span>
             </p>
           ) : (
-            <p className="text-2xl font-bold text-slate-900">
-              {shift.birdCount ?? 0} <span className="text-sm font-normal text-slate-400">Birds</span>
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {shift.birdCount ?? 0} <span className="text-sm font-normal text-slate-400 dark:text-slate-500">Birds</span>
             </p>
           )}
-          <div className="w-full h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+          <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
             <div className={`h-full rounded-full ${barColor}`} style={{ width: `${percent}%` }} />
           </div>
           <p
             className={`text-xs font-semibold mt-1 ${
-              status.color === "green" ? "text-emerald-600" : status.color === "amber" ? "text-amber-600" : "text-red-600"
+              status.color === "green"
+                ? "text-emerald-600 dark:text-emerald-400"
+                : status.color === "amber"
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-red-600 dark:text-red-400"
             }`}
           >
             {status.label}
@@ -535,13 +539,13 @@ function ShiftDetailPanel({
 
         {/*------------------------------------ Notes (local only) ----------------------------------------------------*/}
         <div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Notes</p>
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">Notes</p>
           <textarea
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
             placeholder="Add a note (not saved to the server yet)…"
             rows={3}
-            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="w-full text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
 
@@ -555,7 +559,7 @@ function ShiftDetailPanel({
           </button>
           <button
             onClick={onDelete}
-            className="px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50"
+            className="px-3 py-2 rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-950/40"
           >
             Delete
           </button>
@@ -574,7 +578,7 @@ function LegendRow({ color, label }: { color: string; label: string }) {
   return (
     <div className="flex items-center gap-2">
       <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
-      <span className="text-slate-600">{label}</span>
+      <span className="text-slate-600 dark:text-slate-300">{label}</span>
     </div>
   );
 }
