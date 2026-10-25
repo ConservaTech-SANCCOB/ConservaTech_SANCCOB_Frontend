@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../lib/auth-context";
 
@@ -87,19 +88,25 @@ if (isLoading || token)
         />
         {/*------------------------------------ Image Gradient Overlay ----------------------------------------------------*/}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-
-        {/*------------------------------------ Image Caption ----------------------------------------------------*/}
-        <div className="absolute bottom-10 left-10 right-10 text-white">
-          <p className="mt-2 text-white/80">
-            SANCCOB Admin Portal - co-ordinating volunteers, rosters, and rescues.
-          </p>
-        </div>
       </div>
 
       {/*------------------------------------ Right Side: Login Form ----------------------------------------------------*/}
-      <div className="flex w-full lg:w-1/2 items-center justify-center px-6 py-12">
+      <div className="flex w-full lg:w-1/2 items-center justify-center px-6 py-6">
         <div className="w-full max-w-md">
 
+          {/*------------------------------------ SANCCOB Logo ----------------------------------------------------*/}
+          {/* The JPEG has a light grey background, so mix-blend-multiply lets it melt into the light page,
+              and the pale container keeps it looking intentional in dark mode. */}
+           <div className="mb-5 overflow-hidden rounded-2xl dark:bg-slate-100">
+            <Image
+              src="/sanccob-logo.jpeg"
+              alt="SANCCOB Saves Seabirds"
+              width={1600}
+              height={677}
+              priority
+              className="h-28 w-full object-cover mix-blend-multiply"
+            />
+          </div>
           {/*------------------------------------ Login Card ----------------------------------------------------*/}
           <div className="rounded-2xl bg-white dark:bg-slate-900 p-10 shadow-sm border border-slate-100 dark:border-slate-800">
 
