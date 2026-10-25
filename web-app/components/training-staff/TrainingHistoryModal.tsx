@@ -47,12 +47,12 @@ export default function TrainingHistoryModal({ profile, onClose }: Props) {
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
       {/*------------------------------------ Modal Card ----------------------------------------------------*/}
 
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/*------------------------------------ Modal Header ----------------------------------------------------*/}
 
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white">
-          <h2 className="text-lg font-bold text-slate-900">Volunteer Training History</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Volunteer Training History</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" aria-label="Close">
             ✕
           </button>
         </div>
@@ -60,14 +60,14 @@ export default function TrainingHistoryModal({ profile, onClose }: Props) {
         {/*------------------------------------ Modal Body ----------------------------------------------------*/}
         <div className="p-6 space-y-6">
           {/*------------------------------------ Volunteer Name & Overall Progress ----------------------------------------------------*/}
-          <div className="flex items-center justify-between bg-slate-50 rounded-xl p-4">
-            <p className="font-bold text-slate-900">
+          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
+            <p className="font-bold text-slate-900 dark:text-slate-100">
               {profile.firstName} {profile.lastName}
             </p>
             <div className="text-right">
-              <p className="text-2xl font-bold text-slate-900">{Math.round(profile.progressPercentage)}%</p>
-              <p className="text-xs text-slate-500">Overall progress</p>
-              <span className="inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{Math.round(profile.progressPercentage)}%</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Overall progress</p>
+              <span className="inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
                 {profile.trainingStatus ?? "In Progress"}
               </span>
             </div>
@@ -119,14 +119,14 @@ export default function TrainingHistoryModal({ profile, onClose }: Props) {
 //-----------------------------------------------------------------------------------------------//
 function MiniStat({ label, pct }: { label: string; pct: number }) {
   return (
-    <div className="bg-slate-50 rounded-xl p-3">
+    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
   {/*------------------------------------ Label & Percentage ----------------------------------------------------*/}
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="text-xl font-bold text-slate-900 mt-1">{pct}%</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{pct}%</p>
 
  {/*------------------------------------ Progress Bar ----------------------------------------------------*/}
-      <div className="mt-2 h-1.5 rounded-full bg-slate-200 overflow-hidden">
-        <div className="h-full bg-blue-800" style={{ width: `${pct}%` }} />
+      <div className="mt-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+        <div className="h-full bg-blue-800 dark:bg-blue-500" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -163,15 +163,17 @@ function SkillSection({
       <div className="flex items-center gap-2 mb-3">
         <span
           className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-            isFullyComplete ? "bg-green-500" : "bg-slate-300"
+            isFullyComplete ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"
           }`}
         >
           {isFullyComplete ? "✓" : ""}
         </span>
-        <h3 className="font-bold text-slate-900">{stageLabel}</h3>
+        <h3 className="font-bold text-slate-900 dark:text-slate-100">{stageLabel}</h3>
         <span
           className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-            isFullyComplete ? "bg-green-50 text-green-700" : "bg-slate-100 text-slate-600"
+            isFullyComplete
+              ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300"
+              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
           }`}
         >
           {complete}/{total} Complete {isFullyComplete && "✓"}
@@ -203,25 +205,33 @@ function SkillRow({ skill, showSeasonalTag }: { skill: TrainingSkill; showSeason
   return (
     <div
       className={`rounded-lg border px-3 py-2 ${
-        skill.isSignedOff ? "bg-green-50 border-green-100" : "bg-slate-50 border-slate-100"
+        skill.isSignedOff
+          ? "bg-green-50 border-green-100 dark:bg-green-950/40 dark:border-green-900"
+          : "bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700"
       }`}
     >
       {/*------------------------------------ Skill Name & Status ----------------------------------------------------*/}
       <div className="flex items-center gap-2">
         <span
           className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-            skill.isSignedOff ? "bg-green-500 text-white" : "bg-slate-200"
+            skill.isSignedOff ? "bg-green-500 text-white" : "bg-slate-200 dark:bg-slate-600"
           }`}
         >
           {skill.isSignedOff ? "✓" : ""}
         </span>
-        <span className={`text-sm ${skill.isSignedOff ? "text-green-700 font-medium" : "text-slate-500"}`}>
+        <span
+          className={`text-sm ${
+            skill.isSignedOff
+              ? "text-green-700 dark:text-green-300 font-medium"
+              : "text-slate-500 dark:text-slate-400"
+          }`}
+        >
           {skill.skillName}
         </span>
 
         {/*------------------------------------ Seasonal Tag ----------------------------------------------------*/}
         {showSeasonalTag && skill.category === "Seasonal" && (
-          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-50 text-orange-600">
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-300">
             Seasonal
           </span>
         )}
@@ -229,7 +239,7 @@ function SkillRow({ skill, showSeasonalTag }: { skill: TrainingSkill; showSeason
 
       {/*------------------------------------ Sign-Off Details ----------------------------------------------------*/}
       {skill.isSignedOff && skill.trainerName && (
-        <p className="text-xs text-green-600 mt-1 ml-6">
+        <p className="text-xs text-green-600 dark:text-green-400 mt-1 ml-6">
           Signed off by {skill.trainerName}
           {skill.signedOffAt && ` · ${new Date(skill.signedOffAt).toLocaleDateString()}`}
         </p>
