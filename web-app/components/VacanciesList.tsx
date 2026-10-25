@@ -76,7 +76,7 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
     <div className="space-y-4">
       {/*------------------------------------ Success Banner ----------------------------------------------------*/}
       {notifySuccess && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-300 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
           <span>{notifySuccess}</span>
           <button
             type="button"
@@ -94,43 +94,43 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
         {vacancies.map((vacancy) => (
           <div
             key={vacancy.shiftId}
-            className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4 hover:border-slate-200 transition-all"
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm space-y-4 hover:border-slate-200 dark:hover:border-slate-700 transition-all"
           >
             {/*------------------------------------ Card Header: Location, Open Spots, Date & Time ----------------------------------------------------*/}
             <div>
               <div className="flex justify-between items-start">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-300 px-2.5 py-1 rounded-md">
                   {vacancy.location}
                 </span>
-                <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
+                <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900 px-2 py-0.5 rounded-full">
                   {vacancy.vacanciesAvailable} Open Spot{vacancy.vacanciesAvailable > 1 ? "s" : ""}
                 </span>
               </div>
-              <h3 className="font-bold text-slate-900 text-base mt-2">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base mt-2">
                 {vacancy.shiftDate}
               </h3>
-              <p className="text-xs text-slate-500 font-medium">{vacancy.timeSlot}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{vacancy.timeSlot}</p>
             </div>
 
             {/*------------------------------------ Card Stats: Assigned & Bird Count ----------------------------------------------------*/}
-            <div className="bg-slate-50 rounded-xl p-3 flex justify-between text-xs text-slate-600">
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 flex justify-between text-xs text-slate-600 dark:text-slate-300">
               <div>
-                <p className="text-slate-400 text-[10px]">Assigned</p>
-                <p className="font-bold text-slate-800">{vacancy.assignedVolunteers} / {vacancy.capacity}</p>
+                <p className="text-slate-400 dark:text-slate-500 text-[10px]">Assigned</p>
+                <p className="font-bold text-slate-800 dark:text-slate-200">{vacancy.assignedVolunteers} / {vacancy.capacity}</p>
               </div>
               <div>
-                <p className="text-slate-400 text-[10px]">Bird Count</p>
-                <p className="font-bold text-slate-800">{vacancy.birdCount ?? "N/A"}</p>
+                <p className="text-slate-400 dark:text-slate-500 text-[10px]">Bird Count</p>
+                <p className="font-bold text-slate-800 dark:text-slate-200">{vacancy.birdCount ?? "N/A"}</p>
               </div>
             </div>
 
             {/*------------------------------------ Action Buttons ----------------------------------------------------*/}
-            <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
               {/*------------------------------------ Edit Button ----------------------------------------------------*/}
               <button
                 type="button"
                 onClick={() => setEditingVacancy(vacancy)}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors"
               >
                 <EditIcon />
                 Edit Shift
