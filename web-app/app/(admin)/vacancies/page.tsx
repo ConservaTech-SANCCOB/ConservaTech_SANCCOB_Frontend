@@ -92,8 +92,8 @@ export default function VacanciesPage() {
       {/*------------------------------------ Header Section ------------------------------------*/}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Vacancy Management</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Vacancy Management</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Open shift vacancies, calculated live from shift capacity and assignments
           </p>
         </div>
@@ -107,7 +107,7 @@ export default function VacanciesPage() {
 
       {/*------------------------------------ Explanation Banner ------------------------------------*/}
       {/* Honest explanation banner — vacancies aren't editable records
-      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-300">
         Vacancies aren't separate records — they're calculated automatically from each shift's
         capacity and current assignments. To open a new vacancy, create or edit a shift in{" "}
         <Link href="/shifts" className="font-semibold underline">
@@ -118,7 +118,7 @@ export default function VacanciesPage() {
 
       {/*------------------------------------ Error Alert ------------------------------------*/}
       {errorMessage && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
           {errorMessage}
         </div>
       )}
@@ -126,19 +126,19 @@ export default function VacanciesPage() {
       {/*------------------------------------ Stat Cards Grid ------------------------------------*/}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Shifts With Openings" value={stats.totalVacancies} />
-        <StatCard label="Open Positions" value={stats.openPositions} color="text-blue-700" />
-        <StatCard label="Fully Staffed" value={stats.fullyFilled} color="text-emerald-600" />
-        <StatCard label="Urgent (<50% filled)" value={stats.urgent} color="text-red-600" />
+        <StatCard label="Open Positions" value={stats.openPositions} color="text-blue-700 dark:text-blue-300" />
+        <StatCard label="Fully Staffed" value={stats.fullyFilled} color="text-emerald-600 dark:text-emerald-300" />
+        <StatCard label="Urgent (<50% filled)" value={stats.urgent} color="text-red-600 dark:text-red-300" />
       </div>
 
       {/*------------------------------------ Vacancies Content Section ------------------------------------*/}
       {isLoading ? (
-        <div className="py-16 text-center text-slate-400 text-sm">Loading vacancies…</div>
+        <div className="py-16 text-center text-slate-400 dark:text-slate-500 text-sm">Loading vacancies…</div>
       ) : vacancies.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-10 text-center">
           <p className="text-4xl mb-2">📋</p>
-          <p className="font-semibold text-slate-800">No open vacancies right now</p>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="font-semibold text-slate-800 dark:text-slate-200">No open vacancies right now</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
             Every existing shift is fully staffed, or no shifts have been created yet.
           </p>
         </div>
@@ -163,10 +163,18 @@ export default function VacanciesPage() {
 // Reusable stat card UI component for key summary metrics.
 //</summary>
 
-function StatCard({ label, value, color = "text-slate-900" }: { label: string; value: number; color?: string }) {
+function StatCard({
+  label,
+  value,
+  color = "text-slate-900 dark:text-slate-100",
+}: {
+  label: string;
+  value: number;
+  color?: string;
+}) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-      <p className="text-xs text-slate-500 mb-1">{label}</p>
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">{label}</p>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
     </div>
   );
