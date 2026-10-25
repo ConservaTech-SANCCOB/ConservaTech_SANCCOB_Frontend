@@ -52,7 +52,8 @@ export type ShiftFormInitial = {
 //-----------------------------------------------------------------------------------------------//
 //<summary>
 // Shared modal wrapper: a dimmed full-screen backdrop that closes on click,
-// with a centred white card that stops click propagation.
+// with a centred card that stops click propagation. Also used by the shifts
+// delete dialog and the roster assign / remove modals.
 //</summary>
 //-----------------------------------------------------------------------------------------------//
 export function ModalOverlay({
@@ -69,7 +70,7 @@ export function ModalOverlay({
     >
       {/*------------------------------------ Modal Card ----------------------------------------------------*/}
       <div
-        className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-2xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
@@ -253,13 +254,13 @@ export function ShiftFormModal({
 
       {/*------------------------------------ Modal Header ----------------------------------------------------*/}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-slate-900">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
           {mode === "create" ? "New Shift" : "Edit Shift"}
         </h2>
         <button
           type="button"
           onClick={onCancel}
-          className="text-slate-400 hover:text-slate-600"
+          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
           aria-label="Close"
         >
           ✕
@@ -272,7 +273,7 @@ export function ShiftFormModal({
         <div>
           <label
             htmlFor="shift-name"
-            className="block text-xs font-semibold text-slate-700 mb-1.5"
+            className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
           >
             Shift name
           </label>
@@ -287,10 +288,10 @@ export function ShiftFormModal({
               setNameTouched(true);
             }}
             placeholder="e.g. Pen A – Morning"
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+            className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-500 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
           />
           {!nameTouched && suggestedName && (
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Suggested from the area and time. Edit it if you want a different
               name.
             </p>
@@ -303,7 +304,7 @@ export function ShiftFormModal({
           <div>
             <label
               htmlFor="shift-date"
-              className="block text-xs font-semibold text-slate-700 mb-1.5"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
             >
               Date
             </label>
@@ -314,7 +315,7 @@ export function ShiftFormModal({
               required
               value={shiftDate}
               onChange={(e) => setShiftDate(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+              className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
             />
           </div>
 
@@ -322,7 +323,7 @@ export function ShiftFormModal({
           <div>
             <label
               htmlFor="shift-time"
-              className="block text-xs font-semibold text-slate-700 mb-1.5"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
             >
               Time
             </label>
@@ -331,7 +332,7 @@ export function ShiftFormModal({
               name="timeSlot"
               value={timeSlot}
               onChange={(e) => setTimeSlot(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-white"
+              className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-white dark:bg-slate-800"
             >
               {VALID_TIME_SLOTS.map((slot) => (
                 <option key={slot} value={slot}>
@@ -346,7 +347,7 @@ export function ShiftFormModal({
         <div>
           <label
             htmlFor="shift-skill"
-            className="block text-xs font-semibold text-slate-700 mb-1.5"
+            className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
           >
             Skills
           </label>
@@ -358,7 +359,7 @@ export function ShiftFormModal({
             onChange={(e) =>
               setSelectedSkillId(e.target.value ? Number(e.target.value) : "")
             }
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 cursor-pointer bg-white"
+            className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 cursor-pointer bg-white dark:bg-slate-800"
           >
             <option value="" disabled>
               Select a skill...
@@ -380,7 +381,7 @@ export function ShiftFormModal({
                 <div>
                   <label
                     htmlFor="shift-bird-count"
-                    className="block text-xs font-semibold text-slate-700 mb-1.5"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
                   >
                     Bird Count
                   </label>
@@ -392,14 +393,14 @@ export function ShiftFormModal({
                     required
                     value={birdCount}
                     onChange={(e) => setBirdCount(Number(e.target.value))}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <p className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <p className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     Volunteer Capacity (auto-calculated)
                   </p>
-                  <div className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-500 bg-slate-100">
+                  <div className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/60">
                     {autoCalculatedCapacity} volunteer
                     {autoCalculatedCapacity === 1 ? "" : "s"}
                   </div>
@@ -412,7 +413,7 @@ export function ShiftFormModal({
               <div className="col-span-2">
                 <label
                   htmlFor="shift-capacity"
-                  className="block text-xs font-semibold text-slate-700 mb-1.5"
+                  className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
                 >
                   Volunteer Capacity Needed
                 </label>
@@ -425,7 +426,7 @@ export function ShiftFormModal({
                   value={manualCapacity}
                   onChange={(e) => setManualCapacity(Number(e.target.value))}
                   placeholder="Number of volunteers"
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
             )}
@@ -434,7 +435,7 @@ export function ShiftFormModal({
 
         {/*------------------------------------ Error Message ----------------------------------------------------*/}
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2">
             {error}
           </p>
         )}
@@ -444,7 +445,7 @@ export function ShiftFormModal({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100"
+            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             Cancel
           </button>

@@ -104,17 +104,17 @@ export function AssignVolunteerModal({
   return (
     <ModalOverlay onClose={onClose}>
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-slate-900">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
           {mode === "add" ? "Assign Volunteer to Shift" : "Swap Volunteer"}
         </h2>
-        <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close">
+        <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" aria-label="Close">
           ✕
         </button>
       </div>
 
       {mode === "swap" && swapTarget && (
-        <p className="text-xs text-slate-500 mb-4">
-          Replacing <span className="font-semibold text-slate-800">{swapName}</span> on{" "}
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+          Replacing <span className="font-semibold text-slate-800 dark:text-slate-100">{swapName}</span> on{" "}
           {swapTarget.shiftDate.slice(0, 10)} · {swapTarget.timeSlot} · {swapTarget.location}
         </p>
       )}
@@ -122,7 +122,7 @@ export function AssignVolunteerModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         {mode === "add" && (
           <div>
-            <label htmlFor="assign-shift" className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="assign-shift" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Shift
             </label>
             <select
@@ -132,7 +132,7 @@ export function AssignVolunteerModal({
                 setShiftId(e.target.value ? Number(e.target.value) : "");
                 setUserId("");
               }}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+              className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
             >
               <option value="" disabled>Select a shift...</option>
               {shiftOptions.map((s) => (
@@ -143,14 +143,14 @@ export function AssignVolunteerModal({
         )}
 
         <div>
-          <label htmlFor="assign-volunteer" className="block text-xs font-semibold text-slate-700 mb-1.5">
+          <label htmlFor="assign-volunteer" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
             {mode === "add" ? "Volunteer" : "New volunteer"}
           </label>
           <select
             id="assign-volunteer"
             value={userId}
             onChange={(e) => setUserId(e.target.value ? Number(e.target.value) : "")}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+            className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
           >
             <option value="" disabled>Select a volunteer...</option>
             {candidates.map((v) => (
@@ -160,11 +160,11 @@ export function AssignVolunteerModal({
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+          <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2">{error}</p>
         )}
 
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
             Cancel
           </button>
           <button
@@ -218,16 +218,16 @@ export function RemoveAssignmentModal({
 
   return (
     <ModalOverlay onClose={onClose}>
-      <h2 className="text-lg font-bold text-slate-900 mb-2">Remove from shift?</h2>
-      <p className="text-sm text-slate-500 mb-4">
-        Remove <span className="font-semibold text-slate-800">{name}</span> from{" "}
+      <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">Remove from shift?</h2>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+        Remove <span className="font-semibold text-slate-800 dark:text-slate-100">{name}</span> from{" "}
         {assignment.shiftDate.slice(0, 10)} · {assignment.timeSlot} · {assignment.location}? The shift will have an open vacancy.
       </p>
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{error}</p>
+        <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2 mb-4">{error}</p>
       )}
       <div className="flex justify-end gap-3">
-        <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">
+        <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
           Cancel
         </button>
         <button
