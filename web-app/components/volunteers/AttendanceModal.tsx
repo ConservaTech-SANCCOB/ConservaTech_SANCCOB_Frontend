@@ -286,39 +286,39 @@ export default function AttendanceModal({
     >
       {/*------------------------------------ Modal Card ----------------------------------------------------*/}
       <div
-        className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-2xl shadow-xl p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/*------------------------------------ Modal Header ----------------------------------------------------*/}
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-bold text-slate-900">Attendance</h2>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Attendance</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             aria-label="Close"
           >
             <CloseIcon />
           </button>
         </div>
-        <p className="text-sm text-slate-500 mb-5">{volunteer.name}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">{volunteer.name}</p>
 
         {/*------------------------------------ Week Navigation ----------------------------------------------------*/}
-        <div className="flex items-center justify-between mb-4 bg-slate-50 rounded-xl px-3 py-2">
+        <div className="flex items-center justify-between mb-4 bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2">
           <button
             onClick={() => setWeekStart((w) => addDaysISO(w, -7))}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-white hover:text-blue-600 transition-colors"
+            className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
             aria-label="Previous week"
           >
             <ChevronLeftIcon />
           </button>
           <div className="text-center">
-            <p className="text-xs font-semibold text-slate-700">
+            <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
               {formatWeekLabel(weekStart)}
             </p>
             {weekStart !== thisWeek && (
               <button
                 onClick={() => setWeekStart(thisWeek)}
-                className="text-[10px] font-medium text-blue-600 hover:underline"
+                className="text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:underline"
               >
                 Back to this week
               </button>
@@ -326,7 +326,7 @@ export default function AttendanceModal({
           </div>
           <button
             onClick={() => setWeekStart((w) => addDaysISO(w, 7))}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-white hover:text-blue-600 transition-colors"
+            className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
             aria-label="Next week"
           >
             <ChevronRightIcon />
@@ -337,12 +337,12 @@ export default function AttendanceModal({
         {loadError && (
           <div
             role="alert"
-            className="flex items-center justify-between gap-4 p-3 mb-4 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-600"
+            className="flex items-center justify-between gap-4 p-3 mb-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs font-medium text-red-600 dark:text-red-400"
           >
             <span>{loadError}</span>
             <button
               onClick={() => loadRoster()}
-              className="shrink-0 px-3 py-1 rounded-lg bg-white border border-red-200 hover:bg-red-100 transition-colors"
+              className="shrink-0 px-3 py-1 rounded-lg bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors"
             >
               Try again
             </button>
@@ -351,19 +351,19 @@ export default function AttendanceModal({
 
         {/*------------------------------------ Saved Confirmation Message ----------------------------------------------------*/}
         {savedMessage && (
-          <p className="mb-3 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+          <p className="mb-3 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-lg px-3 py-2">
             {savedMessage}
           </p>
         )}
 
         {isLoading ? (
           /*------------------------------------ Loading State ----------------------------------------------------*/
-          <div className="py-10 text-center text-slate-400 text-sm font-medium">
+          <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm font-medium">
             Loading shifts…
           </div>
         ) : weekHasNoRoster || myAssignments.length === 0 ? (
           /*------------------------------------ Empty State ----------------------------------------------------*/
-          <div className="py-10 text-center text-slate-400 text-sm font-medium">
+          <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm font-medium">
             {weekHasNoRoster
               ? "No roster has been generated for this week."
               : "No shifts assigned to this volunteer this week."}
@@ -378,20 +378,20 @@ export default function AttendanceModal({
               return (
                 <div
                   key={a.rosterAssignmentId}
-                  className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/60"
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/60"
                 >
                   {/*------------------------------------ Shift Details & Attendance Status ----------------------------------------------------*/}
                   <div>
-                    <p className="text-sm font-medium text-slate-800">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                       {formatShiftDate(a.shiftDate)}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       {a.timeSlot || "—"} · {a.location || "—"}
                     </p>
                     <div className="mt-1.5 flex items-center gap-2">
                       <AttendanceBadge attended={attended} />
                       {attended !== null && info?.hoursWorked != null && (
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
                           {info.hoursWorked} {info.hoursWorked === 1 ? "hr" : "hrs"}
                         </span>
                       )}
@@ -406,7 +406,7 @@ export default function AttendanceModal({
                       className={`w-7 h-7 rounded-full border flex items-center justify-center transition-all font-bold text-xs disabled:opacity-50 ${
                         attended === true
                           ? "bg-emerald-600 text-white border-emerald-600"
-                          : "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-600 hover:text-white"
+                          : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white"
                       }`}
                       title="Mark attended"
                       aria-label="Mark attended"
@@ -419,7 +419,7 @@ export default function AttendanceModal({
                       className={`w-7 h-7 rounded-full border flex items-center justify-center transition-all font-bold text-xs disabled:opacity-50 ${
                         attended === false
                           ? "bg-red-600 text-white border-red-600"
-                          : "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
+                          : "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 border-red-200 dark:border-red-900 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white"
                       }`}
                       title="Mark not attended"
                       aria-label="Mark not attended"
@@ -446,20 +446,20 @@ export default function AttendanceModal({
 function AttendanceBadge({ attended }: { attended: boolean | null }) {
   if (attended === true) {
     return (
-      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300">
         Attended
       </span>
     );
   }
   if (attended === false) {
     return (
-      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300">
         Not attended
       </span>
     );
   }
   return (
-    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
       Not marked yet
     </span>
   );
