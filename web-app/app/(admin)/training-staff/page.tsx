@@ -414,8 +414,8 @@ export default function TrainingStaffPage() {
 
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Staff Training</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Staff Training</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {activeTab === "progress"
               ? "Track volunteer training progress through all certification stages"
               : "Manage the staff members who sign off volunteer training"}
@@ -424,7 +424,7 @@ export default function TrainingStaffPage() {
         {activeTab === "trainers" && (
           <button
             onClick={() => setShowCreateTrainer(true)}
-            className="rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 transition-colors"
+            className="rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
           >
             + Create Trainer
           </button>
@@ -433,15 +433,15 @@ export default function TrainingStaffPage() {
 
       {/*------------------------- Tabs ---------------------------------*/}
 
-      <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-1 mb-6">
+      <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 p-1 mb-6">
         {TABS.map((tab) => (
           <button
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
             className={`rounded-full px-5 py-2 text-xs font-semibold transition-all ${
               activeTab === tab.value
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
+                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
             }`}
           >
             {tab.label}
@@ -454,7 +454,7 @@ export default function TrainingStaffPage() {
       {activeTab === "progress" && (
         <>
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 flex items-center justify-between">
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300 flex items-center justify-between">
               {error}
               <button onClick={loadData} className="font-semibold underline">Try again</button>
             </div>
@@ -468,10 +468,10 @@ export default function TrainingStaffPage() {
           </div>
 
           {/* Volunteer progress table */}
-          <div className="rounded-2xl bg-white border border-slate-100 overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs font-semibold text-slate-500 uppercase border-b border-slate-100">
+                <tr className="text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase border-b border-slate-100 dark:border-slate-800">
                   <th className="px-6 py-3">Volunteer</th>
                   <th className="px-6 py-3">Overall Progress</th>
                   <th className="px-6 py-3">Modules</th>
@@ -480,35 +480,35 @@ export default function TrainingStaffPage() {
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">Loading...</td></tr>
+                  <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500">Loading...</td></tr>
                 ) : volunteers.length === 0 ? (
-                  <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">No volunteers in training</td></tr>
+                  <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500">No volunteers in training</td></tr>
                 ) : (
                   volunteers.map((v) => (
-                    <tr key={v.userId} className="border-b border-slate-50 last:border-0">
-                      <td className="px-6 py-4 font-medium text-slate-900">
+                    <tr key={v.userId} className="border-b border-slate-50 dark:border-slate-800 last:border-0">
+                      <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">
                         {v.firstName} {v.lastName}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 w-40">
-                          <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                          <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                             <div
-                              className="h-full bg-blue-800"
+                              className="h-full bg-blue-800 dark:bg-blue-500"
                               style={{ width: `${v.progressPercentage}%` }}
                             />
                           </div>
-                          <span className="text-xs font-semibold text-slate-700">
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                             {Math.round(v.progressPercentage)}%
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-slate-600">
+                      <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                         {v.completedSkills} / {v.totalRequiredSkills}
                       </td>
                       <td className="px-6 py-4">
                         <button
                           onClick={() => handleOpenHistory(v.userId)}
-                          className="text-xs font-semibold text-blue-800 hover:underline"
+                          className="text-xs font-semibold text-blue-800 dark:text-blue-300 hover:underline"
                         >
                           History
                         </button>
@@ -527,17 +527,17 @@ export default function TrainingStaffPage() {
       {activeTab === "trainers" && (
         <>
           {trainersError && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 flex items-center justify-between">
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300 flex items-center justify-between">
               {trainersError}
               <button onClick={loadTrainers} className="font-semibold underline">Try again</button>
             </div>
           )}
 
           {/* Trainers table */}
-          <div className="rounded-2xl bg-white border border-slate-100 overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs font-semibold text-slate-500 uppercase border-b border-slate-100">
+                <tr className="text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase border-b border-slate-100 dark:border-slate-800">
                   <th className="px-6 py-3">Profile</th>
                   <th className="px-6 py-3">Name</th>
                   <th className="px-6 py-3">Surname</th>
@@ -548,35 +548,35 @@ export default function TrainingStaffPage() {
               </thead>
               <tbody>
                 {trainersLoading ? (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">Loading...</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500">Loading...</td></tr>
                 ) : trainers.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">No trainers yet</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500">No trainers yet</td></tr>
                 ) : (
                   trainers.map((t) => {
                     const status: TrainerStatus = isActive(t) ? "active" : "inactive";
                     const isToggling = togglingId === t.trainerId;
                     return (
-                      <tr key={t.trainerId} className="border-b border-slate-50 last:border-0">
+                      <tr key={t.trainerId} className="border-b border-slate-50 dark:border-slate-800 last:border-0">
                         <td className="px-6 py-4">
                           <div className="w-9 h-9 rounded-full bg-blue-800 text-white flex items-center justify-center text-xs font-semibold">
                             {initials(t)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 font-medium text-slate-900">{t.firstName}</td>
-                        <td className="px-6 py-4 font-medium text-slate-900">{t.lastName}</td>
-                        <td className="px-6 py-4 text-slate-600">
+                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{t.firstName}</td>
+                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{t.lastName}</td>
+                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                           {t.email || t.phone ? (
                             <>
                               {t.email && <p>{t.email}</p>}
-                              {t.phone && <p className="text-xs text-slate-500">{t.phone}</p>}
+                              {t.phone && <p className="text-xs text-slate-500 dark:text-slate-400">{t.phone}</p>}
                             </>
                           ) : (
-                            <span className="text-slate-400">—</span>
+                            <span className="text-slate-400 dark:text-slate-500">—</span>
                           )}
                         </td>
                         {/* Active / Inactive toggle (saved to the backend) */}
                         <td className="px-6 py-4">
-                          <div className="inline-flex rounded-full bg-slate-100 p-0.5">
+                          <div className="inline-flex rounded-full bg-slate-100 dark:bg-slate-800 p-0.5">
                             {STATUS_OPTIONS.map((option) => (
                               <button
                                 key={option}
@@ -588,7 +588,7 @@ export default function TrainingStaffPage() {
                                     ? option === "active"
                                       ? "bg-green-500 text-white shadow-sm"
                                       : "bg-slate-500 text-white shadow-sm"
-                                    : "text-slate-500 hover:text-slate-700"
+                                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                                 }`}
                               >
                                 {option}
@@ -604,7 +604,7 @@ export default function TrainingStaffPage() {
                               onClick={() => openEditTrainer(t)}
                               aria-label={`Edit ${fullName(t)}`}
                               title="Edit trainer"
-                              className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-blue-700 transition-colors"
+                              className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-blue-300 transition-colors"
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -619,7 +619,7 @@ export default function TrainingStaffPage() {
                               }}
                               aria-label={`Delete ${fullName(t)}`}
                               title="Delete trainer"
-                              className="p-2 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+                              className="p-2 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-950/40 dark:hover:text-red-300 transition-colors"
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 6h18" />
@@ -649,11 +649,11 @@ export default function TrainingStaffPage() {
       {showCreateTrainer && (
         <ModalOverlay onClose={() => setShowCreateTrainer(false)}>
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-black">Create Trainer</h2>
+            <h2 className="text-lg font-bold text-black dark:text-slate-100">Create Trainer</h2>
             <button
               type="button"
               onClick={() => setShowCreateTrainer(false)}
-              className="text-slate-500 hover:text-slate-700"
+              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
               aria-label="Close"
             >
               ✕
@@ -666,7 +666,7 @@ export default function TrainingStaffPage() {
               <div>
                 <label
                   htmlFor="trainer-first-name"
-                  className="block text-xs font-semibold text-black mb-1.5"
+                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
                 >
                   First name
                 </label>
@@ -677,13 +677,13 @@ export default function TrainingStaffPage() {
                   maxLength={100}
                   value={trainerFirstName}
                   onChange={(e) => setTrainerFirstName(e.target.value)}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
               <div>
                 <label
                   htmlFor="trainer-last-name"
-                  className="block text-xs font-semibold text-black mb-1.5"
+                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
                 >
                   Last name
                 </label>
@@ -694,7 +694,7 @@ export default function TrainingStaffPage() {
                   maxLength={100}
                   value={trainerLastName}
                   onChange={(e) => setTrainerLastName(e.target.value)}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
             </div>
@@ -704,7 +704,7 @@ export default function TrainingStaffPage() {
               <div>
                 <label
                   htmlFor="trainer-email"
-                  className="block text-xs font-semibold text-black mb-1.5"
+                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
                 >
                   Email
                 </label>
@@ -716,13 +716,13 @@ export default function TrainingStaffPage() {
                   value={trainerEmail}
                   onChange={(e) => setTrainerEmail(e.target.value)}
                   placeholder="trainer@example.com"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
               <div>
                 <label
                   htmlFor="trainer-phone"
-                  className="block text-xs font-semibold text-black mb-1.5"
+                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
                 >
                   Phone
                 </label>
@@ -734,13 +734,13 @@ export default function TrainingStaffPage() {
                   value={trainerPhone}
                   onChange={(e) => setTrainerPhone(e.target.value)}
                   placeholder="Phone number"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
             </div>
 
             {createTrainerError && (
-              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 dark:text-red-300 dark:bg-red-950/40 dark:border-red-900 rounded-lg px-3 py-2">
                 {createTrainerError}
               </p>
             )}
@@ -749,7 +749,7 @@ export default function TrainingStaffPage() {
               <button
                 type="button"
                 onClick={() => setShowCreateTrainer(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
@@ -770,11 +770,11 @@ export default function TrainingStaffPage() {
       {editingTrainer && (
         <ModalOverlay onClose={() => setEditingTrainer(null)}>
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-black">Edit Trainer</h2>
+            <h2 className="text-lg font-bold text-black dark:text-slate-100">Edit Trainer</h2>
             <button
               type="button"
               onClick={() => setEditingTrainer(null)}
-              className="text-slate-500 hover:text-slate-700"
+              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
               aria-label="Close"
             >
               ✕
@@ -787,7 +787,7 @@ export default function TrainingStaffPage() {
               <div>
                 <label
                   htmlFor="edit-trainer-first-name"
-                  className="block text-xs font-semibold text-black mb-1.5"
+                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
                 >
                   First name
                 </label>
@@ -798,13 +798,13 @@ export default function TrainingStaffPage() {
                   maxLength={100}
                   value={editFirstName}
                   onChange={(e) => setEditFirstName(e.target.value)}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
               <div>
                 <label
                   htmlFor="edit-trainer-last-name"
-                  className="block text-xs font-semibold text-black mb-1.5"
+                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
                 >
                   Last name
                 </label>
@@ -815,7 +815,7 @@ export default function TrainingStaffPage() {
                   maxLength={100}
                   value={editLastName}
                   onChange={(e) => setEditLastName(e.target.value)}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
             </div>
@@ -825,7 +825,7 @@ export default function TrainingStaffPage() {
               <div>
                 <label
                   htmlFor="edit-trainer-email"
-                  className="block text-xs font-semibold text-black mb-1.5"
+                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
                 >
                   Email
                 </label>
@@ -837,13 +837,13 @@ export default function TrainingStaffPage() {
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
                   placeholder="trainer@example.com"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
               <div>
                 <label
                   htmlFor="edit-trainer-phone"
-                  className="block text-xs font-semibold text-black mb-1.5"
+                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
                 >
                   Phone
                 </label>
@@ -855,13 +855,13 @@ export default function TrainingStaffPage() {
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
                   placeholder="Phone number"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-black placeholder:text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
             </div>
 
             {editTrainerError && (
-              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 dark:text-red-300 dark:bg-red-950/40 dark:border-red-900 rounded-lg px-3 py-2">
                 {editTrainerError}
               </p>
             )}
@@ -870,7 +870,7 @@ export default function TrainingStaffPage() {
               <button
                 type="button"
                 onClick={() => setEditingTrainer(null)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
@@ -890,13 +890,13 @@ export default function TrainingStaffPage() {
 
       {deletingTrainer && (
         <ModalOverlay onClose={() => setDeletingTrainer(null)}>
-          <h2 className="text-lg font-bold text-black mb-2">Delete trainer?</h2>
-          <p className="text-sm text-slate-700 mb-4">
+          <h2 className="text-lg font-bold text-black dark:text-slate-100 mb-2">Delete trainer?</h2>
+          <p className="text-sm text-slate-700 dark:text-slate-300 mb-4">
             {fullName(deletingTrainer)} will be removed from the trainers list. This can&apos;t be undone.
           </p>
 
           {deleteTrainerError && (
-            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+            <p className="text-sm text-red-700 bg-red-50 border border-red-200 dark:text-red-300 dark:bg-red-950/40 dark:border-red-900 rounded-lg px-3 py-2 mb-4">
               {deleteTrainerError}
             </p>
           )}
@@ -905,7 +905,7 @@ export default function TrainingStaffPage() {
             <button
               type="button"
               onClick={() => setDeletingTrainer(null)}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100"
+              className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Cancel
             </button>
@@ -932,10 +932,10 @@ export default function TrainingStaffPage() {
 //</summary>
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub: string }) {
   return (
-    <div className="rounded-2xl bg-white border border-slate-100 p-5">
-      <p className="text-xs font-semibold text-slate-500 uppercase">{label}</p>
-      <p className="text-2xl font-bold text-slate-900 mt-2">{value}</p>
-      <p className="text-xs text-slate-400 mt-1">{sub}</p>
+    <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5">
+      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">{label}</p>
+      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">{value}</p>
+      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{sub}</p>
     </div>
   );
 }
