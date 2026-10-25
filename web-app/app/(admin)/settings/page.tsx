@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "../../lib/auth-context";
+import { useTheme, type Theme } from "../../lib/theme-context";
 import { getInitials, getRoleLabel } from "../../lib/user-display";
 
 type TabId = "profile" | "system";
@@ -32,6 +33,12 @@ const TIMEZONES = [
 const DATE_FORMATS = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"];
 const LANGUAGES = [{ value: "en-ZA", label: "English (South Africa)" }];
 
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "system", label: "System" },
+];
+
 const PREFS_KEY = "admin_system_preferences";
 
 export default function SettingsPage() {
@@ -53,22 +60,22 @@ function SettingsContent() {
   }, [searchParams]);
 
   return (
-    <div className="bg-slate-100/80 p-6 min-h-screen rounded-2xl space-y-6">
+    <div className="bg-slate-100/80 dark:bg-slate-900/40 p-6 min-h-screen rounded-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
-        <p className="text-slate-500 mt-1">Configure the ConservaTech admin portal</p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Settings</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">Configure the ConservaTech admin portal</p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
-        <nav className="bg-white rounded-2xl border border-slate-200 p-3 w-full md:w-64 shrink-0 space-y-1">
+        <nav className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 w-full md:w-64 shrink-0 space-y-1">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 tab === t.id
-                  ? "bg-blue-50 text-blue-700 font-medium"
-                  : "text-slate-600 hover:bg-slate-50"
+                  ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-medium"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
             >
               {t.label}
@@ -76,7 +83,7 @@ function SettingsContent() {
           ))}
         </nav>
 
-        <div className="flex-1 w-full bg-white rounded-2xl border border-slate-200 p-6">
+        <div className="flex-1 w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           {tab === "profile" ? <ProfileTab /> : <SystemPreferencesTab />}
         </div>
       </div>
@@ -98,15 +105,15 @@ function ProfileTab() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-bold text-slate-900">Administrator Profile</h2>
+      <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Administrator Profile</h2>
 
-      <div className="flex items-center gap-4 pb-6 border-b border-slate-100">
+      <div className="flex items-center gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
         <div className="w-16 h-16 rounded-xl bg-blue-700 text-white flex items-center justify-center text-xl font-semibold">
           {getInitials(user)}
         </div>
         <div>
-          <p className="text-lg font-semibold text-slate-900">{fullName || "Name not available"}</p>
-          <p className="text-sm text-slate-500">{getRoleLabel(role)} · SANCCOB</p>
+          <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{fullName || "Name not available"}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{getRoleLabel(role)} · SANCCOB</p>
         </div>
       </div>
 
@@ -129,7 +136,7 @@ function ProfileTab() {
 function ReadOnlyField({ id, label, value }: { id: string; label: string; value: string }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-xs font-semibold text-slate-700 mb-1">
+      <label htmlFor={id} className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
         {label}
       </label>
       <input
@@ -137,7 +144,7 @@ function ReadOnlyField({ id, label, value }: { id: string; label: string; value:
         name={id}
         value={value}
         readOnly
-        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900"
+        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
       />
     </div>
   );
@@ -182,11 +189,16 @@ function SystemPreferencesTab() {
   };
 
   const inputClass =
-    "rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20";
+    "rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20";
 
   return (
     <form onSubmit={handleSave} className="space-y-2">
-      <h2 className="text-lg font-bold text-slate-900 mb-2">System Preferences</h2>
+      <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">System Preferences</h2>
+
+      {/*------------------------------------ Theme (applies instantly, not part of Save / Cancel) ----------------------------------------------------*/}
+      <PrefRow label="Theme">
+        <ThemeSelector />
+      </PrefRow>
 
       <PrefRow htmlFor="pref-timezone" label="Timezone">
         <select
@@ -235,7 +247,7 @@ function SystemPreferencesTab() {
         other admins or the mobile app, and they don&apos;t change how dates are shown on other pages yet.
       </p> */}
 
-      <div className="flex items-center gap-3 pt-4 border-t border-slate-100 mt-4">
+      <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 mt-4">
         <button
           type="submit"
           className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-blue-700 hover:bg-blue-800 transition-colors"
@@ -245,13 +257,52 @@ function SystemPreferencesTab() {
         <button
           type="button"
           onClick={handleCancel}
-          className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+          className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           Cancel
         </button>
-        {justSaved && <span className="text-sm text-green-700">Saved</span>}
+        {justSaved && <span className="text-sm text-green-700 dark:text-green-400">Saved</span>}
       </div>
     </form>
+  );
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Light / Dark / System selector. Reads and writes the preference through
+// useTheme(), so a click takes effect immediately and is remembered in this
+// browser (localStorage key "sanccob-theme").
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+function ThemeSelector() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Theme"
+      className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-0.5"
+    >
+      {THEME_OPTIONS.map((opt) => {
+        const active = theme === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => setTheme(opt.value)}
+            className={`px-3.5 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+              active
+                ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -260,13 +311,13 @@ function PrefRow({
   label,
   children,
 }: {
-  htmlFor: string;
+  htmlFor?: string;
   label: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-4 border-b border-slate-100">
-      <label htmlFor={htmlFor} className="text-sm font-medium text-slate-900">
+    <div className="flex items-center justify-between gap-4 py-4 border-b border-slate-100 dark:border-slate-800">
+      <label htmlFor={htmlFor} className="text-sm font-medium text-slate-900 dark:text-slate-100">
         {label}
       </label>
       {children}

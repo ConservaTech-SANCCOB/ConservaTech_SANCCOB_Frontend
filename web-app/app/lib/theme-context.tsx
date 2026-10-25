@@ -117,4 +117,31 @@ export function useTheme(): ThemeContextValue {
   return ctx;
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Subscribes to OS colour-scheme changes so useIsDark() updates live while on "system".
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
+function subscribeSystemDark(callback: () => void): () => void {
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  media.addEventListener("change", callback);
+  return () => media.removeEventListener("change", callback);
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Returns true when the app is currently showing dark (explicit "dark", or "system" with a dark OS).
+// For values Tailwind classes can't reach, such as recharts colour props.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
+export function useIsDark(): boolean {
+  const { theme } = useTheme();
+  const systemDark = useSyncExternalStore(
+    subscribeSystemDark,
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+    () => false
+  );
+  return theme === "dark" || (theme === "system" && systemDark);
+}
+
 //------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//
