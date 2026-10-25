@@ -26,7 +26,8 @@ export default function Sidebar() {
     <aside
       className={`${
         collapsed ? "w-20" : "w-64"
-      } shrink-0 bg-[#0B2447] text-white flex flex-col transition-all duration-200 h-screen sticky top-0`}
+      // } shrink-0 bg-[#0B2447] text-white flex flex-col transition-all duration-200 h-screen sticky top-0`}
+        } shrink-0 bg-[#0B2447] text-white flex flex-col transition-all duration-200 h-screen sticky top-0 dark:border-r dark:border-white/10`}
     >
       {/* Logo + collapse toggle */}
       <div className="flex items-center h-16 border-b border-white/10 px-4">
