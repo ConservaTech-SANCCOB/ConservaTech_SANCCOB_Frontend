@@ -288,8 +288,8 @@ const unfilledCount = totalShiftCount - filledCount;
       {/*------------------------------------ Page Header ----------------------------------------------------*/}
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Roster Management</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Roster Management</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
           View scheduled assignments or generate new automated rosters
         </p>
       </div>
@@ -304,8 +304,8 @@ const unfilledCount = totalShiftCount - filledCount;
           }}
           className={`px-5 py-2.5 rounded-full text-xs font-semibold transition-all ${
             activeTab === "view"
-              ? "bg-white text-slate-900 shadow-sm border border-slate-200/60"
-              : "text-slate-500 hover:text-slate-700"
+              ? "bg-white text-slate-900 shadow-sm border border-slate-200/60 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
+              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
           }`}
         >
           Weekly Roster
@@ -314,8 +314,8 @@ const unfilledCount = totalShiftCount - filledCount;
           onClick={() => setActiveTab("generate")}
           className={`px-5 py-2.5 rounded-full text-xs font-semibold transition-all ${
             activeTab === "generate"
-              ? "bg-white text-slate-900 shadow-sm border border-slate-200/60"
-              : "text-slate-500 hover:text-slate-700"
+              ? "bg-white text-slate-900 shadow-sm border border-slate-200/60 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
+              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
           }`}
         >
           Generate Roster
@@ -325,23 +325,23 @@ const unfilledCount = totalShiftCount - filledCount;
       {/*------------------------------------ Weekly Roster View ----------------------------------------------------*/}
 
       {activeTab === "view" && (
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 space-y-6">
           {/* Top Controls with Weekly Picker */}
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center bg-slate-50 border border-slate-200/80 rounded-xl overflow-hidden p-0.5">
+              <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl overflow-hidden p-0.5">
                 <button
                   onClick={handlePrevWeek}
-                  className="px-2.5 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg font-bold text-xs transition-colors"
+                  className="px-2.5 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-700/50 rounded-lg font-bold text-xs transition-colors"
                 >
                   ‹
                 </button>
-                <span className="text-xs font-bold text-slate-800 px-3 py-1">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 px-3 py-1">
                   {weekLabel}
                 </span>
                 <button
                   onClick={handleNextWeek}
-                  className="px-2.5 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg font-bold text-xs transition-colors"
+                  className="px-2.5 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-700/50 rounded-lg font-bold text-xs transition-colors"
                 >
                   ›
                 </button>
@@ -352,9 +352,9 @@ const unfilledCount = totalShiftCount - filledCount;
                   className={`text-xs font-semibold px-3 py-1 rounded-full border ${
                     roster
                       ? roster.status === "Published"
-                        ? "text-emerald-700 bg-emerald-50 border-emerald-200"
-                        : "text-amber-700 bg-amber-50 border-amber-200"
-                      : "text-slate-500 bg-slate-50 border-slate-200"
+                        ? "text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-900"
+                        : "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-950/40 dark:border-amber-900"
+                      : "text-slate-500 bg-slate-50 border-slate-200 dark:text-slate-400 dark:bg-slate-800 dark:border-slate-700"
                   }`}
                 >
                   {roster ? roster.status ?? "Needs Review" : "No Roster Generated"}
@@ -368,7 +368,7 @@ const unfilledCount = totalShiftCount - filledCount;
                 onClick={() => setAssignModal({ mode: "add" })}
                 disabled={!roster || shifts.length === 0}
                 title={!roster ? "Generate a roster for this week first" : undefined}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 + Assign Volunteer
               </button>
@@ -385,17 +385,17 @@ const unfilledCount = totalShiftCount - filledCount;
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard label="Total Shifts" value={totalShiftCount} />
-            <StatCard label="Filled Shifts" value={filledCount} color="text-emerald-600" />
-            <StatCard label="Unfilled Shifts" value={unfilledCount} color="text-red-600" />
-            <StatCard label="Volunteers Scheduled" value={scheduledVolunteerCount} color="text-blue-700" />
+            <StatCard label="Filled Shifts" value={filledCount} color="text-emerald-600 dark:text-emerald-300" />
+            <StatCard label="Unfilled Shifts" value={unfilledCount} color="text-red-600 dark:text-red-300" />
+            <StatCard label="Volunteers Scheduled" value={scheduledVolunteerCount} color="text-blue-700 dark:text-blue-300" />
           </div>
 
           {/*------------------------------------ Roster Calendar Matrix ----------------------------------------------------*/}
 
           {isLoading ? (
-            <div className="py-16 text-center text-slate-400 text-sm">Loading week roster…</div>
+            <div className="py-16 text-center text-slate-400 dark:text-slate-500 text-sm">Loading week roster…</div>
           ) : !roster ? (
-            <div className="py-16 text-center text-slate-400 text-sm">
+            <div className="py-16 text-center text-slate-400 dark:text-slate-500 text-sm">
               No roster has been generated for {weekLabel} yet.
             </div>
           ) : (
@@ -413,25 +413,25 @@ const unfilledCount = totalShiftCount - filledCount;
       {/*------------------------------------ Generate Roster Wizard ----------------------------------------------------*/}
 
       {activeTab === "generate" && (
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 space-y-6">
           {/*------------------------------------ Generate Wizard Header ----------------------------------------------------*/}
 
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-wrap gap-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 flex-wrap gap-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Generate Roster</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Generate Roster</h2>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-slate-400">Week of:</span>
-                <div className="flex items-center bg-slate-50 border border-slate-200/80 rounded-lg overflow-hidden px-1 py-0.5">
+                <span className="text-xs text-slate-400 dark:text-slate-500">Week of:</span>
+                <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-lg overflow-hidden px-1 py-0.5">
                   <button
                     onClick={handlePrevWeek}
-                    className="px-1.5 text-slate-500 hover:text-slate-800 font-bold text-xs"
+                    className="px-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 font-bold text-xs"
                   >
                     ‹
                   </button>
-                  <span className="text-xs font-bold text-slate-800 px-2">{weekLabel}</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 px-2">{weekLabel}</span>
                   <button
                     onClick={handleNextWeek}
-                    className="px-1.5 text-slate-500 hover:text-slate-800 font-bold text-xs"
+                    className="px-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 font-bold text-xs"
                   >
                     ›
                   </button>
@@ -441,11 +441,11 @@ const unfilledCount = totalShiftCount - filledCount;
 
             {/* Step indicator: current step is blue, completed step is green */}
             <div className="flex items-center gap-2 text-xs font-semibold">
-              <span className={`px-3 py-1 rounded-full ${step === 1 ? "bg-blue-700 text-white" : "bg-emerald-100 text-emerald-700"}`}>
+              <span className={`px-3 py-1 rounded-full ${step === 1 ? "bg-blue-700 text-white" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"}`}>
                 1. Review Inputs
               </span>
-              <span className="text-slate-300">→</span>
-              <span className={`px-3 py-1 rounded-full ${step === 2 ? "bg-blue-700 text-white" : "bg-slate-100 text-slate-400"}`}>
+              <span className="text-slate-300 dark:text-slate-600">→</span>
+              <span className={`px-3 py-1 rounded-full ${step === 2 ? "bg-blue-700 text-white" : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"}`}>
                 2. Generate & Review
               </span>
             </div>
@@ -455,7 +455,7 @@ const unfilledCount = totalShiftCount - filledCount;
 
           {step === 1 && !isGenerating && (
             <div className="space-y-6">
-              <div className="bg-blue-50 border border-blue-200 text-blue-800 text-xs px-4 py-3 rounded-xl">
+              <div className="bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-950/50 dark:border-blue-900 dark:text-blue-300 text-xs px-4 py-3 rounded-xl">
                 Generating roster for <span className="font-bold">{weekLabel}</span> based on availability and skill rules.
               </div>
 
@@ -469,17 +469,17 @@ const unfilledCount = totalShiftCount - filledCount;
 
               {/*------------------------------------ Volunteer Pool ----------------------------------------------------*/}
 
-              <div className="border border-slate-200/80 rounded-2xl overflow-hidden">
+              <div className="border border-slate-200/80 dark:border-slate-700 rounded-2xl overflow-hidden">
                 <button
                   onClick={() => setExpandedSection(expandedSection === "volunteers" ? null : "volunteers")}
-                  className="w-full bg-slate-50/80 px-5 py-3.5 flex items-center justify-between font-bold text-slate-800 text-sm hover:bg-slate-100 transition-colors"
+                  className="w-full bg-slate-50/80 dark:bg-slate-800/80 px-5 py-3.5 flex items-center justify-between font-bold text-slate-800 dark:text-slate-200 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <span>Volunteers Pool ({selectedVolunteers.length})</span>
                   <span>{expandedSection === "volunteers" ? "▲" : "▼"}</span>
                 </button>
 
                 {expandedSection === "volunteers" && (
-                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-white">
+                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-white dark:bg-slate-900">
                     {selectedVolunteers.map((v) => {
                       // The pool items only carry firstName / lastName / email,
                       // so the display name and initials are built here.
@@ -490,20 +490,20 @@ const unfilledCount = totalShiftCount - filledCount;
                       return (
                         <div
                           key={v.userId}
-                          className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl p-3 hover:border-slate-300 transition-all"
+                          className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl p-3 hover:border-slate-300 dark:hover:border-slate-600 transition-all"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#0B2447] text-white font-bold text-xs flex items-center justify-center shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-[#0B2447] dark:bg-blue-800 text-white font-bold text-xs flex items-center justify-center shrink-0">
                               {initials}
                             </div>
                             <div>
-                              <p className="text-xs font-bold text-slate-800">{name}</p>
-                              <p className="text-[10px] text-slate-400">{v.email}</p>
+                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{name}</p>
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500">{v.email}</p>
                             </div>
                           </div>
                           <button
                             onClick={() => handleRemoveVolunteer(v.userId)}
-                            className="w-6 h-6 rounded-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 flex items-center justify-center font-bold text-sm transition-all"
+                            className="w-6 h-6 rounded-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900 dark:hover:bg-red-600 dark:hover:text-white flex items-center justify-center font-bold text-sm transition-all"
                             title="Remove from this generation run"
                           >
                             −
@@ -517,19 +517,19 @@ const unfilledCount = totalShiftCount - filledCount;
 
               {/*------------------------------------ Scheduled Shifts ----------------------------------------------------*/}
 
-              <div className="border border-slate-200/80 rounded-2xl overflow-hidden">
+              <div className="border border-slate-200/80 dark:border-slate-700 rounded-2xl overflow-hidden">
                 <button
                   onClick={() => setExpandedSection(expandedSection === "shifts" ? null : "shifts")}
-                  className="w-full bg-slate-50/80 px-5 py-3.5 flex items-center justify-between font-bold text-slate-800 text-sm hover:bg-slate-100 transition-colors"
+                  className="w-full bg-slate-50/80 dark:bg-slate-800/80 px-5 py-3.5 flex items-center justify-between font-bold text-slate-800 dark:text-slate-200 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <span>Shifts Scheduled ({shifts.length})</span>
                   <span>{expandedSection === "shifts" ? "▲" : "▼"}</span>
                 </button>
 
                 {expandedSection === "shifts" && (
-                  <div className="p-5 bg-white space-y-2">
+                  <div className="p-5 bg-white dark:bg-slate-900 space-y-2">
                     {shifts.length === 0 ? (
-                      <p className="text-xs text-slate-400 text-center py-4">
+                      <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-4">
                         No shifts scheduled for {weekLabel}.
                       </p>
                     ) : (
@@ -570,15 +570,15 @@ const unfilledCount = totalShiftCount - filledCount;
           {isGenerating && (
             <div className="py-20 text-center space-y-4">
               <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-              <h3 className="font-bold text-slate-900 text-base">Generating roster for {weekLabel}...</h3>
-              <p className="text-xs text-slate-500">Optimising shift assignments...</p>
-              <div className="w-64 h-2 bg-slate-100 rounded-full mx-auto overflow-hidden">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">Generating roster for {weekLabel}...</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Optimising shift assignments...</p>
+              <div className="w-64 h-2 bg-slate-100 dark:bg-slate-800 rounded-full mx-auto overflow-hidden">
                 <div
                   className="h-full bg-blue-700 transition-all duration-300"
                   style={{ width: `${generationProgress}%` }}
                 />
               </div>
-              <p className="text-xs font-semibold text-slate-400">{generationProgress}%</p>
+              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">{generationProgress}%</p>
             </div>
           )}
 
@@ -586,15 +586,15 @@ const unfilledCount = totalShiftCount - filledCount;
 
           {step === 2 && !isGenerating && (
             <div className="space-y-6">
-              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-300 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
                 <span>✓ Roster Generated for {weekLabel} — Review assignments before publishing.</span>
               </div>
 
               {/* 3 Grid Stat Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard label="Shifts Filled" value={filledCount} color="text-emerald-600" />
-                <StatCard label="Shifts Remaining" value={unfilledCount} color="text-red-600" />
-                <StatCard label="Volunteers Assigned" value={scheduledVolunteerCount} color="text-blue-700" />
+                <StatCard label="Shifts Filled" value={filledCount} color="text-emerald-600 dark:text-emerald-300" />
+                <StatCard label="Shifts Remaining" value={unfilledCount} color="text-red-600 dark:text-red-300" />
+                <StatCard label="Volunteers Assigned" value={scheduledVolunteerCount} color="text-blue-700 dark:text-blue-300" />
               </div>
 
               {/* Roster Matrix */}
@@ -604,10 +604,10 @@ const unfilledCount = totalShiftCount - filledCount;
               <RosterMatrix volunteers={volunteers} assignments={assignments} mondayDate={currentWeekStart} />
 
               {/* Footer */}
-              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   onClick={() => setStep(1)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
                 >
                   ← Back to Review Inputs
                 </button>
@@ -633,27 +633,27 @@ const unfilledCount = totalShiftCount - filledCount;
           onClick={() => setIsGenerateConfirmOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5"
+            className="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Generate roster for {weekLabel}?</h2>
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Generate roster for {weekLabel}?</h2>
               <button
                 onClick={() => setIsGenerateConfirmOpen(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold"
               >
                 ✕
               </button>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {roster
                 ? "A roster already exists for this week. You'll be taken to Review Inputs to check the volunteer pool and shifts before generating again."
                 : "You'll be taken to Review Inputs to check the volunteer pool and shifts before anything is generated."}
             </p>
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={() => setIsGenerateConfirmOpen(false)}
-                className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
               >
                 Cancel
               </button>
@@ -676,40 +676,40 @@ const unfilledCount = totalShiftCount - filledCount;
 
       {isPublishModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setIsPublishModalOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Publish roster for {weekLabel}?</h2>
-              <button onClick={() => setIsPublishModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Publish roster for {weekLabel}?</h2>
+              <button onClick={() => setIsPublishModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold">✕</button>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Once published, volunteers will be notified on the mobile app.
             </p>
 
             {publishError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-lg">
+              <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300 text-xs px-3 py-2 rounded-lg">
                 {publishError}
               </div>
             )}
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-slate-50 p-3 rounded-xl text-center">
-                <p className="text-[10px] text-slate-400">Total Shifts</p>
-                <p className="text-lg font-bold text-slate-800">{totalShiftCount}</p>
+              <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-center">
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">Total Shifts</p>
+                <p className="text-lg font-bold text-slate-800 dark:text-slate-200">{totalShiftCount}</p>
               </div>
-              <div className="bg-emerald-50 p-3 rounded-xl text-center">
-                <p className="text-[10px] text-emerald-600">Filled</p>
-                <p className="text-lg font-bold text-emerald-700">{filledCount}</p>
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl text-center">
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400">Filled</p>
+                <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{filledCount}</p>
               </div>
-              <div className="bg-red-50 p-3 rounded-xl text-center">
-                <p className="text-[10px] text-red-600">Unfilled</p>
-                <p className="text-lg font-bold text-red-700">{unfilledCount}</p>
+              <div className="bg-red-50 dark:bg-red-950/40 p-3 rounded-xl text-center">
+                <p className="text-[10px] text-red-600 dark:text-red-400">Unfilled</p>
+                <p className="text-lg font-bold text-red-700 dark:text-red-300">{unfilledCount}</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={() => setIsPublishModalOpen(false)}
-                className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
               >
                 Cancel
               </button>
@@ -826,7 +826,7 @@ function ShiftDetailCard({
   const isFull = assignedInfo.assigned >= assignedInfo.capacity;
 
   return (
-    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200/80 rounded-xl p-4">
+    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl p-4">
       {/* Date tile */}
       <div className="w-14 h-14 rounded-xl bg-blue-700 text-white flex flex-col items-center justify-center shrink-0">
         <span className="text-lg font-bold leading-none">{dayNum}</span>
@@ -835,11 +835,11 @@ function ShiftDetailCard({
 
       {/* Session, time slot and location */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-slate-800">
+        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
           {shiftSessionLabel(shift.timeSlot)}{" "}
-          <span className="font-normal text-slate-400">· {shift.timeSlot}</span>
+          <span className="font-normal text-slate-400 dark:text-slate-500">· {shift.timeSlot}</span>
         </p>
-        <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
           <LocationIcon className="w-3.5 h-3.5 shrink-0" />
           {shift.location}
         </p>
@@ -849,14 +849,14 @@ function ShiftDetailCard({
       <div
         className={`text-right shrink-0 px-3 py-1.5 rounded-xl border ${
           isFull
-            ? "bg-emerald-50 border-emerald-200"
-            : "bg-amber-50 border-amber-200"
+            ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-900"
+            : "bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-900"
         }`}
       >
-        <p className={`text-sm font-bold ${isFull ? "text-emerald-700" : "text-amber-700"}`}>
+        <p className={`text-sm font-bold ${isFull ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}`}>
           {assignedInfo.assigned}/{assignedInfo.capacity}
         </p>
-        <p className={`text-[10px] ${isFull ? "text-emerald-600" : "text-amber-600"}`}>volunteers</p>
+        <p className={`text-[10px] ${isFull ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>volunteers</p>
       </div>
     </div>
   );
@@ -882,11 +882,21 @@ function LocationIcon({ className }: { className?: string }) {
 // Renders a compact statistic card used throughout the roster management interface.
 //</summary>
 //---------------------------------------------------------------------------------------------------------------//
-function StatCard({ label, value, color = "text-slate-900", isText = false }: { label: string; value: number | string; color?: string; isText?: boolean }) {
+function StatCard({
+  label,
+  value,
+  color = "text-slate-900 dark:text-slate-100",
+  isText = false,
+}: {
+  label: string;
+  value: number | string;
+  color?: string;
+  isText?: boolean;
+}) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
-      <p className="text-[11px] text-slate-400 mb-1">{label}</p>
-      <p className={`font-bold ${isText ? "text-sm text-slate-800" : "text-2xl " + color}`}>{value}</p>
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
+      <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">{label}</p>
+      <p className={`font-bold ${isText ? "text-sm text-slate-800 dark:text-slate-200" : "text-2xl " + color}`}>{value}</p>
     </div>
   );
 }
@@ -938,10 +948,10 @@ function RosterMatrix({
   }
 
   return (
-    <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+    <div className="overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-2xl">
       <table className="w-full text-left text-xs">
         {/* Header row: volunteer column plus Monday to Sunday */}
-        <thead className="bg-slate-50/80 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
+        <thead className="bg-slate-50/80 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100 dark:border-slate-800">
           <tr>
             <th className="py-3 px-4">Volunteer</th>
             {days.map((d) => (
@@ -950,22 +960,22 @@ function RosterMatrix({
           </tr>
         </thead>
         {/* One row per rostered volunteer */}
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {rosteredVolunteers.length === 0 ? (
             <tr>
-              <td colSpan={days.length + 1} className="py-8 px-4 text-center text-slate-400">
+              <td colSpan={days.length + 1} className="py-8 px-4 text-center text-slate-400 dark:text-slate-500">
                 No volunteers assigned this week.
               </td>
             </tr>
           ) : (
             rosteredVolunteers.map((v) => (
-              <tr key={v.id} className="hover:bg-slate-50/50 transition-colors">
+              <tr key={v.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                 <td className="py-3.5 px-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-[#0B2447] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-[#0B2447] dark:bg-blue-800 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
                       {v.initials}
                     </div>
-                    <span className="font-semibold text-slate-800">{v.name}</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{v.name}</span>
                   </div>
                 </td>
                 {/* Day cells: one card per assignment (with Swap / Remove when enabled), or a dash if none */}
@@ -978,17 +988,17 @@ function RosterMatrix({
                           {cell.map((a) => (
                             <div
                               key={a.rosterAssignmentId}
-                              className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-2 rounded-xl text-[11px] font-semibold space-y-0.5"
+                              className="bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-300 p-2 rounded-xl text-[11px] font-semibold space-y-0.5"
                             >
-                              <p className="text-[10px] text-emerald-600">{a.timeSlot}</p>
+                              <p className="text-[10px] text-emerald-600 dark:text-emerald-400">{a.timeSlot}</p>
                               <p>{a.location ?? "—"}</p>
-                              {a.status && <p className="text-[10px] font-normal text-emerald-600">{a.status}</p>}
+                              {a.status && <p className="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">{a.status}</p>}
                               {(onSwap || onRemove) && (
                                 <div className="flex gap-3 pt-1">
                                   {onSwap && (
                                     <button
                                       onClick={() => onSwap(a)}
-                                      className="text-[10px] font-semibold text-blue-700 hover:underline"
+                                      className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 hover:underline"
                                     >
                                       Swap
                                     </button>
@@ -996,7 +1006,7 @@ function RosterMatrix({
                                   {onRemove && (
                                     <button
                                       onClick={() => onRemove(a)}
-                                      className="text-[10px] font-semibold text-red-600 hover:underline"
+                                      className="text-[10px] font-semibold text-red-600 dark:text-red-300 hover:underline"
                                     >
                                       Remove
                                     </button>
@@ -1007,7 +1017,7 @@ function RosterMatrix({
                           ))}
                         </div>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-slate-300 dark:text-slate-600">—</span>
                       )}
                     </td>
                   );
