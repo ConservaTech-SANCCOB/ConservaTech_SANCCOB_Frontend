@@ -13,6 +13,7 @@ import {
   Cell,
 } from "recharts";
 import { useAuth } from "../../lib/auth-context";
+import { useIsDark } from "../../lib/theme-context";
 import { getFirstName } from "../../lib/user-display";
 import { isUnauthorized } from "../../lib/api/http";
 import {
@@ -32,12 +33,21 @@ import {
 //-----------------------------------------------------------------------------------------------//
 
 //<summary>
-// Dashboard chart colour constants.
+// Dashboard chart colour constants. The *_DARK values are used when the dark theme is active,
+// because recharts takes colours as props and can't use Tailwind dark: classes.
 //</summary>
 const NAVY = "#0B2447";
+const NAVY_DARK = "#6366F1";
 const BLUE = "#2563EB";
 const LIGHT_BLUE = "#60A5FA";
 const GREEN = "#16A34A";
+
+// Card surface colours (slate-900 / white), used as the gap colour between donut slices.
+const CARD_DARK = "#0f172a";
+const CARD_LIGHT = "#ffffff";
+// Axis label colours (slate-400 / slate-500).
+const AXIS_DARK = "#94a3b8";
+const AXIS_LIGHT = "#64748b";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2];
@@ -135,6 +145,13 @@ export default function DashboardPage() {
   // Authentication details used to load dashboard data and handle unauthorized requests.
   //</summary>
   const { token, logout, user } = useAuth();
+  //<summary>
+  // Theme-dependent chart colours (recharts props can't use Tailwind dark: classes).
+  //</summary>
+  const isDark = useIsDark();
+  const axisColor = isDark ? AXIS_DARK : AXIS_LIGHT;
+  const sliceGap = isDark ? CARD_DARK : CARD_LIGHT;
+  const morningColor = isDark ? NAVY_DARK : NAVY;
   //<summary>
   // Year selections used by the age and conservation dashboard sections.
   //</summary>
@@ -259,10 +276,10 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="bg-slate-100/80 p-6 min-h-screen rounded-2xl space-y-6">
+    <div className="bg-slate-100/80 dark:bg-slate-900/40 p-6 min-h-screen rounded-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Welcome back,{getFirstName(user)} </h1>
-        <p className="text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Welcome back,{getFirstName(user)} </h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">
           Here&apos;s what&apos;s happening at SANCCOB today.
         </p>
       </div>
@@ -279,14 +296,14 @@ export default function DashboardPage() {
               <>
                 <ResponsiveContainer width="100%" height={160}>
                   <BarChart data={data.volunteersByAge}>
-                    <XAxis dataKey="age" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="age" tick={{ fontSize: 10, fill: axisColor }} axisLine={false} tickLine={false} />
                     <YAxis hide />
                     <Bar dataKey="count" fill={BLUE} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
-                <div className="flex justify-between items-center pt-3 border-t border-slate-100 mt-3">
-                  <span className="text-sm text-slate-500">Total new recruits</span>
-                  <span className="text-lg font-bold text-slate-900">{data.totalNewRecruits}</span>
+                <div className="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-slate-800 mt-3">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">Total new recruits</span>
+                  <span className="text-lg font-bold text-slate-900 dark:text-slate-100">{data.totalNewRecruits}</span>
                 </div>
               </>
             )}
@@ -315,6 +332,7 @@ export default function DashboardPage() {
                         outerRadius={54}
                         startAngle={90}
                         endAngle={-270}
+                        stroke={sliceGap}
                       >
                         <Cell fill={GREEN} />
                         <Cell fill={BLUE} />
@@ -322,19 +340,19 @@ export default function DashboardPage() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-bold text-slate-900">{Math.round(data.percentReleased)}%</span>
-                    <span className="text-[10px] text-slate-500">Released</span>
+                    <span className="text-lg font-bold text-slate-900 dark:text-slate-100">{Math.round(data.percentReleased)}%</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Released</span>
                   </div>
                 </div>
                 <div className="space-y-3 text-sm">
                   <div>
-                    <p className="text-slate-500 text-xs">Total Rescued</p>
-                    <p className="text-lg font-bold text-slate-900">{data.totalRescued}</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs">Total Rescued</p>
+                    <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{data.totalRescued}</p>
                     <LegendDot color={BLUE} label="Admitted to care" />
                   </div>
                   <div>
-                    <p className="text-slate-500 text-xs">Total Released</p>
-                    <p className="text-lg font-bold text-slate-900">{data.totalReleased}</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs">Total Released</p>
+                    <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{data.totalReleased}</p>
                     <LegendDot color={GREEN} label="Successfully released" />
                   </div>
                 </div>
@@ -343,10 +361,10 @@ export default function DashboardPage() {
           </SectionBody>
 
           {/*------------------------------------ Edit Data Button ----------------------------------------------------*/}
-          <div className="pt-3 border-t border-slate-100 mt-3 flex justify-start">
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 mt-3 flex justify-start">
             <button
               onClick={openModal}
-              className="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md px-2.5 py-1 transition-colors"
+              className="text-xs font-semibold text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-900 rounded-md px-2.5 py-1 transition-colors"
             >
               Edit Data
             </button>
@@ -370,27 +388,28 @@ export default function DashboardPage() {
                         outerRadius={54}
                         startAngle={90}
                         endAngle={-270}
+                        stroke={sliceGap}
                       >
-                        <Cell fill={NAVY} />
+                        <Cell fill={morningColor} />
                         <Cell fill={LIGHT_BLUE} />
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-bold text-slate-900">{data.totalShifts}</span>
-                    <span className="text-[10px] text-slate-500">Total Shifts</span>
+                    <span className="text-lg font-bold text-slate-900 dark:text-slate-100">{data.totalShifts}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Total Shifts</span>
                   </div>
                 </div>
                 <div className="space-y-3 text-sm">
                   <div>
-                    <LegendDot color={NAVY} label="Morning" />
-                    <p className="text-lg font-bold text-slate-900">{Math.round(data.morningPercent)}%</p>
-                    <p className="text-xs text-slate-500">{data.morningCount} shifts</p>
+                    <LegendDot color={morningColor} label="Morning" />
+                    <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{Math.round(data.morningPercent)}%</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{data.morningCount} shifts</p>
                   </div>
                   <div>
                     <LegendDot color={LIGHT_BLUE} label="Afternoon" />
-                    <p className="text-lg font-bold text-slate-900">{Math.round(data.afternoonPercent)}%</p>
-                    <p className="text-xs text-slate-500">{data.afternoonCount} shifts</p>
+                    <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{Math.round(data.afternoonPercent)}%</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{data.afternoonCount} shifts</p>
                   </div>
                 </div>
               </div>
@@ -415,14 +434,14 @@ export default function DashboardPage() {
                   {data.map((shift) => (
                     <div
                       key={shift.shiftId}
-                      className="flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg px-4 py-3"
+                      className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors rounded-lg px-4 py-3"
                     >
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-slate-900 text-sm">{shift.location ?? "Unassigned location"}</p>
+                          <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">{shift.location ?? "Unassigned location"}</p>
                           {shift.status && <StatusBadge status={shift.status} />}
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                           {shift.timeSlot ?? "Time not set"} · {peopleLabel(shift.volunteerNames)}
                         </p>
                       </div>
@@ -452,20 +471,20 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={volunteer.userId}
-                        className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg px-4 py-3"
+                        className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors rounded-lg px-4 py-3"
                       >
                         <div className="w-9 h-9 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-semibold shrink-0">
                           {initialsFor(volunteer.firstName, volunteer.lastName)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="font-medium text-slate-900 text-sm truncate">{name}</p>
+                            <p className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate">{name}</p>
                             {volunteer.trainingStatus && <StatusBadge status={volunteer.trainingStatus} />}
                           </div>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
                             {volunteer.completedSkills} of {volunteer.totalRequiredSkills} skills signed off
                           </p>
-                          <div className="w-full h-1.5 bg-slate-200 rounded-full mt-1.5">
+                          <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-1.5">
                             <div
                               className={`h-1.5 rounded-full ${progress === 100 ? "bg-green-600" : "bg-blue-600"}`}
                               style={{ width: `${progress}%` }}
@@ -484,23 +503,23 @@ export default function DashboardPage() {
       {/*------------------------------------ Modal for Editing Conservation Data ----------------------------------------------------*/}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl max-w-sm w-full p-6 space-y-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Update Conservation Data</h2>
-              <p className="text-xs text-slate-500 mt-1">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Update Conservation Data</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Enter the total rescued and released numbers for {conservationYear}.
               </p>
             </div>
 
             {modalError && (
-              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
+              <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md p-2">
                 {modalError}
               </p>
             )}
 
             <form onSubmit={handleSaveConservationData} className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Total Birds Rescued
                 </label>
                 <input
@@ -508,13 +527,13 @@ export default function DashboardPage() {
                   min="0"
                   value={rescuedInput}
                   onChange={(e) => setRescuedInput(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Total Birds Released
                 </label>
                 <input
@@ -522,7 +541,7 @@ export default function DashboardPage() {
                   min="0"
                   value={releasedInput}
                   onChange={(e) => setReleasedInput(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   required
                 />
               </div>
@@ -532,7 +551,7 @@ export default function DashboardPage() {
                   type="button"
                   onClick={() => setIsModalOpen(false)}
                   disabled={isSaving}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   Cancel
                 </button>
@@ -576,11 +595,11 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-2xl border-t border-l border-slate-200/80 border-b-4 border-r-2 border-slate-300 shadow-lg shadow-black/10 hover:shadow-xl hover:shadow-black/15 transition-all transform hover:-translate-y-0.5 p-5 h-full flex flex-col">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border-t border-l border-slate-200/80 dark:border-slate-800 border-b-4 border-r-2 border-slate-300 dark:border-slate-700 shadow-lg shadow-black/10 dark:shadow-black/40 hover:shadow-xl hover:shadow-black/15 transition-all transform hover:-translate-y-0.5 p-5 h-full flex flex-col">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h2 className="font-semibold text-slate-900 text-sm">{title}</h2>
-          <p className="text-xs text-slate-500">{subtitle}</p>
+          <h2 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{title}</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
         </div>
         {headerRight}
       </div>
@@ -602,11 +621,11 @@ function SectionBody<T>({
   children: (data: T) => React.ReactNode;
 }) {
   if (!section.loaded) {
-    return <p className="text-sm text-slate-500 py-8 text-center flex-1">Loading…</p>;
+    return <p className="text-sm text-slate-500 dark:text-slate-400 py-8 text-center flex-1">Loading…</p>;
   }
   if (section.error || !section.data) {
     return (
-      <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 my-4">
+      <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2 my-4">
         {section.error || "Something went wrong."}
       </p>
     );
@@ -621,7 +640,7 @@ function SectionBody<T>({
 //</summary>
 
 function EmptyNote({ text }: { text: string }) {
-  return <p className="text-sm text-slate-500 py-6 text-center">{text}</p>;
+  return <p className="text-sm text-slate-500 dark:text-slate-400 py-6 text-center">{text}</p>;
 }
 
 //---------------------------------------------------------------------------------------------------------------//
@@ -634,7 +653,7 @@ function LinkHeader({ href, text }: { href: string; text: string }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors group"
+      className="flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors group"
     >
       <span>{text}</span>
       <svg
@@ -666,7 +685,7 @@ function YearDropdown({ value, onChange }: { value: number; onChange: (year: num
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md px-2 py-1 transition-colors"
+        className="flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 transition-colors"
       >
         {value}
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -674,7 +693,7 @@ function YearDropdown({ value, onChange }: { value: number; onChange: (year: num
         </svg>
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-20 bg-white border border-slate-200 rounded-md shadow-lg z-10 overflow-hidden">
+        <div className="absolute right-0 mt-1 w-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg z-10 overflow-hidden">
           {YEARS.map((y) => (
             <button
               key={y}
@@ -682,8 +701,10 @@ function YearDropdown({ value, onChange }: { value: number; onChange: (year: num
                 onChange(y);
                 setOpen(false);
               }}
-              className={`block w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 ${
-                y === value ? "text-blue-700 font-medium" : "text-slate-600"
+              className={`block w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                y === value
+                  ? "text-blue-700 dark:text-blue-300 font-medium"
+                  : "text-slate-600 dark:text-slate-300"
               }`}
             >
               {y}
@@ -703,7 +724,7 @@ function YearDropdown({ value, onChange }: { value: number; onChange: (year: num
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <p className="flex items-center gap-1.5 text-xs text-slate-500">
+    <p className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
       {label}
     </p>
@@ -719,10 +740,10 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 function StatusBadge({ status }: { status: string }) {
   const styles =
     status === "Confirmed" || status === "Completed"
-      ? "bg-green-100 text-green-700"
+      ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
       : status === "Pending" || status === "In Progress"
-      ? "bg-amber-100 text-amber-700"
-      : "bg-slate-100 text-slate-600";
+      ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+      : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300";
 
   return (
     <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${styles}`}>
