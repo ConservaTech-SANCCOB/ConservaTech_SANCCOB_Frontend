@@ -123,23 +123,27 @@ export function Topbar() {
     }
   };
 
-  const itemClass =
-    "flex w-full items-center gap-2.5 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors";
+  // Shared layout for profile-menu items. Colours are kept separate so the
+  // logout item can use its own without two text colours competing.
+  const itemBase =
+    "flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors";
+  const itemClass = `${itemBase} text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800`;
+  const logoutClass = `${itemBase} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40`;
 
   return (
-    <header className="h-16 border-b flex items-center justify-between px-6">
+    <header className="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6">
       <div className="relative flex items-center w-64">
-        <span className="absolute left-3 text-slate-600">
+        <span className="absolute left-3 text-slate-600 dark:text-slate-400">
           <SearchIcon />
         </span>
         <input
           type="text"
           placeholder="Search..."
-          className="w-full pl-9 pr-4 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          className="w-full pl-9 pr-4 py-1.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
         />
       </div>
 
-      <p className="text-sm text-slate-500 hidden md:block">{today}</p>
+      <p className="text-sm text-slate-500 dark:text-slate-400 hidden md:block">{today}</p>
 
       <div className="flex items-center gap-4">
         {/* Notification bell */}
@@ -149,7 +153,7 @@ export function Topbar() {
               setBellOpen((o) => !o);
               setMenuOpen(false);
             }}
-            className="relative p-2 rounded-lg hover:bg-slate-100"
+            className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
             aria-label={
               unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"
             }
@@ -165,13 +169,13 @@ export function Topbar() {
           </button>
 
           {bellOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-3 border-b border-slate-100">
-                <p className="text-sm font-semibold text-slate-900">Notifications</p>
+            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-3 border-b border-slate-100 dark:border-slate-800">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Notifications</p>
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllRead}
-                    className="text-xs font-medium text-blue-600 hover:underline"
+                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     Mark all as read
                   </button>
@@ -180,12 +184,12 @@ export function Topbar() {
 
               <div className="max-h-96 overflow-y-auto">
                 {error && (
-                  <p className="m-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <p className="m-3 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2">
                     {error}
                   </p>
                 )}
                 {items.length === 0 && !error ? (
-                  <p className="px-3 py-8 text-center text-sm text-slate-500">
+                  <p className="px-3 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
                     You&apos;re all caught up.
                   </p>
                 ) : (
@@ -193,22 +197,22 @@ export function Topbar() {
                     <button
                       key={n.notificationId}
                       onClick={() => handleNotificationClick(n)}
-                      className={`flex w-full items-start gap-2.5 px-3 py-3 text-left border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors ${
-                        n.isRead ? "" : "bg-blue-50/50"
+                      className={`flex w-full items-start gap-2.5 px-3 py-3 text-left border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
+                        n.isRead ? "" : "bg-blue-50/50 dark:bg-blue-950/30"
                       }`}
                     >
                       <span
                         className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
-                          n.isRead ? "bg-transparent" : "bg-blue-600"
+                          n.isRead ? "bg-transparent" : "bg-blue-600 dark:bg-blue-400"
                         }`}
                         aria-hidden="true"
                       />
                       <span className="min-w-0">
-                        <span className="block text-xs font-semibold text-slate-900">
+                        <span className="block text-xs font-semibold text-slate-900 dark:text-slate-100">
                           {eventLabel(n.eventType)}
                         </span>
-                        <span className="block text-xs text-slate-600 mt-0.5">{n.message}</span>
-                        <span className="block text-[11px] text-slate-400 mt-1">
+                        <span className="block text-xs text-slate-600 dark:text-slate-300 mt-0.5">{n.message}</span>
+                        <span className="block text-[11px] text-slate-400 dark:text-slate-500 mt-1">
                           {timeAgo(n.createdAt)}
                         </span>
                       </span>
@@ -218,7 +222,7 @@ export function Topbar() {
               </div>
 
               {!connected && (
-                <p className="px-3 py-2 text-[11px] text-slate-500 bg-slate-50 border-t border-slate-100">
+                <p className="px-3 py-2 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800">
                   Live updates aren&apos;t connected. Showing the latest saved notifications.
                 </p>
               )}
@@ -227,13 +231,13 @@ export function Topbar() {
         </div>
 
         {/* Profile dropdown */}
-        <div className="relative pl-2 border-l border-slate-200" ref={menuRef}>
+        <div className="relative pl-2 border-l border-slate-200 dark:border-slate-700" ref={menuRef}>
           <button
             onClick={() => {
               setMenuOpen((o) => !o);
               setBellOpen(false);
             }}
-            className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             aria-label="Open profile menu"
@@ -242,8 +246,8 @@ export function Topbar() {
               {getInitials(user)}
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-slate-900 leading-tight">{getDisplayName(user)}</p>
-              <p className="text-xs text-slate-500 leading-tight">{getRoleLabel(role)}</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 leading-tight">{getDisplayName(user)}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-tight">{getRoleLabel(role)}</p>
             </div>
             <ChevronIcon open={menuOpen} />
           </button>
@@ -251,11 +255,11 @@ export function Topbar() {
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
+              className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 overflow-hidden"
             >
-              <div className="px-3 py-3 border-b border-slate-100">
-                <p className="text-sm font-medium text-slate-900 truncate">{getDisplayName(user)}</p>
-                {user?.email && <p className="text-xs text-slate-500 truncate">{user.email}</p>}
+              <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-800">
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{getDisplayName(user)}</p>
+                {user?.email && <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>}
               </div>
 
               <div className="py-1">
@@ -279,14 +283,14 @@ export function Topbar() {
                 </Link>
               </div>
 
-              <div className="py-1 border-t border-slate-100">
+              <div className="py-1 border-t border-slate-100 dark:border-slate-800">
                 <button
                   role="menuitem"
                   onClick={() => {
                     setMenuOpen(false);
                     logout();
                   }}
-                  className={`${itemClass} text-red-600 hover:bg-red-50`}
+                  className={logoutClass}
                 >
                   <LogoutIcon />
                   Log out
@@ -327,7 +331,7 @@ function BellIcon() {
       strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-slate-700 hover:text-slate-900 transition-colors"
+      className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
     >
       <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.7 21a2 2 0 0 1-3.4 0" />
@@ -346,7 +350,7 @@ function ChevronIcon({ open }: { open: boolean }) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={`text-slate-500 transition-transform ${open ? "rotate-180" : ""}`}
+      className={`text-slate-500 dark:text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
     >
       <path d="m6 9 6 6 6-6" />
     </svg>

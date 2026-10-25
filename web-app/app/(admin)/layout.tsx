@@ -5,6 +5,11 @@ import { useAuth } from "../lib/auth-context";
 import Sidebar from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 
+//---------------------------------------------------------------------------------------------------------------//
+//<summary>
+// Admin shell: auth guard, admin-only role check, then Sidebar + Topbar around the page content.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { token, role, isLoading, logout } = useAuth();
   const router = useRouter();
@@ -25,10 +30,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isAdmin = role?.toLowerCase() === "admin";
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 max-w-sm w-full text-center space-y-4">
-          <h1 className="text-lg font-bold text-slate-900">No access</h1>
-          <p className="text-sm text-slate-600">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 max-w-sm w-full text-center space-y-4">
+          <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">No access</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             This portal is for administrators only. Please log out and sign in with an admin account.
           </p>
           <button
@@ -43,7 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar />
@@ -52,3 +57,5 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   );
 }
+
+//------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//
