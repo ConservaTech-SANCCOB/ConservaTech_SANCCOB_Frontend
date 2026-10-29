@@ -93,7 +93,7 @@ export default function TrainerDashboardScreen() {
   };
 
   // Back asks before logging out
-  const handleLogout = useTrainerSignOut({ confirmOnBack: true });
+  const handleLogout = useTrainerSignOut();
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();

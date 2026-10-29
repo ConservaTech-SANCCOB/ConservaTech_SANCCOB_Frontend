@@ -45,12 +45,11 @@ export class ApiError extends Error {
 export function parseBackendMessage(body: string): string | null {
   try {
     const parsed = JSON.parse(body);
-    for (const candidate of [parsed?.message, parsed?.detail]) {
+    // Validation errors carry only a generic message
+    const firstFieldError =
+      parsed?.errors && typeof parsed.errors === "object" ? Object.values(parsed.errors).flat()[0] : undefined;
+    for (const candidate of [firstFieldError, parsed?.message, parsed?.detail]) {
       if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
-    }
-    if (parsed?.errors && typeof parsed.errors === "object") {
-      const first = Object.values(parsed.errors).flat()[0];
-      if (typeof first === "string" && first.trim()) return first.trim();
     }
   } catch {
     // Not JSON so there is no message to show

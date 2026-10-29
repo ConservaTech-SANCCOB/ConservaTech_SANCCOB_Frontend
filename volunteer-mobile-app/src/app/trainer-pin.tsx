@@ -6,12 +6,24 @@ import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 import KeyboardAvoidingScreen from "../components/KeyboardAvoidingScreen";
 import { COLORS } from "../utils/colors";
-import { verifyTrainerPin } from "../services/trainers";
-import { getErrorMessage, getErrorStatus } from "../utils/api";
+import { getTrainers, verifyTrainerPin } from "../services/trainers";
+import { getErrorMessage, getErrorStatus, SessionExpiredError } from "../utils/api";
 import { showErrorToast } from "../utils/toast";
 import { logError } from "../utils/logError";
 
 const PIN_PATTERN = /^\d{6}$/;
+
+// A missing name shouldn't block signing in
+async function findTrainerName(trainerId: number) {
+  try {
+    const trainer = (await getTrainers()).find((t) => t.trainerId === trainerId);
+    return trainer ? `${trainer.firstName ?? ""} ${trainer.lastName ?? ""}`.trim() : "";
+  } catch (error) {
+    if (error instanceof SessionExpiredError) throw error;
+    logError("Load trainer name error", error);
+    return "";
+  }
+}
 
 export default function TrainerPinScreen() {
   const router = useRouter();
@@ -25,9 +37,14 @@ export default function TrainerPinScreen() {
     }
     setLoading(true);
     try {
-      await verifyTrainerPin(pin);
-      router.push("/trainer-select");
+      const trainerId = await verifyTrainerPin(pin);
+      const trainerName = await findTrainerName(trainerId);
+      router.push({
+        pathname: "/trainer-dashboard",
+        params: { trainerId: String(trainerId), trainerName },
+      });
     } catch (error) {
+      if (error instanceof SessionExpiredError) return;
       logError("Trainer PIN error", error);
       const status = getErrorStatus(error);
       if (status === 429) {

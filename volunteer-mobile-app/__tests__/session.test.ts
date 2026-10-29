@@ -23,10 +23,10 @@ beforeEach(async () => {
 });
 
 describe("session role", () => {
-  it("marks a PIN-verified session as a trainer session", async () => {
-    mockFetchResponse(200, '{"message":"ok","token":"trainer-token"}');
+  it("marks a PIN-verified session as a trainer session and returns the trainer's id", async () => {
+    mockFetchResponse(200, '{"message":"Trainer logged in successfully.","trainerId":3,"token":"trainer-token"}');
 
-    await verifyTrainerPin("123456");
+    await expect(verifyTrainerPin("123456")).resolves.toBe(3);
 
     expect(await getToken()).toBe("trainer-token");
     expect(await getSessionRole()).toBe("trainer");

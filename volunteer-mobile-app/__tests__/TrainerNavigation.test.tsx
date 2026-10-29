@@ -3,10 +3,10 @@ import { act, fireEvent, renderRouter, screen } from "expo-router/testing-librar
 import { Text } from "react-native";
 import { ConfirmProvider } from "../src/components/ConfirmProvider";
 import TrainerDashboardScreen from "../src/app/trainer-dashboard";
-import TrainerSelectScreen from "../src/app/trainer-select";
+import TrainerPinScreen from "../src/app/trainer-pin";
 import TrainerVolunteerScreen from "../src/app/trainer-volunteer/[volunteerId]";
 import { logout } from "../src/services/auth";
-import { getTrainers, selectTrainer } from "../src/services/trainers";
+import { getTrainers, verifyTrainerPin } from "../src/services/trainers";
 import { getTrainingVolunteerProfile, getTrainingVolunteers } from "../src/services/training";
 
 jest.mock("../src/services/auth");
@@ -22,8 +22,7 @@ const routes = {
   ),
   index: stub("Welcome"),
   login: stub("Login"),
-  "trainer-pin": stub("Trainer PIN"),
-  "trainer-select": TrainerSelectScreen,
+  "trainer-pin": TrainerPinScreen,
   "trainer-dashboard": TrainerDashboardScreen,
   "trainer-volunteer/[volunteerId]": TrainerVolunteerScreen,
 };
@@ -31,10 +30,11 @@ const routes = {
 beforeEach(() => {
   jest.clearAllMocks();
   jest.mocked(logout).mockResolvedValue();
+  jest.mocked(verifyTrainerPin).mockResolvedValue(3);
   jest.mocked(getTrainers).mockResolvedValue([
+    { trainerId: 2, firstName: "Other", lastName: "Person", email: null, phone: null, status: "Active" },
     { trainerId: 3, firstName: "Alex", lastName: "Trainer", email: null, phone: null, status: "Active" },
   ]);
-  jest.mocked(selectTrainer).mockResolvedValue();
   jest.mocked(getTrainingVolunteers).mockResolvedValue([
     {
       userId: 11,
@@ -60,17 +60,12 @@ beforeEach(() => {
   });
 });
 
-async function openTrainerSelect() {
+async function openDashboard() {
   const app = renderRouter(routes, { initialUrl: "/" });
   await app;
   await act(() => router.push("/trainer-pin"));
-  await act(() => router.push("/trainer-select"));
-  return { app };
-}
-
-async function openDashboard() {
-  const { app } = await openTrainerSelect();
-  await fireEvent.press(await screen.findByText("Alex Trainer"));
+  await fireEvent.changeText(await screen.findByDisplayValue(""), "123456");
+  await fireEvent.press(screen.getByText("Continue"));
   await screen.findByText("Sam Volunteer");
   expect(app.getPathname()).toBe("/trainer-dashboard");
   return { app };
@@ -126,14 +121,17 @@ it("Back from a volunteer's details returns to the dashboard without logging out
   expect(logout).not.toHaveBeenCalled();
 });
 
-it("backing out of trainer select clears the PIN session and lands on Welcome with no history", async () => {
-  const { app } = await openTrainerSelect();
-  await screen.findByText("Alex Trainer");
+it("goes from the PIN straight to the dashboard, signed in as the PIN's own trainer", async () => {
+  await openDashboard();
 
-  await act(() => router.back());
+  expect(verifyTrainerPin).toHaveBeenCalledWith("123456");
+  expect(screen.getByText("Signed in as Alex Trainer")).toBeOnTheScreen();
+});
 
-  expect(screen.queryByText(LOG_OUT_PROMPT)).toBeNull();
-  expect(logout).toHaveBeenCalledTimes(1);
-  expect(app.getPathname()).toBe("/");
-  expect(router.canGoBack()).toBe(false);
+it("still opens the dashboard when the trainer's name can't be loaded", async () => {
+  jest.mocked(getTrainers).mockRejectedValue(new Error("Network request failed"));
+
+  await openDashboard();
+
+  expect(screen.queryByText(/Signed in as/)).toBeNull();
 });

@@ -29,12 +29,25 @@ beforeEach(async () => {
   await clearToken();
 });
 
+const VALIDATION_PROBLEM = JSON.stringify({
+  type: "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  title: "One or more validation errors occurred.",
+  status: 400,
+  errors: { Email: ["The Email field is not a valid e-mail address."] },
+  traceId: "trace-1",
+  message: "One or more validation errors occurred.",
+});
+
 describe("parseBackendMessage", () => {
-  it("reads message, then ProblemDetails detail, then the first validation error, else null", () => {
+  it("reads the first validation error, then message, then ProblemDetails detail, else null", () => {
+    expect(parseBackendMessage(VALIDATION_PROBLEM)).toBe("The Email field is not a valid e-mail address.");
     expect(parseBackendMessage('{"message":"Password must be at least 8 characters."}')).toBe(
       "Password must be at least 8 characters."
     );
     expect(parseBackendMessage('{"title":"Bad Request","detail":"Shift is full."}')).toBe("Shift is full.");
+    expect(parseBackendMessage('{"title":"Not found","detail":"Shift not found.","message":"Shift not found."}')).toBe(
+      "Shift not found."
+    );
     expect(parseBackendMessage('{"errors":{"AgeBracket":["Invalid age bracket."]}}')).toBe("Invalid age bracket.");
     expect(parseBackendMessage("<html>Bad gateway</html>")).toBeNull();
     expect(parseBackendMessage("")).toBeNull();
@@ -49,6 +62,11 @@ describe("getErrorMessage", () => {
 
     const serverError = new ApiError(500, '{"message":"NullReferenceException at Foo.Bar()"}');
     expect(getErrorMessage(serverError, "fallback")).toBe("fallback");
+
+    expect(getErrorMessage(new ApiError(400, VALIDATION_PROBLEM), "fallback")).toBe(
+      "The Email field is not a valid e-mail address."
+    );
+    expect(getErrorMessage(new ApiError(500, VALIDATION_PROBLEM), "fallback")).toBe("fallback");
   });
 });
 
