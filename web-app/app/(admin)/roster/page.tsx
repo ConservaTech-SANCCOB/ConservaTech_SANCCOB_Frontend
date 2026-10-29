@@ -10,6 +10,7 @@ import {
   fetchGenerationPool,
   generateAutomatedRoster,
   publishRoster,
+  deleteRoster,
   Roster, 
   RosterAssignment,
   RosterGenerationVolunteer,
@@ -123,6 +124,11 @@ export default function RosterPage() {
     { mode: "add" } | { mode: "swap"; target: RosterAssignment } | null
   >(null);
   const [removeTarget, setRemoveTarget] = useState<RosterAssignment | null>(null);
+
+  // Delete-roster confirm modal.
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Fetch data whenever week or token changes
   useEffect(() => {
@@ -261,6 +267,27 @@ const reloadRoster = async () => {
    );
     }
   };
+ 
+  // Handle Delete Roster. Reloads from the backend afterwards, so the screen
+  // shows whatever the backend really did (gone, or still returned).
+  const handleDeleteRoster = async () => {
+    if (!token || !roster?.rosterId) return;
+    try {
+      setDeleteError(null);
+      setIsDeleting(true);
+      await deleteRoster(token, roster.rosterId);
+      await reloadRoster();
+      setIsDeleteModalOpen(false);
+      setStep(1);
+    } catch (err) {
+      console.error("Failed to delete roster", err);
+      setDeleteError(
+        err instanceof Error ? err.message : "Unable to delete roster. Please try again."
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const weekLabel = formatWeekRange(currentWeekStart);
 
@@ -372,14 +399,14 @@ const unfilledCount = totalShiftCount - filledCount;
               >
                 + Assign Volunteer
               </button>
-                              {/* Publish an existing Draft without regenerating it */}
+            {/* Publish an existing Draft without regenerating it */}
               {roster && !isPublished && (
                 <button
                   onClick={() => {
                     setPublishError(null);
                     setIsPublishModalOpen(true);
                   }}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                  className="px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
                 >
                   Publish Roster
                 </button>
@@ -390,6 +417,18 @@ const unfilledCount = totalShiftCount - filledCount;
               >
                 ⚡ Generate Roster
               </button>
+              {/* Delete the whole roster (only when one exists) */}
+              {roster && (
+                <button
+                  onClick={() => {
+                    setDeleteError(null);
+                    setIsDeleteModalOpen(true);
+                  }}
+                  className="px-4 py-2 rounded-xl border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40 transition-colors"
+                >
+                  Delete Roster
+                </button>
+              )}
             </div>
           </div>
 
@@ -743,7 +782,57 @@ const unfilledCount = totalShiftCount - filledCount;
         </div>
       )}
 
-      {/*------------------------------------ Assign / Swap Volunteer Modal ----------------------------------------------------*/}
+{/*------------------------------------ Delete Roster Modal ----------------------------------------------------*/}
+
+      {isDeleteModalOpen && roster && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => !isDeleting && setIsDeleteModalOpen(false)}>
+          <div className="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Delete roster for {weekLabel}?</h2>
+              <button onClick={() => setIsDeleteModalOpen(false)} disabled={isDeleting} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold">✕</button>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            This will delete the roster and its {assignments.length} volunteer assignment{assignments.length === 1 ? "" : "s"}.
+              Shifts and volunteer records are kept.{" "}
+              <span className="font-semibold text-slate-700 dark:text-slate-300">This can&apos;t be undone.</span>
+            </p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 -mt-3">
+              Rosters with attendance records or shift-change requests can&apos;t be deleted.
+            </p>
+
+            {isPublished && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-300 text-xs px-3 py-2 rounded-lg">
+                This roster is Published, so volunteers may already be able to see these shifts on the mobile app.
+              </div>
+            )}
+
+            {deleteError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300 text-xs px-3 py-2 rounded-lg">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteRoster}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-60"
+              >
+                {isDeleting ? "Deleting..." : "Delete Roster"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+ {/*------------------------------------ Assign / Swap Volunteer Modal ----------------------------------------------------*/}
 
       {assignModal && roster && (
         <AssignVolunteerModal

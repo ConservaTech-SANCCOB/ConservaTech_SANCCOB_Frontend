@@ -232,6 +232,22 @@ export async function publishRoster(token: string | null, rosterId: number): Pro
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// DELETE /api/Rosters/{rosterId}
+// Deletes the roster and its volunteer assignments. Shifts, volunteer
+// profiles, availability and training records are kept. The backend refuses
+// to delete a roster that has attendance records or shift-change requests.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+export async function deleteRoster(token: string | null, rosterId: number): Promise<void> {
+  await apiFetch<void>(
+    `/api/Rosters/${rosterId}`,
+    token,
+    { method: "DELETE" },
+    "Failed to delete roster"
+  );
+}
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
