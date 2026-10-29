@@ -194,6 +194,31 @@ export async function removeRosterAssignment(
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
+// PUT /api/Rosters/{rosterId}/assignments/{rosterAssignmentId}/replace
+// Replaces the volunteer on an existing assignment with another volunteer in
+// a single call, so a full shift is never pushed over capacity mid-swap.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+export async function replaceRosterAssignment(
+  token: string | null,
+  rosterId: number,
+  rosterAssignmentId: number,
+  payload: ManualRosterAssignmentPayload
+): Promise<RosterAssignment> {
+  return apiFetch<RosterAssignment>(
+    `/api/Rosters/${rosterId}/assignments/${rosterAssignmentId}/replace`,
+    token,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    "Failed to replace roster assignment"
+  );
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // PATCH /api/Rosters/{rosterId}/publish
 // Publishes the given roster and returns the updated roster.
 //</summary>

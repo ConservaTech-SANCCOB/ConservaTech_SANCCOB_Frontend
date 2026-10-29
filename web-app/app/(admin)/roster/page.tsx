@@ -372,6 +372,18 @@ const unfilledCount = totalShiftCount - filledCount;
               >
                 + Assign Volunteer
               </button>
+                              {/* Publish an existing Draft without regenerating it */}
+              {roster && !isPublished && (
+                <button
+                  onClick={() => {
+                    setPublishError(null);
+                    setIsPublishModalOpen(true);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                >
+                  Publish Roster
+                </button>
+              )}
               <button
                 onClick={() => setIsGenerateConfirmOpen(true)}
                 className="px-4 py-2 rounded-xl bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors"
@@ -682,8 +694,15 @@ const unfilledCount = totalShiftCount - filledCount;
               <button onClick={() => setIsPublishModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold">✕</button>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Once published, volunteers will be notified on the mobile app.
+              Once published, volunteers will be notified on the mobile app.{" "}
+              <span className="font-semibold text-slate-700 dark:text-slate-300">This can&apos;t be undone.</span>
             </p>
+
+            {unfilledCount > 0 && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-300 text-xs px-3 py-2 rounded-lg">
+                {unfilledCount} of {totalShiftCount} shifts are not fully staffed.
+              </div>
+            )}
 
             {publishError && (
               <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300 text-xs px-3 py-2 rounded-lg">
@@ -741,9 +760,12 @@ const unfilledCount = totalShiftCount - filledCount;
             )
             .map((s) => {
               const info = shiftAssignedInfo(s, vacancies);
-              return {
+               return {
                 shiftId: s.shiftId,
                 label: `${s.shiftDate.slice(0, 10)} · ${shiftSessionLabel(s.timeSlot)} · ${s.location} (${info.assigned}/${info.capacity})`,
+                shiftDate: s.shiftDate.slice(0, 10),
+                timeSlot: s.timeSlot,
+                requiredSkillIds: s.requiredSkillIds ?? [],
               };
             })}
           onClose={() => setAssignModal(null)}

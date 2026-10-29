@@ -1,23 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../app/lib/auth-context";
 import {
   addRosterAssignment,
   removeRosterAssignment,
+  replaceRosterAssignment,
   RosterAssignment,
 } from "../../app/lib/api/roster";
+import {
+  fetchTrainingVolunteerProfile,
+  TrainingVolunteerProfile,
+} from "../../app/lib/api/training_staff";
 import { Volunteer } from "../../app/lib/api/volunteers";
 import { ModalOverlay } from "../shifts/ShiftFormModal";
 
-export type ShiftOption = { shiftId: number; label: string };
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// One selectable shift. shiftDate is "YYYY-MM-DD", timeSlot is "HH:MM-HH:MM"
+// and requiredSkillIds are the skills a volunteer must be signed off on.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+export type ShiftOption = {
+  shiftId: number;
+  label: string;
+  shiftDate: string;
+  timeSlot: string;
+  requiredSkillIds: number[];
+};
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Parses "HH:MM-HH:MM" into [startMinutes, endMinutes], or null if the
+// string isn't in that format.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+function parseSlot(slot: string | null | undefined): [number, number] | null {
+  const m = slot?.match(/^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  return [Number(m[1]) * 60 + Number(m[2]), Number(m[3]) * 60 + Number(m[4])];
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// True when two time slots overlap (e.g. Full Day overlaps Morning). Slots
+// that can't be parsed only count as overlapping when they're identical.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+function slotsOverlap(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const pa = parseSlot(a);
+  const pb = parseSlot(b);
+  if (!pa || !pb) return false;
+  return pa[0] < pb[1] && pb[0] < pa[1];
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Collects the skillIds a volunteer has been signed off on, across all
+// three skill groups of their training profile.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+function signedOffSkillIds(profile: TrainingVolunteerProfile): number[] {
+  const all = [
+    ...(profile.supportingAreas ?? []),
+    ...(profile.penRoutines ?? []),
+    ...(profile.seasonalSkills ?? []),
+  ];
+  return all.filter((s) => s.isSignedOff).map((s) => s.skillId);
+}
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
 // Modal for adding a volunteer to a shift ("add") or replacing the volunteer
-// on an existing assignment ("swap"). Swap adds the new volunteer FIRST and
-// only removes the old assignment once that succeeds, so a failed add can
-// never leave a shift short-staffed. Capacity rules are left to the backend.
+// on an existing assignment ("swap"). Swap uses the single /replace endpoint
+// so a full shift is never pushed over capacity. The volunteer dropdown only
+// lists eligible volunteers: not already on the shift, not clashing with
+// another assignment at the same date and time, and signed off on every
+// skill the shift requires. The backend remains the final validator.
 //</summary>
 //-----------------------------------------------------------------------------------------------//
 export function AssignVolunteerModal({
@@ -44,19 +105,102 @@ export function AssignVolunteerModal({
   const [userId, setUserId] = useState<number | "">("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // userId -> signed-off skillIds. null means the lookup failed (unknown).
+  const [skillCache, setSkillCache] = useState<Record<number, number[] | null>>({});
 
+  //---------------------------- Target shift ----------------------------//
   const effectiveShiftId = mode === "swap" ? swapTarget?.shiftId : shiftId;
+  const selectedOption = shiftOptions.find((s) => s.shiftId === effectiveShiftId);
+  const target: ShiftOption | undefined =
+    selectedOption ??
+    (swapTarget
+      ? {
+          shiftId: swapTarget.shiftId,
+          label: "",
+          shiftDate: swapTarget.shiftDate.slice(0, 10),
+          timeSlot: swapTarget.timeSlot ?? "",
+          requiredSkillIds: [],
+        }
+      : undefined);
 
-  // Volunteers already on this shift can't be picked again.
-  const alreadyOnShift = new Set(
-    assignments.filter((a) => a.shiftId === effectiveShiftId).map((a) => a.userId)
-  );
-  const candidates = volunteers.filter((v) => !alreadyOnShift.has(Number(v.id)));
+  //---------------------------- Eligibility, step 1: availability ----------------------------//
+  // Not already on this shift, and no other assignment that day whose time overlaps.
+  const availableVolunteers = target
+    ? volunteers.filter((v) => {
+        const id = Number(v.id);
+        return !assignments.some(
+          (a) =>
+            a.userId === id &&
+            (a.shiftId === target.shiftId ||
+              (a.shiftDate.slice(0, 10) === target.shiftDate &&
+                slotsOverlap(a.timeSlot, target.timeSlot)))
+        );
+      })
+    : [];
+
+  //---------------------------- Eligibility, step 2: skills ----------------------------//
+  const requiredIds = target?.requiredSkillIds ?? [];
+  const needsSkillCheck = requiredIds.length > 0;
+  const missingIds = needsSkillCheck
+    ? availableVolunteers.map((v) => Number(v.id)).filter((id) => !(id in skillCache))
+    : [];
+  const isCheckingSkills = missingIds.length > 0;
+  const missingKey = missingIds.join(",");
+
+  // Fetches the training profile of every volunteer we haven't checked yet.
+  // Results are cached so changing shifts doesn't refetch the same people.
+  useEffect(() => {
+    if (!missingKey) return;
+    let cancelled = false;
+    const ids = missingKey.split(",").map(Number);
+
+    Promise.all(
+      ids.map(async (id) => {
+        try {
+          const profile = await fetchTrainingVolunteerProfile(id, token);
+          return [id, signedOffSkillIds(profile)] as const;
+        } catch (err) {
+          console.warn(`Could not load training profile for volunteer ${id}`, err);
+          return [id, null] as const;
+        }
+      })
+    ).then((entries) => {
+      if (cancelled) return;
+      setSkillCache((prev) => {
+        const next = { ...prev };
+        entries.forEach(([id, skills]) => {
+          next[id] = skills;
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [missingKey, token]);
+
+  const candidates = needsSkillCheck
+    ? availableVolunteers.filter((v) => {
+        const skills = skillCache[Number(v.id)];
+        if (skills === undefined) return false; // still loading
+        if (skills === null) return true; // lookup failed: let the backend decide
+        return requiredIds.every((id) => skills.includes(id));
+      })
+    : availableVolunteers;
+
+  const volunteerPlaceholder = !target
+    ? "Select a shift first..."
+    : isCheckingSkills
+      ? "Checking skills..."
+      : candidates.length === 0
+        ? "No eligible volunteers"
+        : "Select a volunteer...";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (effectiveShiftId === undefined || effectiveShiftId === "") {
+    if (!target) {
       setError("Please select a shift.");
       return;
     }
@@ -67,29 +211,30 @@ export function AssignVolunteerModal({
 
     setIsSubmitting(true);
     try {
-      await addRosterAssignment(token, rosterId, {
-        shiftId: Number(effectiveShiftId),
-        userId: Number(userId),
-      });
+      if (mode === "swap" && swapTarget) {
+        const result = await replaceRosterAssignment(
+          token,
+          rosterId,
+          swapTarget.rosterAssignmentId,
+          { shiftId: swapTarget.shiftId, userId: Number(userId) }
+        );
+        console.log("replace response", result); // TEMP: check the returned rosterAssignmentId, then remove
+      } else {
+        await addRosterAssignment(token, rosterId, {
+          shiftId: target.shiftId,
+          userId: Number(userId),
+        });
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to add volunteer.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : mode === "swap"
+            ? "Unable to swap volunteer."
+            : "Unable to add volunteer."
+      );
       setIsSubmitting(false);
       return;
-    }
-
-    if (mode === "swap" && swapTarget) {
-      try {
-        await removeRosterAssignment(token, rosterId, swapTarget.rosterAssignmentId);
-      } catch (err) {
-        // New volunteer is already on the shift; surface it and refresh.
-        await onDone();
-        setError(
-          "The new volunteer was added, but the original assignment could not be removed. " +
-            (err instanceof Error ? err.message : "")
-        );
-        setIsSubmitting(false);
-        return;
-      }
     }
 
     await onDone();
@@ -150,13 +295,20 @@ export function AssignVolunteerModal({
             id="assign-volunteer"
             value={userId}
             onChange={(e) => setUserId(e.target.value ? Number(e.target.value) : "")}
-            className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+            disabled={!target || isCheckingSkills}
+            className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 disabled:opacity-60"
           >
-            <option value="" disabled>Select a volunteer...</option>
+            <option value="" disabled>{volunteerPlaceholder}</option>
             {candidates.map((v) => (
               <option key={v.id} value={Number(v.id)}>{v.name}</option>
             ))}
           </select>
+          {target && (
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
+              Only volunteers who are free for this shift
+              {needsSkillCheck ? " and signed off on its required skills" : ""} are listed.
+            </p>
+          )}
         </div>
 
         {error && (
@@ -169,7 +321,7 @@ export function AssignVolunteerModal({
           </button>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isCheckingSkills}
             className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-60"
           >
             {isSubmitting ? "Saving..." : mode === "add" ? "Assign" : "Swap"}
