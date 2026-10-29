@@ -232,6 +232,21 @@ export async function updateVolunteer(
 
 //--------------------------------------------------------------------------------------//
 
+// DELETE /api/admin/volunteers/{id}
+// Whether this is a soft or hard delete, and what happens to the volunteer's
+// assignments, attendance and training records, is unconfirmed. Callers should
+// re-fetch the list afterwards and show the backend's error if it refuses.
+export async function deleteVolunteer(token: string | null, id: string): Promise<void> {
+  await apiFetch<void>(
+    `/api/admin/volunteers/${id}`,
+    token,
+    { method: "DELETE" },
+    "Unable to delete volunteer"
+  );
+}
+
+//--------------------------------------------------------------------------------------//
+
 /* ============================================================
    CHANGE REQUESTS
    ============================================================ */

@@ -11,6 +11,7 @@ import {
   declineShiftRequest,
   createVolunteer,
   updateVolunteer,
+  deleteVolunteer,
   Volunteer,
   ShiftRequest,
   CreateVolunteerPayload,
@@ -83,6 +84,7 @@ export default function VolunteersPage() {
   const [viewingVolunteer, setViewingVolunteer] = useState<Volunteer | null>(null);
   const [editingVolunteer, setEditingVolunteer] = useState<Volunteer | null>(null);
   const [attendanceVolunteer, setAttendanceVolunteer] = useState<Volunteer | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Volunteer | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
     id: string;
     type: "Approved" | "Declined";
@@ -224,6 +226,23 @@ export default function VolunteersPage() {
 
   //-----------------------------------------------------------------------------------------------//
   //<summary>
+  // Deletes a volunteer. Throws on failure so the confirm modal can show the
+  // backend's message. On success the modal closes and the list is re-fetched,
+  // so the screen shows what the backend really did.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteVolunteer(token, id);
+    } catch (err) {
+      if (isUnauthorized(err)) logout();
+      throw err;
+    }
+    setDeleteTarget(null);
+    await loadData(false);
+  };
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
   // Creates a new volunteer. Throws on failure so the form can show the message.
   // On success the list is re-fetched (the create response has no userId) and
   // the page switches back to the management tab.
@@ -353,7 +372,7 @@ export default function VolunteersPage() {
                   />
                   <SearchIcon className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 </div>
-                {/* Filters (FE-A10) not built yet */}
+             
                 <button
                   disabled
                   title="Filters coming soon"
@@ -367,19 +386,19 @@ export default function VolunteersPage() {
                 {filteredVolunteers.length} volunteers
               </span>
             </div>
-
-            {/*------------------------------------ Volunteers Table ----------------------------------------------------*/}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
-                <thead className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100 dark:border-slate-800">
-                  <tr>
-                    <th className="pb-3 px-4">Profile</th>
-                    <th className="pb-3 px-4">Volunteer Name</th>
-                    <th className="pb-3 px-4">Contact Information</th>
-                    <th className="pb-3 px-4">Weekly Hours</th>
-                    <th className="pb-3 px-4">Attendance Rate</th>
-                    <th className="pb-3 px-4 text-right">Actions</th>
-                  </tr>
+ 
+ {/*------------------------------------ Volunteers Table ----------------------------------------------------*/}
+     <div className="overflow-x-auto">
+       <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
+         <thead className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100 dark:border-slate-800">
+          <tr>
+          <th className="pb-3 px-4">Profile</th>
+            <th className="pb-3 px-4">Volunteer Name</th>
+            <th className="pb-3 px-4">Contact Information</th>
+              <th className="pb-3 px-4">Weekly Hours</th>
+            <th className="pb-3 px-4">Attendance Rate</th>
+            <th className="pb-3 px-4 text-right">Actions</th>
+              </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100/80 dark:divide-slate-800">
                   {filteredVolunteers.length === 0 ? (
@@ -395,35 +414,33 @@ export default function VolunteersPage() {
 
                       return (
                         <tr key={v.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors group">
-                          {/*------------------------------------ Profile Avatar ----------------------------------------------------*/}
+{/*------------------------------------ Profile Avatar -------------------------------------------------------------------------------*/}
                           <td className="py-4 px-4">
                             <div className="w-9 h-9 rounded-full bg-[#0B2447] dark:bg-blue-800 text-white font-bold flex items-center justify-center text-xs shadow-sm">
                               {v.initials}
                             </div>
                           </td>
 
-                          {/*------------------------------------ Volunteer Name ----------------------------------------------------*/}
+ {/*------------------------------------ Volunteer Name ------------------------------------------------------------------------------------*/}
                           <td className="py-4 px-4">
                             <p className="font-medium text-slate-800 dark:text-slate-100 text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                               {v.name}
                             </p>
                           </td>
 
-                          {/*------------------------------------ Contact Information ----------------------------------------------------*/}
+ {/*------------------------------------ Contact Information ------------------------------------------------------------------------------------*/}
                           <td className="py-4 px-4 space-y-1">
                             <p className="text-slate-600 dark:text-slate-300 text-[11px]">{v.email}</p>
                             <p className="text-slate-400 dark:text-slate-500 text-[11px]">{v.phone || "—"}</p>
                           </td>
-
-                          {/*------------------------------------ Weekly Hours ----------------------------------------------------*/}
+ {/*------------------------------------ Weekly Hours ----------------------------------------------------*/}
                           <td className="py-4 px-4">
                             <div className="flex items-baseline gap-1">
                               <span className="font-bold text-slate-900 dark:text-slate-100">{v.weeklyHours}</span>
                               <span className="text-[10px] text-slate-400 dark:text-slate-500">hrs this week</span>
                             </div>
                           </td>
-
-                          {/*------------------------------------ Attendance Rate ----------------------------------------------------*/}
+  {/*------------------------------------ Attendance Rate ----------------------------------------------------*/}
                           <td className="py-4 px-4">
                             <button
                               onClick={() => setAttendanceVolunteer(v)}
@@ -462,6 +479,15 @@ export default function VolunteersPage() {
                               aria-label="Edit volunteer"
                             >
                               <EditNoteIcon />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTarget(v)}
+                              disabled={isOpening}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all disabled:opacity-50"
+                              aria-label="Delete volunteer"
+                              title="Delete volunteer"
+                            >
+                              <TrashIcon />
                             </button>
                           </td>
                         </tr>
@@ -504,7 +530,7 @@ export default function VolunteersPage() {
                   ) : (
                     requests.map((r) => (
                       <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
-                        {/*------------------------------------ Requesting Volunteer ----------------------------------------------------*/}
+ {/*------------------------------------ Requesting Volunteer ----------------------------------------------------*/}
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-full bg-[#0B2447] dark:bg-blue-800 text-white font-bold flex items-center justify-center text-xs shrink-0">
@@ -516,7 +542,7 @@ export default function VolunteersPage() {
                           </div>
                         </td>
 
-                        {/*------------------------------------ Shift Date & Time ----------------------------------------------------*/}
+ {/*------------------------------------ Shift Date & Time ----------------------------------------------------*/}
                         <td className="py-4 px-4 font-medium text-slate-700 dark:text-slate-300">
                           {formatShiftDate(r.shiftDate)}
                         </td>
@@ -524,15 +550,14 @@ export default function VolunteersPage() {
                           {r.timeSlot || "—"}
                         </td>
 
-                        {/*------------------------------------ Reason ----------------------------------------------------*/}
+{/*------------------------------------ Reason ----------------------------------------------------*/}
                         <td
                           className="py-4 px-4 max-w-[240px] text-slate-500 dark:text-slate-400 font-medium"
                           title={r.reason}
                         >
                           <span className="line-clamp-2">{r.reason || "—"}</span>
                         </td>
-
-                        {/*------------------------------------ Status Badge ----------------------------------------------------*/}
+ {/*------------------------------------ Status Badge ----------------------------------------------------*/}
                         <td className="py-4 px-4">
                           <span
                             className={`px-3 py-1 rounded-full font-semibold text-[10px] inline-block ${
@@ -547,7 +572,7 @@ export default function VolunteersPage() {
                           </span>
                         </td>
 
-                        {/*------------------------------------ Approve / Decline Actions ----------------------------------------------------*/}
+{/*------------------------------------ Approve / Decline Actions ----------------------------------------------------*/}
                         <td className="py-4 px-4 text-center">
                           {r.status === "Pending" ? (
                             <div className="flex items-center justify-center gap-1.5">
@@ -615,7 +640,7 @@ export default function VolunteersPage() {
         />
       )}
 
-      {/*------------------------------------ Attendance Modal ----------------------------------------------------*/}
+{/*------------------------------------ Attendance Modal ----------------------------------------------------*/}
       {attendanceVolunteer && (
         <AttendanceModal
           volunteer={attendanceVolunteer}
@@ -624,7 +649,15 @@ export default function VolunteersPage() {
         />
       )}
 
-      {/*------------------------------------ Confirm Approve / Decline Modal ----------------------------------------------------*/}
+{/*------------------------------------ Delete Volunteer Modal ----------------------------------------------------*/}
+      {deleteTarget && (
+        <DeleteVolunteerModal
+          volunteer={deleteTarget}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => handleDelete(deleteTarget.id)}
+        />
+      )}
+ {/*------------------------------------ Confirm Approve / Decline Modal ----------------------------------------------------*/}
       {confirmAction && (
         <ConfirmActionModal
           type={confirmAction.type}
@@ -1100,6 +1133,78 @@ function ConfirmActionModal({
 }
 
 //---------------------------------------------------------------------------------------------------------------//
+// Delete Volunteer Modal
+//---------------------------------------------------------------------------------------------------------------//
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Confirmation dialog shown before deleting a volunteer. Shows the backend's
+// error message if the delete is refused.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+function DeleteVolunteerModal({
+  volunteer,
+  onCancel,
+  onConfirm,
+}: {
+  volunteer: Volunteer;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleConfirm = async () => {
+    setError("");
+    setIsDeleting(true);
+    try {
+      await onConfirm();
+    } catch (err) {
+      console.error("Failed to delete volunteer", err);
+      setError(err instanceof Error ? err.message : "Unable to delete volunteer.");
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <ModalOverlay onClose={() => !isDeleting && onCancel()}>
+      <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Delete volunteer?</h2>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-4">
+        Are you sure you want to delete{" "}
+        <span className="font-semibold text-slate-700 dark:text-slate-200">{volunteer.name}</span>?{" "}
+        <span className="font-semibold text-slate-700 dark:text-slate-300">This can&apos;t be undone.</span>
+      </p>
+
+      {error && (
+        <p
+          role="alert"
+          className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2 mb-4"
+        >
+          {error}
+        </p>
+      )}
+
+      <div className="flex items-center justify-end gap-3">
+        <button
+          onClick={onCancel}
+          disabled={isDeleting}
+          className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleConfirm}
+          disabled={isDeleting}
+          className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-60"
+        >
+          {isDeleting ? "Deleting..." : "Delete"}
+        </button>
+      </div>
+    </ModalOverlay>
+  );
+}
+
+//---------------------------------------------------------------------------------------------------------------//
 // Shared Modal Shell
 //---------------------------------------------------------------------------------------------------------------//
 
@@ -1216,6 +1321,19 @@ function CloseIcon() {
   );
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Bin icon used for the "Delete volunteer" row action.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+function TrashIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
 //-----------------------------------------------------------------------------------------------//
 //<summary>
 // Tick icon used on the "Save Changes" button.
