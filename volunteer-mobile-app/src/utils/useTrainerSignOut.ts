@@ -13,7 +13,7 @@ function isBackAction(action: NavigationAction) {
 // ------------------------------------------------------------ //
 
 // Back on a trainer screen ends the shared session
-export function useTrainerSignOut({ confirmOnBack }: { confirmOnBack: boolean }) {
+export function useTrainerSignOut() {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
   const confirm = useConfirm();
@@ -32,10 +32,6 @@ export function useTrainerSignOut({ confirmOnBack }: { confirmOnBack: boolean })
   usePreventRemove(isFocused && !signedOut, ({ data }) => {
     if (!isBackAction(data.action)) {
       navigation.dispatch(data.action);
-      return;
-    }
-    if (!confirmOnBack) {
-      signOut();
       return;
     }
     confirm({

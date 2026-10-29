@@ -11,10 +11,7 @@ export interface Trainer {
 
 interface VerifyPinResponse {
   message: string;
-  token: string;
-}
-
-interface SelectTrainerResponse {
+  trainerId: number;
   token: string;
 }
 
@@ -32,13 +29,5 @@ export async function verifyTrainerPin(pin: string) {
     { skipSessionRedirect: true },
   );
   await saveToken(response.token, "trainer");
-}
-
-export async function selectTrainer(trainerId: number) {
-  const response = await api.post<SelectTrainerResponse>(
-    `/api/trainers/${trainerId}/select`,
-    {},
-    { skipSessionRedirect: true },
-  );
-  await saveToken(response.token, "trainer");
+  return response.trainerId;
 }

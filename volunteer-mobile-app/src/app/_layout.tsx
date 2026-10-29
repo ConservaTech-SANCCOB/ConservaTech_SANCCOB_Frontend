@@ -80,7 +80,6 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="request-change" />
           <Stack.Screen name="trainer-pin" />
-          <Stack.Screen name="trainer-select" />
           <Stack.Screen name="trainer-dashboard" />
           <Stack.Screen name="trainer-volunteer/[volunteerId]" />
         </Stack>
