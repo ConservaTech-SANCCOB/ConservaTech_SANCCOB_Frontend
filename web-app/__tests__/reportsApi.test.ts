@@ -25,7 +25,7 @@ describe("fetchReportsData", () => {
     }));
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    const report = await fetchReportsData("jwt-token", "2026", "");
+    const report = await fetchReportsData("jwt-token", "2026");
 
     expect(report).toEqual({
       totalVolunteerHours: 1240,
@@ -37,7 +37,9 @@ describe("fetchReportsData", () => {
       attendanceByMonth: [{ month: "Jan", rate: 91 }],
       topContributors: [{ name: "Sam Volunteer", hours: 64 }],
     });
-    expect(fetchMock.mock.calls[0][0]).toBe("https://api.test/api/admin/reports?year=2026");
+    const urls = fetchMock.mock.calls.map((c) => c[0]);
+    expect(urls).toContain("https://api.test/api/admin/reports?year=2026");
+    expect(urls.some((u) => u.includes("conservation-impact"))).toBe(true);
   });
 });
 

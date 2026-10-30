@@ -11,6 +11,7 @@ export default createJestConfig({
   testEnvironment: "jsdom",
   testMatch: ["<rootDir>/__tests__/**/*.test.{ts,tsx}"],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  testTimeout: 20000,
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },

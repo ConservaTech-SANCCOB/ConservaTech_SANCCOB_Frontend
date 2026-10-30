@@ -212,13 +212,12 @@ export function AssignVolunteerModal({
     setIsSubmitting(true);
     try {
       if (mode === "swap" && swapTarget) {
-        const result = await replaceRosterAssignment(
+          await replaceRosterAssignment(
           token,
           rosterId,
           swapTarget.rosterAssignmentId,
           { shiftId: swapTarget.shiftId, userId: Number(userId) }
         );
-        console.log("replace response", result); // TEMP: check the returned rosterAssignmentId, then remove
       } else {
         await addRosterAssignment(token, rosterId, {
           shiftId: target.shiftId,
