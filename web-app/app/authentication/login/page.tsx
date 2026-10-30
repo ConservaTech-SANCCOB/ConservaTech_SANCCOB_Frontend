@@ -138,7 +138,7 @@ export default function LoginPage() {
            ? "opacity-100"
            : "opacity-0"
       } ${
-        index === 2
+        index === 1
          ? "object-contain"
          : "object-cover"
     }`}
