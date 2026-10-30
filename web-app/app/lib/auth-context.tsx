@@ -81,7 +81,7 @@ interface AuthContextType {
   // Read from the JWT claims. Only as fresh as the token: it won't update
   // mid-session if a profile changes; the user must log in again.
   user: AuthUser | null;
-  updateUser: (details: AuthUser) => void;
+  updateUser?: (details: AuthUser) => void;
   isLoading: boolean;
   login: (email: string, password: string, keepSignedIn?: boolean) => Promise<void>;
   logout: () => void;

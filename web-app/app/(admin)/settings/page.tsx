@@ -130,7 +130,7 @@ function ProfileTab() {
     setIsSaving(true);
     try {
       await updateAdminProfile(token, { firstName, lastName, email });
-      updateUser({
+      updateUser?.({
         name: `${firstName.trim()} ${lastName.trim()}`.trim(),
         email: email.trim(),
       });
