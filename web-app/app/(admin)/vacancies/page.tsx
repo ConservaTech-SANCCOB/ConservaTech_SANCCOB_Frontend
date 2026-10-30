@@ -1,22 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useAuth } from "../../lib/auth-context";
 import { fetchVacancies, fetchShifts, createShift, Vacancy, Shift, ShiftPayload } from "../../lib/api/shifts";
 import { ShiftFormModal } from "../../../components/shifts/ShiftFormModal";
 import VacanciesList from "../../../components/VacanciesList";
-
-//-----------------------------------------------------------------------------------------------//
-//<summary>
-// Time slot mapping constants for shift display formatting.
-//</summary>
-
-const TIME_SLOT_LABELS: Record<string, string> = {
-  "08:00-13:00": "AM",
-  "14:00-17:00": "PM",
-  "08:00-17:00": "Full Day",
-};
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>

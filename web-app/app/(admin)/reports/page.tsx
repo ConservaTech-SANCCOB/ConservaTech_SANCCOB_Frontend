@@ -115,7 +115,7 @@ export default function ReportsPage() {
       try {
         setIsLoading(true);
         setError("");
-        const result = await fetchReportsData(token, year, "");
+        const result = await fetchReportsData(token, year);
         if (!cancelled) setData(result);
       } catch {
         if (!cancelled) setError("Couldn't load report data. Please try again.");
