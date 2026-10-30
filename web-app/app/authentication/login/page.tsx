@@ -17,15 +17,15 @@ import { useAuth } from "../../lib/auth-context";
 //---------------------------------------------------------------------------------------------------------------//
 const HERO_IMAGES = [
   {
-    src: "/slideshow%20image.%201.jpeg",
+    src: "/slideshow-image-1.png",
     alt: "SANCCOB seabird conservation photograph 1",
   },
   {
-    src: "/slideshow%20image.2.jpeg",
+    src: "/slideshow-image-2.png",
     alt: "SANCCOB seabird conservation photograph 2",
   },
   {
-    src: "/slideshow%20image.3.jpeg",
+    src: "/slideshow-image-3.png",
     alt: "SANCCOB seabird conservation photograph 3",
   },
 ];

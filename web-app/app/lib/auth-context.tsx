@@ -6,7 +6,9 @@ import { registerUnauthorizedHandler } from "./api/http";
 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
+// Holds the admin's edited name/email, because the JWT can't be reissued
+// after PUT /api/admin/profile. Cleared on login and logout.
+const USER_OVERRIDE_KEY = "user_override";
 //-----------------------------------------------------------------------------------------------//
 //<summary>
 // Decodes a JWT's payload without verifying the signature (fine client-side —
@@ -51,7 +53,7 @@ function isTokenExpired(token: string): boolean {
 function readClaim(payload: Record<string, unknown> | null, ...keys: string[]): string | null {
   if (!payload) return null;
   for (const key of keys) {
-    const value = payload[key];
+  const value = payload[key];
     if (typeof value === "string" && value.trim() !== "") return value;
   }
   return null;
@@ -79,6 +81,7 @@ interface AuthContextType {
   // Read from the JWT claims. Only as fresh as the token: it won't update
   // mid-session if a profile changes; the user must log in again.
   user: AuthUser | null;
+  updateUser?: (details: AuthUser) => void;
   isLoading: boolean;
   login: (email: string, password: string, keepSignedIn?: boolean) => Promise<void>;
   logout: () => void;
@@ -101,21 +104,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const loggingOutRef = useRef(false);
-
+  const [userOverride, setUserOverride] = useState<AuthUser | null>(null);
   //-----------------------------------------------------------------------------------------------//
   //<summary>
   // Derived from the token, so it can never drift out of sync with it.
   // A token issued before the backend added these claims gives null values.
   //</summary>
   //-----------------------------------------------------------------------------------------------//
-  const user = useMemo<AuthUser | null>(() => {
+    const user = useMemo<AuthUser | null>(() => {
     if (!token) return null;
+    if (userOverride) return userOverride;
     const payload = decodeJwtPayload(token);
     return {
       name: readClaim(payload, "name", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"),
       email: readClaim(payload, "email", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"),
     };
-  }, [token]);
+  }, [token, userOverride]);
+
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Replaces the displayed name/email after the admin saves their profile.
+  // Stored next to the token (local or session storage) so a page refresh
+  // keeps showing the new values until the next login issues a fresh token.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
+
+  const updateUser = useCallback((details: AuthUser) => {
+    setUserOverride(details);
+    if (typeof window !== "undefined") {
+      const storage = localStorage.getItem("auth_token") ? localStorage : sessionStorage;
+      storage.setItem(USER_OVERRIDE_KEY, JSON.stringify(details));
+    }
+  }, []);
 
   //-----------------------------------------------------------------------------------------------//
   //<summary>
@@ -130,8 +150,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const savedRole = localStorage.getItem("user_role") || sessionStorage.getItem("user_role");
 
       if (savedToken && savedToken !== "undefined" && !isTokenExpired(savedToken)) {
-        setToken(savedToken);
+       setToken(savedToken);
         if (savedRole && savedRole !== "undefined" && savedRole !== "null") setRole(savedRole);
+        try {
+          const rawOverride =
+            localStorage.getItem(USER_OVERRIDE_KEY) || sessionStorage.getItem(USER_OVERRIDE_KEY);
+          if (rawOverride) {
+            const parsed = JSON.parse(rawOverride) as Partial<AuthUser>;
+            setUserOverride({
+              name: typeof parsed.name === "string" ? parsed.name : null,
+              email: typeof parsed.email === "string" ? parsed.email : null,
+            });
+          }
+        } catch {
+          // corrupt stored value -> fall back to the JWT claims
+        }
       } else if (savedToken) {
         
         localStorage.removeItem("auth_token");
@@ -166,6 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setToken(data.token);
     setRole(data.role);
+    setUserOverride(null);
 
     if (typeof window !== "undefined") {
 
@@ -177,6 +211,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("user_role");
       sessionStorage.removeItem("auth_token");
       sessionStorage.removeItem("user_role");
+      localStorage.removeItem(USER_OVERRIDE_KEY);
+      sessionStorage.removeItem(USER_OVERRIDE_KEY);
 
       storage.setItem("auth_token", data.token);
       storage.setItem("user_role", data.role);
@@ -200,11 +236,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setToken(null);
     setRole(null);
+    setUserOverride(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_role");
+      localStorage.removeItem(USER_OVERRIDE_KEY);
       sessionStorage.removeItem("auth_token");
       sessionStorage.removeItem("user_role");
+      sessionStorage.removeItem(USER_OVERRIDE_KEY);
     }
 
     if (API_URL && currentToken) {
@@ -230,7 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   return (
-    <AuthContext.Provider value={{ token, role, user, isLoading, login, logout }}>
+   <AuthContext.Provider value={{ token, role, user, updateUser, isLoading, login, logout }}>
       {/*------------------------------------ App Content ----------------------------------------------------*/}
       {children}
     </AuthContext.Provider>
