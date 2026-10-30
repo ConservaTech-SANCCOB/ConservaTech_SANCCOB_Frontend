@@ -103,9 +103,12 @@ export default function ShiftSchedulingPage() {
   //<summary>
   // Modal state: the create/edit form (null = closed) and the shift awaiting delete confirmation.
   //</summary>
-  const [modalState, setModalState] = useState<{ mode: "create" | "edit"; shift?: Shift } | null>(
-    null
-  );
+    const [modalState, setModalState] = useState<{
+    mode: "create" | "edit";
+    shift?: Shift;
+    initialDate?: string; // "YYYY-MM-DD", set when creating from a clicked calendar day
+   } | null>(null);
+
   const [deletingShift, setDeletingShift] = useState<Shift | null>(null);
 
   //------------------------------------------------------------------------------------------------------//
@@ -267,15 +270,10 @@ export default function ShiftSchedulingPage() {
               onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
               className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
-              Next ›
-            </button>
-          </div>
-          <button
-            onClick={() => setModalState({ mode: "create" })}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800"
-          >
-            + New Shift
+             Next ›
           </button>
+          </div>
+         
         </div>
       </div>
 
@@ -310,7 +308,18 @@ export default function ShiftSchedulingPage() {
                   const dayShifts = date ? shiftsByDate.get(toDateKey(date)) || [] : [];
                   const isToday = date && toDateKey(date) === toDateKey(new Date());
                   return (
-                    <div key={di} className="min-h-[110px] border-r border-slate-100 dark:border-slate-800 last:border-r-0 p-2">
+                  <div
+                      key={di}
+                      onClick={
+                        date
+                          ? () => setModalState({ mode: "create", initialDate: toDateKey(date) })
+                          : undefined
+                      }
+                      title={date ? "Click a shift badge to view details, or click a day to add a shift" : undefined}
+                      className={`min-h-[110px] border-r border-slate-100 dark:border-slate-800 last:border-r-0 p-2 ${
+                        date ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" : ""
+                      }`}
+                    >
                       {date && (
                         <>
                           <span
@@ -333,7 +342,10 @@ export default function ShiftSchedulingPage() {
                               return (
                                 <button
                                   key={shift.shiftId}
-                                  onClick={() => setSelectedShiftId(shift.shiftId)}
+                                    onClick={(e) => {
+                                    e.stopPropagation(); // don't also trigger the day click
+                                    setSelectedShiftId(shift.shiftId);
+                                  }}
                                   className={`w-full text-left px-1.5 py-1 rounded text-[10px] font-semibold truncate ${colorClasses} ${
                                     selectedShiftId === shift.shiftId ? "ring-2 ring-blue-500" : ""
                                   }`}
@@ -398,7 +410,10 @@ export default function ShiftSchedulingPage() {
       {modalState && (
         <ShiftFormModal
           mode={modalState.mode}
-          shift={modalState.shift}
+          shift={
+             modalState.shift ??
+              (modalState.initialDate ? {shiftDate: modalState.initialDate } : undefined)
+          }
           onCancel={() => setModalState(null)}
           onSave={handleSaveShift}
         />

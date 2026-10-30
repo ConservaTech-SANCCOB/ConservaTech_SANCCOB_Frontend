@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "../../lib/auth-context";
 import { useTheme, type Theme } from "../../lib/theme-context";
 import { getInitials, getRoleLabel } from "../../lib/user-display";
+import { updateAdminProfile } from "../../lib/api/admin_profile";
 
 type TabId = "profile" | "system";
 
@@ -94,17 +95,64 @@ function SettingsContent() {
 // -------------------------------- Administrator Profile tab ---------------------------------//
 
 function ProfileTab() {
-  const { user, role } = useAuth();
+  const { user, role, token, updateUser } = useAuth();
 
   // The token only carries one "name" claim, so first/last are a best-effort
   // split: first word = first name, the rest = last name.
   const fullName = (user?.name ?? "").trim();
   const parts = fullName ? fullName.split(/\s+/) : [];
-  const firstName = parts[0] ?? "";
-  const lastName = parts.slice(1).join(" ");
+  const savedFirst = parts[0] ?? "";
+  const savedLast = parts.slice(1).join(" ");
+  const savedEmail = user?.email ?? "";
+
+  const [firstName, setFirstName] = useState(savedFirst);
+  const [lastName, setLastName] = useState(savedLast);
+  const [email, setEmail] = useState(savedEmail);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [justSaved, setJustSaved] = useState(false);
+
+  const isDirty =
+    firstName.trim() !== savedFirst ||
+    lastName.trim() !== savedLast ||
+    email.trim() !== savedEmail;
+
+  //-----------------------------------------------------------------------------------------------//
+  //<summary>
+  // Saves the admin's name and email via PUT /api/admin/profile, then updates
+  // the local auth state so the topbar and this page show the new values.
+  //</summary>
+  //-----------------------------------------------------------------------------------------------//
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setJustSaved(false);
+    setIsSaving(true);
+    try {
+      await updateAdminProfile(token, { firstName, lastName, email });
+      updateUser({
+        name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+        email: email.trim(),
+      });
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update profile.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setFirstName(savedFirst);
+    setLastName(savedLast);
+    setEmail(savedEmail);
+    setError("");
+    setJustSaved(false);
+  };
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSave} className="space-y-6">
       <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Administrator Profile</h2>
 
       <div className="flex items-center gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
@@ -117,18 +165,79 @@ function ProfileTab() {
         </div>
       </div>
 
+      {error && (
+        <div
+          role="alert"
+          className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2"
+        >
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <ReadOnlyField id="profile-first-name" label="First Name" value={firstName} />
-        <ReadOnlyField id="profile-last-name" label="Last Name" value={lastName} />
-        <ReadOnlyField id="profile-email" label="Email Address" value={user?.email ?? ""} />
+        <EditableField id="profile-first-name" label="First Name" value={firstName} onChange={setFirstName} maxLength={100} />
+        <EditableField id="profile-last-name" label="Last Name" value={lastName} onChange={setLastName} maxLength={100} />
+        <EditableField id="profile-email" label="Email Address" value={email} onChange={setEmail} type="email" maxLength={225} />
         <ReadOnlyField id="profile-role" label="Role" value={getRoleLabel(role)} />
       </div>
 
-      {/* Not-yet-supported note, matching the Trainers page convention */}
-      {/* <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-        Profile details are read from your login and can&apos;t be edited yet. Phone number, job
-        title, department and profile photo aren&apos;t stored by the backend, so they are not shown here.
-      </p> */}
+      <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <button
+          type="submit"
+          disabled={isSaving || !isDirty}
+          className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-blue-700 hover:bg-blue-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isSaving ? "Saving..." : "Save Changes"}
+        </button>
+        <button
+          type="button"
+          onClick={handleCancel}
+          disabled={isSaving || !isDirty}
+          className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-60"
+        >
+          Cancel
+        </button>
+        {justSaved && <span className="text-sm text-green-700 dark:text-green-400">Saved</span>}
+      </div>
+    </form>
+  );
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Labelled, editable, required text input used by the profile form.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+function EditableField({
+  id,
+  label,
+  value,
+  onChange,
+  type = "text",
+  maxLength,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  maxLength?: number;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+        {label}
+      </label>
+      <input
+        id={id}
+        name={id}
+        type={type}
+        required
+        maxLength={maxLength}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+      />
     </div>
   );
 }
