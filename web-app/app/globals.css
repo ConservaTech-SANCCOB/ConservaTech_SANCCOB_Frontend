@@ -3,25 +3,192 @@
 /* Class-based dark mode: any element inside <html class="dark"> will match the dark mode styles */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ------------------------------------------------------------------------------------------------
+   SANCCOB design tokens
+   Every colour in the redesign lives here once. The light values are in :root and the dark
+   values are in .dark. Components use the Tailwind names from @theme below (bg-page, text-ink,
+   border-line, bg-sand ...), so they switch with the theme on their own and don't need dark: classes.
+   ------------------------------------------------------------------------------------------------ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces */
+  --page: #f2f5f8;            /* app background */
+  --surface: #ffffff;         /* cards, top bar, menus */
+  --surface-muted: #f7f9fb;   /* search box and quiet fills */
+  --surface-sunken: #e4ebf2;  /* tab tracks and progress tracks */
+  --tint: #eef4f9;            /* hover on rows and quiet buttons */
+
+  /* Text */
+  --ink: #0e2a3d;             /* body text */
+  --ink-strong: #0a3d5c;      /* headings */
+  --ink-muted: #3f5468;       /* secondary text */
+  --ink-faint: #5a6e80;       /* placeholders and hints */
+
+  /* Lines */
+  --line: #d3dce5;            /* card borders */
+  --line-soft: #e3e9ef;       /* row dividers */
+  --line-strong: #7a8ea2;     /* input borders (3:1 against white, so they stay visible) */
+
+  /* Brand */
+  --brand: #0b4a70;           /* main buttons and links */
+  --brand-hover: #0a3d5c;
+  --brand-ink: #ffffff;       /* text on a brand button */
+  --focus: #1c88bf;           /* keyboard focus ring */
+
+  /* Sidebar */
+  --sidebar: #0e3754;
+  --sidebar-hover: #174a6b;
+  --sidebar-line: #24506f;
+  --sidebar-muted: #9fd3f0;   /* small text on the sidebar */
+
+  /* Accent: the sand pill (active page, highlights) */
+  --sand: #f8dd78;
+  --sand-ink: #3e2e04;
+
+  /* Shift slots, matching the mobile app */
+  --morning: #fde2cf;
+  --morning-ink: #8e3a0c;
+  --afternoon: #dceffc;
+  --afternoon-ink: #0f5c8c;
+
+  /* Status tones */
+  --ok: #eaf5e5;
+  --ok-ink: #1c5e14;
+  --ok-bar: #2e9a1e;
+  --warn: #fdf1c4;
+  --warn-ink: #6b5208;
+  --warn-line: #e8c64a;
+  --open-ink: #a2400c;        /* open spots on a roster */
+  --open-line: #c2551a;
+  --alert: #c2551a;           /* count badges, e.g. unread notifications */
+  --alert-ink: #ffffff;
+  --urgent: #fde4e1;
+  --urgent-ink: #9a2a1a;
+  --urgent-line: #b42318;
 }
 
 .dark {
-   --background: #0b1220;
-   --foreground: #e2e8f0;
+  --page: #0b1724;
+  --surface: #10202f;
+  --surface-muted: #142838;
+  --surface-sunken: #1a3245;
+  --tint: #18303f;
+
+  --ink: #e6eef5;
+  --ink-strong: #f4f8fb;
+  --ink-muted: #a9bccd;
+  --ink-faint: #8da2b5;
+
+  --line: #24394c;
+  --line-soft: #1d3142;
+  --line-strong: #5d7990;
+
+  --brand: #7cc4f0;
+  --brand-hover: #9ad3f5;
+  --brand-ink: #04263d;
+  --focus: #7cc4f0;
+
+  --sidebar: #0a2236;
+  --sidebar-hover: #133650;
+  --sidebar-line: #1e425c;
+  --sidebar-muted: #8cc8ea;
+
+  --sand: #f8dd78;
+  --sand-ink: #3e2e04;
+
+  --morning: #4a230b;
+  --morning-ink: #ffc9a3;
+  --afternoon: #0f3550;
+  --afternoon-ink: #a9dbfa;
+
+  --ok: #16351a;
+  --ok-ink: #a6e3a0;
+  --ok-bar: #4cb83a;
+  --warn: #43360a;
+  --warn-ink: #f6de8a;
+  --warn-line: #8a7220;
+  --open-ink: #ffb48a;
+  --open-line: #e07a3e;
+  --alert: #c2551a;
+  --alert-ink: #ffffff;
+  --urgent: #4a1712;
+  --urgent-ink: #ffb4ab;
+  --urgent-line: #ff9b90;
 }
 
+/* Tailwind names for the tokens above, e.g. --color-ink gives text-ink, bg-ink and border-ink. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-tint: var(--tint);
+
+  --color-ink: var(--ink);
+  --color-ink-strong: var(--ink-strong);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-ink: var(--brand-ink);
+  --color-focus: var(--focus);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-line: var(--sidebar-line);
+  --color-sidebar-muted: var(--sidebar-muted);
+
+  --color-sand: var(--sand);
+  --color-sand-ink: var(--sand-ink);
+
+  --color-morning: var(--morning);
+  --color-morning-ink: var(--morning-ink);
+  --color-afternoon: var(--afternoon);
+  --color-afternoon-ink: var(--afternoon-ink);
+
+  --color-ok: var(--ok);
+  --color-ok-ink: var(--ok-ink);
+  --color-ok-bar: var(--ok-bar);
+  --color-warn: var(--warn);
+  --color-warn-ink: var(--warn-ink);
+  --color-warn-line: var(--warn-line);
+  --color-open-ink: var(--open-ink);
+  --color-open-line: var(--open-line);
+  --color-alert: var(--alert);
+  --color-alert-ink: var(--alert-ink);
+  --color-urgent: var(--urgent);
+  --color-urgent-ink: var(--urgent-ink);
+  --color-urgent-line: var(--urgent-line);
+
+  /* Older names, kept so nothing that used them breaks */
+  --color-background: var(--page);
+  --color-foreground: var(--ink);
+
+  /* Nunito comes from next/font in app/layout.tsx */
+  --font-sans: var(--font-nunito), "Segoe UI", Arial, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  /* 17px text when the browser is on its default 16px. A percentage still respects a larger
+     text size someone has chosen in their own browser settings. */
+  html {
+    font-size: 106.25%;
+  }
+
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--font-nunito), "Segoe UI", Arial, sans-serif;
+  }
+
+  /* A clear ring for keyboard users. Elements with their own focus styles keep them. */
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
 }

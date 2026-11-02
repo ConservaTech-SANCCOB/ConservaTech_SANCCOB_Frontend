@@ -5,18 +5,39 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "../../app/lib/auth-context";
 import { getInitials, getDisplayName, getRoleLabel } from "../../app/lib/user-display";
+import { PenguinFace } from "../ui/penguin";
+import { LineIcon } from "../ui/line-icon";
 
+//---------------------------------------------------------------------------------------------------------------//
+//<summary>
+// Main menu. Each item is a label, a route and one SVG path for its icon (24 x 24, drawn with a 2px line).
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 const NAV_ITEMS = [
-  { label: "Dashboard", href: "/dashboard", icon: DashboardIcon },
-  { label: "Volunteers", href: "/volunteers", icon: VolunteersIcon },
-  { label: "Roster Management", href: "/roster", icon: RosterIcon },
-  { label: "Shift Scheduling", href: "/shifts", icon: ShiftsIcon },
-  { label: "Staff Training", href: "/training-staff", icon: TrainingIcon },
-  { label: "Vacancies", href: "/vacancies", icon: VacanciesIcon },
-  { label: "Reports", href: "/reports", icon: ReportsIcon },
-  { label: "Settings", href: "/settings", icon: SettingsIcon },
+  { label: "Dashboard", href: "/dashboard", icon: "M3.5 3.5h7v7h-7zM13.5 3.5h7v7h-7zM3.5 13.5h7v7h-7zM13.5 13.5h7v7h-7z" },
+  {
+    label: "Volunteers",
+    href: "/volunteers",
+    icon: "M12.5 8.5a3.5 3.5 0 1 1-7 0a3.5 3.5 0 1 1 7 0M2.8 20c.9-3.5 3.3-5.3 6.2-5.3s5.3 1.8 6.2 5.3M15.5 5.2a3.5 3.5 0 0 1 0 6.6M17.6 14.9c1.7.8 2.9 2.4 3.4 5.1",
+  },
+  { label: "Roster Management", href: "/roster", icon: "M4 6h16v14H4zM4 10h16M8.5 3.5v4M15.5 3.5v4" },
+  { label: "Shift Scheduling", href: "/shifts", icon: "M20.5 12a8.5 8.5 0 1 1-17 0a8.5 8.5 0 1 1 17 0M12 7.5V12l3 2" },
+  { label: "Staff Training", href: "/training-staff", icon: "M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5M22 9v6" },
+  { label: "Vacancies", href: "/vacancies", icon: "M3 7h18v13H3zM9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18" },
+  { label: "Reports", href: "/reports", icon: "M4 19h16M5 15l4-4 4 3 6-7" },
+  {
+    label: "Settings",
+    href: "/settings",
+    icon: "M15 12a3 3 0 1 1-6 0a3 3 0 1 1 6 0M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1",
+  },
 ];
 
+//---------------------------------------------------------------------------------------------------------------//
+//<summary>
+// Navy sidebar with the penguin logo, big pill-shaped links (the current page is the sand pill),
+// a labelled "Hide menu" button and the signed-in admin. Collapsed, it shows icons only.
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
@@ -25,169 +46,77 @@ export default function Sidebar() {
   return (
     <aside
       className={`${
-        collapsed ? "w-20" : "w-64"
-      // } shrink-0 bg-[#0B2447] text-white flex flex-col transition-all duration-200 h-screen sticky top-0`}
-        } shrink-0 bg-[#0B2447] text-white flex flex-col transition-all duration-200 h-screen sticky top-0 dark:border-r dark:border-white/10`}
+        collapsed ? "w-21" : "w-68"
+      } shrink-0 bg-sidebar text-white flex flex-col h-screen sticky top-0 transition-[width] duration-200`}
     >
-      {/* Logo + collapse toggle */}
-      <div className="flex items-center h-16 border-b border-white/10 px-4">
-        {collapsed ? (
-          <button
-            onClick={() => setCollapsed(false)}
-            className="p-1.5 rounded-md hover:bg-white/10 mx-auto"
-            aria-label="Expand sidebar"
-          >
-            <MenuIcon />
-          </button>
-        ) : (
-          <>
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
-              CT
-            </div>
-            <div className="min-w-0 ml-3">
-              <p className="text-sm font-semibold truncate">ConservaTech</p>
-              <p className="text-xs text-white/60 truncate">SANCCOB Portal</p>
-            </div>
-            <button
-              onClick={() => setCollapsed(true)}
-              className="ml-auto p-1.5 rounded-md hover:bg-white/10 shrink-0"
-              aria-label="Collapse sidebar"
-            >
-              <MenuIcon />
-            </button>
-          </>
+      {/* Logo */}
+      <div className={`flex items-center gap-3 pt-6 pb-5 ${collapsed ? "justify-center" : "px-5"}`}>
+        <span className="w-12 h-12 shrink-0 rounded-full bg-white flex items-center justify-center">
+          <PenguinFace size={36} />
+        </span>
+        {!collapsed && (
+          <span className="min-w-0 flex flex-col leading-tight">
+            <span className="text-xl font-black truncate">SANCCOB Portal</span>
+            <span className="text-sm font-bold text-sidebar-muted truncate">by ConservaTech</span>
+          </span>
         )}
       </div>
 
-      {/* Nav items */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      {/* Menu */}
+      <nav aria-label="Main" className="flex-1 overflow-y-auto px-4 py-1 flex flex-col gap-1.5">
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
+              aria-label={collapsed ? item.label : undefined}
               title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                isActive
-                  ? "bg-blue-700 text-white font-medium"
-                  : "text-white/70 hover:bg-white/10 hover:text-white"
-              }`}
+              className={`flex items-center gap-3.5 min-h-13 rounded-full transition-colors ${
+                collapsed ? "justify-center" : "px-4"
+              } ${isActive ? "bg-sand text-sand-ink font-black" : "font-bold text-white hover:bg-sidebar-hover"}`}
             >
-              <Icon />
+              <LineIcon d={item.icon} size={22} />
               {!collapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      {/* User footer — name/email come from the JWT claims via useAuth().user */}
-      <div className="border-t border-white/10 px-4 py-4 flex items-center gap-3">
-        <div
-          className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-semibold shrink-0"
-          title={collapsed ? getDisplayName(user) : undefined}
+      {/* Hide menu + signed-in admin. Name and role come from the JWT claims via useAuth(). */}
+      <div className="mx-4 pt-3 pb-5 border-t border-sidebar-line flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Show menu" : "Hide menu"}
+          title={collapsed ? "Show menu" : undefined}
+          className={`flex items-center gap-3.5 min-h-12 rounded-full font-bold text-sidebar-muted hover:bg-sidebar-hover hover:text-white transition-colors ${
+            collapsed ? "justify-center" : "px-4"
+          }`}
         >
-          {getInitials(user)}
+          <LineIcon d={collapsed ? "M13 6l6 6-6 6M5 6l6 6-6 6" : "M11 6l-6 6 6 6M19 6l-6 6 6 6"} size={22} />
+          {!collapsed && <span>Hide menu</span>}
+        </button>
+
+        <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : "px-1"}`}>
+          <span
+            className="w-11 h-11 shrink-0 rounded-full bg-sand text-sand-ink font-black text-lg flex items-center justify-center"
+            title={collapsed ? getDisplayName(user) : undefined}
+          >
+            {getInitials(user)}
+          </span>
+          {!collapsed && (
+            <span className="min-w-0 flex flex-col leading-tight">
+              <span className="font-extrabold truncate">{getDisplayName(user)}</span>
+              <span className="text-sm text-sidebar-muted truncate">{getRoleLabel(role)}</span>
+            </span>
+          )}
         </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="text-sm font-medium truncate">{getDisplayName(user)}</p>
-            <p className="text-xs text-white/60 truncate">{getRoleLabel(role)}</p>
-          </div>
-        )}
       </div>
     </aside>
   );
 }
 
-function MenuIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2">
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
-  );
-}
-
-function iconProps() {
-  return { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8 };
-}
-
-function DashboardIcon() {
-  return (
-    <svg {...iconProps()}>
-      <rect x="3" y="3" width="7" height="9" rx="1" />
-      <rect x="14" y="3" width="7" height="5" rx="1" />
-      <rect x="14" y="12" width="7" height="9" rx="1" />
-      <rect x="3" y="16" width="7" height="5" rx="1" />
-    </svg>
-  );
-}
-function VolunteersIcon() {
-  return (
-    <svg {...iconProps()}>
-      <circle cx="9" cy="7" r="4" />
-      <path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2" />
-      <circle cx="18" cy="7" r="3" />
-      <path d="M22 21v-1.5a4 4 0 0 0-3-3.87" />
-    </svg>
-  );
-}
-function RosterIcon() {
-  return (
-    <svg {...iconProps()}>
-      <rect x="3" y="4" width="18" height="17" rx="2" />
-      <path d="M3 9h18M8 3v3M16 3v3" />
-    </svg>
-  );
-}
-function ShiftsIcon() {
-  return (
-    <svg {...iconProps()}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  );
-}
-function TrainingIcon() {
-  return (
-    <svg {...iconProps()}>
-      <path d="M22 10L12 5 2 10l10 5 10-5Z" />
-      <path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5" />
-    </svg>
-  );
-}
-function VacanciesIcon() {
-  return (
-    <svg {...iconProps()}>
-      <rect x="3" y="7" width="18" height="13" rx="2" />
-      <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-      <path d="M3 12h18" />
-    </svg>
-  );
-}
-function ReportsIcon() {
-  return (
-    <svg {...iconProps()}>
-      <path d="M3 3v18h18" />
-      <path d="M7 15l4-6 3 3 5-7" />
-    </svg>
-  );
-}
-function SettingsIcon() {
-  return (
-    <svg {...iconProps()}>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
-    </svg>
-  );
-}
 //-------------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------------//

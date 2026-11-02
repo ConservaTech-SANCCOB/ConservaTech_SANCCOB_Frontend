@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../lib/auth-context";
 import Sidebar from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { PenguinFace } from "@/components/ui/penguin";
 
 //---------------------------------------------------------------------------------------------------------------//
 //<summary>
@@ -30,15 +31,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isAdmin = role?.toLowerCase() === "admin";
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 max-w-sm w-full text-center space-y-4">
-          <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">No access</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+      <div className="min-h-screen bg-page flex items-center justify-center p-6">
+        <div className="bg-surface rounded-3xl border-[1.5px] border-line p-8 max-w-md w-full text-center flex flex-col items-center gap-4">
+          <PenguinFace size={64} />
+          <h1 className="text-2xl font-black text-ink-strong">No access</h1>
+          <p className="text-base text-ink-muted">
             This portal is for administrators only. Please log out and sign in with an admin account.
           </p>
           <button
             onClick={logout}
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-blue-700 hover:bg-blue-800 transition-colors"
+            className="min-h-12 px-6 rounded-full text-base font-black bg-brand text-brand-ink hover:bg-brand-hover transition-colors"
           >
             Log out
           </button>
@@ -47,12 +49,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  // The page area is capped at 1180px and centred, so lines of text and tables stay a
+  // comfortable width on big screens. The side padding grows with the window (16px to 40px).
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="flex min-h-screen bg-page text-ink">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 w-full max-w-[1180px] mx-auto px-[clamp(16px,3vw,40px)] pt-8 pb-14">{children}</main>
       </div>
     </div>
   );

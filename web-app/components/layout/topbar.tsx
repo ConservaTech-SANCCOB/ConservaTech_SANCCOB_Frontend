@@ -23,6 +23,24 @@ const EVENT_LABELS: Record<string, string> = {
   shift_vacant: "Shift vacant",
 };
 
+// Colour and icon for each kind of notification, so Cathy can tell them apart at a glance:
+// green for a new volunteer, sand for a change request, orange for an open spot.
+const EVENT_STYLES: Record<string, { chip: string; icon: string }> = {
+  volunteer_registered: {
+    chip: "bg-ok text-ok-ink",
+    icon: "M10 8.5a3.5 3.5 0 1 1-7 0a3.5 3.5 0 1 1 7 0M1.5 20c.8-3.4 2.9-5.2 5-5.2s4.2 1.8 5 5.2M18 8v8M14 12h8",
+  },
+  change_request_submitted: {
+    chip: "bg-warn text-warn-ink",
+    icon: "M4 8h13l-3.5-3.5M20 16H7l3.5 3.5",
+  },
+  shift_vacant: {
+    chip: "bg-alert text-alert-ink",
+    icon: "M12 4v9M12 18.5v.5",
+  },
+};
+const DEFAULT_EVENT_STYLE = { chip: "bg-surface-sunken text-ink-strong", icon: "M12 8v5M12 16.5v.5" };
+
 // Where a notification takes you when clicked. change_request_submitted has no
 // entry yet: we haven't confirmed which page handles change requests.
 const EVENT_ROUTES: Record<string, string> = {
@@ -126,26 +144,28 @@ export function Topbar() {
   // Shared layout for profile-menu items. Colours are kept separate so the
   // logout item can use its own without two text colours competing.
   const itemBase =
-    "flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors";
-  const itemClass = `${itemBase} text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800`;
-  const logoutClass = `${itemBase} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40`;
+    "flex w-full items-center gap-3 px-4 min-h-12 text-base font-bold transition-colors";
+  const itemClass = `${itemBase} text-ink hover:bg-tint`;
+  const logoutClass = `${itemBase} text-urgent-ink hover:bg-urgent`;
 
   return (
-    <header className="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6">
-      <div className="relative flex items-center w-64">
-        <span className="absolute left-3 text-slate-600 dark:text-slate-400">
+    <header className="bg-surface border-b-[1.5px] border-line px-[clamp(16px,3vw,40px)] py-3 flex flex-wrap items-center gap-x-6 gap-y-3">
+      <div className="relative flex items-center flex-1 min-w-56 max-w-md">
+        <span className="absolute left-4 text-ink-muted pointer-events-none">
           <SearchIcon />
         </span>
         <input
           type="text"
           placeholder="Search..."
-          className="w-full pl-9 pr-4 py-1.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          aria-label="Search"
+          className="w-full min-h-12 pl-12 pr-4 text-base font-semibold text-ink placeholder:text-ink-faint bg-surface-muted border-[1.5px] border-line rounded-full focus:outline-none focus:border-focus focus:ring-4 focus:ring-focus/20"
         />
       </div>
 
-      <p className="text-sm text-slate-500 dark:text-slate-400 hidden md:block">{today}</p>
+      {/* The date only shows when there's room, so the bell and profile never wrap to a second line */}
+      <p className="hidden xl:block ml-auto font-extrabold text-ink">{today}</p>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 ml-auto xl:ml-0">
         {/* Notification bell */}
         <div className="relative" ref={bellRef}>
           <button
@@ -153,7 +173,7 @@ export function Topbar() {
               setBellOpen((o) => !o);
               setMenuOpen(false);
             }}
-            className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="relative w-12 h-12 rounded-full border-[1.5px] border-line bg-surface text-ink-strong hover:bg-tint flex items-center justify-center transition-colors"
             aria-label={
               unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"
             }
@@ -162,67 +182,76 @@ export function Topbar() {
           >
             <BellIcon />
             {unreadCount > 0 && (
-              <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-semibold flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1.5 rounded-full bg-alert text-alert-ink text-xs font-black flex items-center justify-center">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
           </button>
 
           {bellOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-3 border-b border-slate-100 dark:border-slate-800">
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Notifications</p>
+            <div className="absolute right-0 mt-3 w-[min(26rem,calc(100vw-2rem))] bg-surface border-[1.5px] border-line rounded-3xl shadow-xl shadow-black/10 z-50 overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-line-soft">
+                <p className="text-lg font-black text-ink-strong">Notifications</p>
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllRead}
-                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                    className="text-sm font-bold text-brand hover:underline"
                   >
                     Mark all as read
                   </button>
                 )}
               </div>
 
-              <div className="max-h-96 overflow-y-auto">
+              <div className="max-h-[28rem] overflow-y-auto">
                 {error && (
-                  <p className="m-3 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2">
+                  <p className="m-4 text-sm font-semibold text-urgent-ink bg-urgent border border-urgent-line/40 rounded-2xl px-4 py-3">
                     {error}
                   </p>
                 )}
                 {items.length === 0 && !error ? (
-                  <p className="px-3 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                  <p className="px-5 py-10 text-center text-base text-ink-muted">
                     You&apos;re all caught up.
                   </p>
                 ) : (
-                  items.slice(0, MAX_SHOWN).map((n) => (
-                    <button
-                      key={n.notificationId}
-                      onClick={() => handleNotificationClick(n)}
-                      className={`flex w-full items-start gap-2.5 px-3 py-3 text-left border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
-                        n.isRead ? "" : "bg-blue-50/50 dark:bg-blue-950/30"
-                      }`}
-                    >
-                      <span
-                        className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
-                          n.isRead ? "bg-transparent" : "bg-blue-600 dark:bg-blue-400"
+                  items.slice(0, MAX_SHOWN).map((n) => {
+                    const style = EVENT_STYLES[n.eventType] ?? DEFAULT_EVENT_STYLE;
+                    return (
+                      <button
+                        key={n.notificationId}
+                        onClick={() => handleNotificationClick(n)}
+                        className={`flex w-full items-start gap-3 px-5 py-4 text-left border-b border-line-soft last:border-b-0 hover:bg-tint transition-colors ${
+                          n.isRead ? "" : "bg-surface-muted"
                         }`}
-                        aria-hidden="true"
-                      />
-                      <span className="min-w-0">
-                        <span className="block text-xs font-semibold text-slate-900 dark:text-slate-100">
-                          {eventLabel(n.eventType)}
+                      >
+                        <span
+                          className={`mt-0.5 w-9 h-9 shrink-0 rounded-full flex items-center justify-center ${style.chip}`}
+                          aria-hidden="true"
+                        >
+                          <SmallIcon d={style.icon} />
                         </span>
-                        <span className="block text-xs text-slate-600 dark:text-slate-300 mt-0.5">{n.message}</span>
-                        <span className="block text-[11px] text-slate-400 dark:text-slate-500 mt-1">
-                          {timeAgo(n.createdAt)}
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-2 text-sm font-extrabold text-ink">
+                            {eventLabel(n.eventType)}
+                            {!n.isRead && (
+                              <>
+                                <span className="w-2.5 h-2.5 rounded-full bg-alert shrink-0" aria-hidden="true" />
+                                <span className="sr-only">Unread</span>
+                              </>
+                            )}
+                          </span>
+                          <span className="block text-sm text-ink-muted mt-0.5">{n.message}</span>
+                          <span className="block text-xs font-semibold text-ink-faint mt-1">
+                            {timeAgo(n.createdAt)}
+                          </span>
                         </span>
-                      </span>
-                    </button>
-                  ))
+                      </button>
+                    );
+                  })
                 )}
               </div>
 
               {!connected && (
-                <p className="px-3 py-2 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800">
+                <p className="px-5 py-3 text-xs font-semibold text-ink-muted bg-surface-muted border-t border-line-soft">
                   Live updates aren&apos;t connected. Showing the latest saved notifications.
                 </p>
               )}
@@ -231,35 +260,35 @@ export function Topbar() {
         </div>
 
         {/* Profile dropdown */}
-        <div className="relative pl-2 border-l border-slate-200 dark:border-slate-700" ref={menuRef}>
+        <div className="relative" ref={menuRef}>
           <button
             onClick={() => {
               setMenuOpen((o) => !o);
               setBellOpen(false);
             }}
-            className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="flex items-center gap-2.5 min-h-12 rounded-full border-[1.5px] border-line pl-1 pr-3 hover:bg-tint transition-colors"
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             aria-label="Open profile menu"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-semibold">
+            <span className="w-10 h-10 rounded-full bg-sand text-sand-ink flex items-center justify-center font-black">
               {getInitials(user)}
-            </div>
-            <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 leading-tight">{getDisplayName(user)}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-tight">{getRoleLabel(role)}</p>
-            </div>
+            </span>
+            <span className="hidden sm:block text-left">
+              <span className="block text-sm font-extrabold text-ink leading-tight">{getDisplayName(user)}</span>
+              <span className="block text-xs font-semibold text-ink-muted leading-tight">{getRoleLabel(role)}</span>
+            </span>
             <ChevronIcon open={menuOpen} />
           </button>
 
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 overflow-hidden"
+              className="absolute right-0 mt-3 w-64 bg-surface border-[1.5px] border-line rounded-3xl shadow-xl shadow-black/10 z-50 overflow-hidden"
             >
-              <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-800">
-                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{getDisplayName(user)}</p>
-                {user?.email && <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>}
+              <div className="px-4 py-4 border-b border-line-soft">
+                <p className="text-base font-extrabold text-ink truncate">{getDisplayName(user)}</p>
+                {user?.email && <p className="text-sm text-ink-muted truncate">{user.email}</p>}
               </div>
 
               <div className="py-1">
@@ -283,7 +312,7 @@ export function Topbar() {
                 </Link>
               </div>
 
-              <div className="py-1 border-t border-slate-100 dark:border-slate-800">
+              <div className="py-1 border-t border-line-soft">
                 <button
                   role="menuitem"
                   onClick={() => {
@@ -307,15 +336,17 @@ export function Topbar() {
 function SearchIcon() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
     >
       <circle cx="11" cy="11" r="7" />
-      <path d="m21 21-4.3-4.3" />
+      <path d="M20 20l-3.5-3.5" />
     </svg>
   );
 }
@@ -323,18 +354,37 @@ function SearchIcon() {
 function BellIcon() {
   return (
     <svg
-      width="20"
-      height="20"
+      width="22"
+      height="22"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2.2"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
+      aria-hidden="true"
     >
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+      <path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z" />
+      <path d="M10 20a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
+// 18px icon for a notification's coloured circle.
+function SmallIcon({ d }: { d: string }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={d} />
     </svg>
   );
 }
@@ -342,15 +392,16 @@ function BellIcon() {
 function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg
-      width="14"
-      height="14"
+      width="16"
+      height="16"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.4"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={`text-slate-500 dark:text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+      aria-hidden="true"
+      className={`text-ink-muted transition-transform ${open ? "rotate-180" : ""}`}
     >
       <path d="m6 9 6 6 6-6" />
     </svg>
@@ -360,14 +411,15 @@ function ChevronIcon({ open }: { open: boolean }) {
 function UserIcon() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-hidden="true"
     >
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
@@ -378,17 +430,17 @@ function UserIcon() {
 function SettingsIcon() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-hidden="true"
     >
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+      <path d="M15 12a3 3 0 1 1-6 0a3 3 0 1 1 6 0M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" />
     </svg>
   );
 }
@@ -396,14 +448,15 @@ function SettingsIcon() {
 function LogoutIcon() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-hidden="true"
     >
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <path d="m16 17 5-5-5-5" />
