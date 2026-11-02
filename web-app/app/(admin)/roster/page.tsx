@@ -11,7 +11,7 @@ import {
   generateAutomatedRoster,
   publishRoster,
   deleteRoster,
-  Roster, 
+  Roster,
   RosterAssignment,
   RosterGenerationVolunteer,
 } from "../../lib/api/roster";
@@ -19,6 +19,9 @@ import {
   AssignVolunteerModal,
   RemoveAssignmentModal,
 } from "../../../components/roster/AssignmentModals";
+import { PenguinFace } from "../../../components/ui/penguin";
+import { ICONS, LineIcon } from "../../../components/ui/line-icon";
+import { buttonOutline, buttonPrimary, card, cardTitle } from "../../../components/ui/styles";
 
 // Helper: Get Monday of the current or given week, normalized to local
 // midnight. Normalizing here (rather than leaving whatever time-of-day the
@@ -111,7 +114,7 @@ export default function RosterPage() {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
-  // Confirm before jumping from the Weekly Roster tab into the Generate flow 
+  // Confirm before jumping from the Weekly Roster tab into the Generate flow
   // that tab has no review step of its own, unlike the Generate tab's own
   // "Generate Roster for {weekLabel}" button, which already sits behind
   // Step 1 (Review Inputs).
@@ -267,7 +270,7 @@ const reloadRoster = async () => {
    );
     }
   };
- 
+
   // Handle Delete Roster. Reloads from the backend afterwards, so the screen
   // shows whatever the backend really did (gone, or still returned).
   const handleDeleteRoster = async () => {
@@ -315,34 +318,34 @@ const unfilledCount = totalShiftCount - filledCount;
       {/*------------------------------------ Page Header ----------------------------------------------------*/}
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Roster Management</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+        <h1 className="text-3xl font-black text-ink-strong tracking-tight">Roster Management</h1>
+        <p className="font-semibold text-ink-muted mt-1">
           View scheduled assignments or generate new automated rosters
         </p>
       </div>
 
       {/*------------------------------------ Pill Navigation Tabs ----------------------------------------------------*/}
 
-      <div className="flex items-center gap-2">
+      <div className="inline-flex items-center gap-1 bg-surface-sunken rounded-full p-1">
         <button
           onClick={() => {
             setActiveTab("view");
             setStep(1);
           }}
-          className={`px-5 py-2.5 rounded-full text-xs font-semibold transition-all ${
+          className={`px-5 py-2.5 rounded-full font-extrabold transition-colors ${
             activeTab === "view"
-              ? "bg-white text-slate-900 shadow-sm border border-slate-200/60 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
-              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              ? "bg-surface text-ink-strong shadow-sm border border-line"
+              : "text-ink-muted hover:text-ink-strong"
           }`}
         >
           Weekly Roster
         </button>
         <button
           onClick={() => setActiveTab("generate")}
-          className={`px-5 py-2.5 rounded-full text-xs font-semibold transition-all ${
+          className={`px-5 py-2.5 rounded-full font-extrabold transition-colors ${
             activeTab === "generate"
-              ? "bg-white text-slate-900 shadow-sm border border-slate-200/60 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700"
-              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              ? "bg-surface text-ink-strong shadow-sm border border-line"
+              : "text-ink-muted hover:text-ink-strong"
           }`}
         >
           Generate Roster
@@ -352,52 +355,43 @@ const unfilledCount = totalShiftCount - filledCount;
       {/*------------------------------------ Weekly Roster View ----------------------------------------------------*/}
 
       {activeTab === "view" && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 space-y-6">
+        <div className={`${card} p-6 space-y-6`}>
           {/* Top Controls with Weekly Picker */}
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl overflow-hidden p-0.5">
+              <div className="flex items-center bg-surface-sunken border border-line rounded-full overflow-hidden p-1">
                 <button
                   onClick={handlePrevWeek}
-                  className="px-2.5 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-700/50 rounded-lg font-bold text-xs transition-colors"
+                  aria-label="Previous week"
+                  className="w-9 h-9 flex items-center justify-center text-ink-muted hover:text-ink-strong hover:bg-tint rounded-full transition-colors"
                 >
-                  ‹
+                  <LineIcon d={ICONS.chevronLeft} size={18} strokeWidth={2.6} />
                 </button>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 px-3 py-1">
+                <span className="font-black text-ink-strong px-3">
                   {weekLabel}
                 </span>
                 <button
                   onClick={handleNextWeek}
-                  className="px-2.5 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-700/50 rounded-lg font-bold text-xs transition-colors"
+                  aria-label="Next week"
+                  className="w-9 h-9 flex items-center justify-center text-ink-muted hover:text-ink-strong hover:bg-tint rounded-full transition-colors"
                 >
-                  ›
+                  <LineIcon d={ICONS.chevronRightSm} size={18} strokeWidth={2.6} />
                 </button>
               </div>
               {/* Roster status badge: Published (green), generated but unpublished (amber), none (grey) */}
-              {!isLoading && (
-                <span
-                  className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-                    roster
-                      ? roster.status === "Published"
-                        ? "text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-900"
-                        : "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-950/40 dark:border-amber-900"
-                      : "text-slate-500 bg-slate-50 border-slate-200 dark:text-slate-400 dark:bg-slate-800 dark:border-slate-700"
-                  }`}
-                >
-                  {roster ? roster.status ?? "Needs Review" : "No Roster Generated"}
-                </span>
-              )}
+              {!isLoading && <RosterStatusBadge roster={roster} />}
             </div>
 
             {/* Action buttons: manual assignment (needs an existing roster) and automated generation */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setAssignModal({ mode: "add" })}
                 disabled={!roster || shifts.length === 0}
                 title={!roster ? "Generate a roster for this week first" : undefined}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`${buttonOutline} !min-h-11 !px-4 disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                + Assign Volunteer
+                <LineIcon d={ICONS.personPlus} size={18} strokeWidth={2.2} />
+                Assign Volunteer
               </button>
             {/* Publish an existing Draft without regenerating it */}
               {roster && !isPublished && (
@@ -406,16 +400,18 @@ const unfilledCount = totalShiftCount - filledCount;
                     setPublishError(null);
                     setIsPublishModalOpen(true);
                   }}
-                  className="px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
+                  className={`${buttonPrimary} !min-h-11 !px-4`}
                 >
+                  <LineIcon d={ICONS.check} size={18} strokeWidth={2.6} />
                   Publish Roster
                 </button>
               )}
               <button
                 onClick={() => setIsGenerateConfirmOpen(true)}
-                className="px-4 py-2 rounded-xl bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors"
+                className={`${buttonPrimary} !min-h-11 !px-4`}
               >
-                ⚡ Generate Roster
+                <LineIcon d={ICONS.bolt} size={18} strokeWidth={2.2} />
+                Generate Roster
               </button>
               {/* Delete the whole roster (only when one exists) */}
               {roster && (
@@ -424,8 +420,9 @@ const unfilledCount = totalShiftCount - filledCount;
                     setDeleteError(null);
                     setIsDeleteModalOpen(true);
                   }}
-                  className="px-4 py-2 rounded-xl border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40 transition-colors"
+                  className="min-h-11 px-4 rounded-full border-2 border-[#E2A39C] bg-surface text-[#B42318] font-extrabold inline-flex items-center gap-2 hover:bg-urgent transition-colors"
                 >
+                  <LineIcon d={ICONS.trash} size={18} strokeWidth={2.2} />
                   Delete Roster
                 </button>
               )}
@@ -436,17 +433,17 @@ const unfilledCount = totalShiftCount - filledCount;
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard label="Total Shifts" value={totalShiftCount} />
-            <StatCard label="Filled Shifts" value={filledCount} color="text-emerald-600 dark:text-emerald-300" />
-            <StatCard label="Unfilled Shifts" value={unfilledCount} color="text-red-600 dark:text-red-300" />
-            <StatCard label="Volunteers Scheduled" value={scheduledVolunteerCount} color="text-blue-700 dark:text-blue-300" />
+            <StatCard label="Filled Shifts" value={filledCount} tone="ok" />
+            <StatCard label="Unfilled Shifts" value={unfilledCount} tone="urgent" />
+            <StatCard label="Volunteers Scheduled" value={scheduledVolunteerCount} tone="brand" />
           </div>
 
           {/*------------------------------------ Roster Calendar Matrix ----------------------------------------------------*/}
 
           {isLoading ? (
-            <div className="py-16 text-center text-slate-400 dark:text-slate-500 text-sm">Loading week roster…</div>
+            <div className="py-16 text-center text-ink-faint font-semibold">Loading week roster…</div>
           ) : !roster ? (
-            <div className="py-16 text-center text-slate-400 dark:text-slate-500 text-sm">
+            <div className="py-16 text-center text-ink-faint font-semibold">
               No roster has been generated for {weekLabel} yet.
             </div>
           ) : (
@@ -464,40 +461,42 @@ const unfilledCount = totalShiftCount - filledCount;
       {/*------------------------------------ Generate Roster Wizard ----------------------------------------------------*/}
 
       {activeTab === "generate" && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 space-y-6">
+        <div className={`${card} p-6 space-y-6`}>
           {/*------------------------------------ Generate Wizard Header ----------------------------------------------------*/}
 
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 flex-wrap gap-4">
+          <div className="flex items-center justify-between border-b border-line-soft pb-4 flex-wrap gap-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Generate Roster</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-slate-400 dark:text-slate-500">Week of:</span>
-                <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-lg overflow-hidden px-1 py-0.5">
+              <h2 className={cardTitle}>Generate Roster</h2>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="font-semibold text-ink-faint">Week of:</span>
+                <div className="flex items-center bg-surface-sunken border border-line rounded-full overflow-hidden p-0.5">
                   <button
                     onClick={handlePrevWeek}
-                    className="px-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 font-bold text-xs"
+                    aria-label="Previous week"
+                    className="w-7 h-7 flex items-center justify-center text-ink-muted hover:text-ink-strong rounded-full"
                   >
-                    ‹
+                    <LineIcon d={ICONS.chevronLeft} size={14} strokeWidth={2.8} />
                   </button>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 px-2">{weekLabel}</span>
+                  <span className="font-black text-ink-strong px-2 text-sm">{weekLabel}</span>
                   <button
                     onClick={handleNextWeek}
-                    className="px-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 font-bold text-xs"
+                    aria-label="Next week"
+                    className="w-7 h-7 flex items-center justify-center text-ink-muted hover:text-ink-strong rounded-full"
                   >
-                    ›
+                    <LineIcon d={ICONS.chevronRightSm} size={14} strokeWidth={2.8} />
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Step indicator: current step is blue, completed step is green */}
-            <div className="flex items-center gap-2 text-xs font-semibold">
-              <span className={`px-3 py-1 rounded-full ${step === 1 ? "bg-blue-700 text-white" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"}`}>
+            {/* Step indicator: current step is navy, completed step is green */}
+            <div className="flex items-center gap-2 font-extrabold">
+              <span className={`px-3.5 py-1.5 rounded-full ${step === 1 ? "bg-brand text-brand-ink" : "bg-ok text-ok-ink"}`}>
                 1. Review Inputs
               </span>
-              <span className="text-slate-300 dark:text-slate-600">→</span>
-              <span className={`px-3 py-1 rounded-full ${step === 2 ? "bg-blue-700 text-white" : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"}`}>
-                2. Generate & Review
+              <LineIcon d={ICONS.arrowRight} size={16} strokeWidth={2.6} className="text-ink-faint" />
+              <span className={`px-3.5 py-1.5 rounded-full ${step === 2 ? "bg-brand text-brand-ink" : "bg-surface-sunken text-ink-faint"}`}>
+                2. Generate &amp; Review
               </span>
             </div>
           </div>
@@ -506,8 +505,8 @@ const unfilledCount = totalShiftCount - filledCount;
 
           {step === 1 && !isGenerating && (
             <div className="space-y-6">
-              <div className="bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-950/50 dark:border-blue-900 dark:text-blue-300 text-xs px-4 py-3 rounded-xl">
-                Generating roster for <span className="font-bold">{weekLabel}</span> based on availability and skill rules.
+              <div className="font-semibold text-brand bg-tint px-4 py-3 rounded-2xl">
+                Generating roster for <span className="font-black">{weekLabel}</span> based on availability and skill rules.
               </div>
 
               {/*------------------------------------ Input Statistics ----------------------------------------------------*/}
@@ -520,44 +519,45 @@ const unfilledCount = totalShiftCount - filledCount;
 
               {/*------------------------------------ Volunteer Pool ----------------------------------------------------*/}
 
-              <div className="border border-slate-200/80 dark:border-slate-700 rounded-2xl overflow-hidden">
+              <div className="border border-line rounded-3xl overflow-hidden">
                 <button
                   onClick={() => setExpandedSection(expandedSection === "volunteers" ? null : "volunteers")}
-                  className="w-full bg-slate-50/80 dark:bg-slate-800/80 px-5 py-3.5 flex items-center justify-between font-bold text-slate-800 dark:text-slate-200 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="w-full bg-surface-sunken px-5 py-4 flex items-center justify-between font-black text-ink-strong hover:bg-tint transition-colors"
                 >
                   <span>Volunteers Pool ({selectedVolunteers.length})</span>
-                  <span>{expandedSection === "volunteers" ? "▲" : "▼"}</span>
+                  <LineIcon
+                    d={ICONS.chevronDown}
+                    size={18}
+                    strokeWidth={2.6}
+                    className={`transition-transform ${expandedSection === "volunteers" ? "rotate-180" : ""}`}
+                  />
                 </button>
 
                 {expandedSection === "volunteers" && (
-                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-white dark:bg-slate-900">
+                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-surface">
                     {selectedVolunteers.map((v) => {
                       // The pool items only carry firstName / lastName / email,
-                      // so the display name and initials are built here.
+                      // so the display name is built here.
                       const name = `${v.firstName ?? ""} ${v.lastName ?? ""}`.trim() || v.email || "Volunteer";
-                      const initials =
-                        ((v.firstName?.charAt(0) ?? "") + (v.lastName?.charAt(0) ?? "")).toUpperCase() ||
-                        name.charAt(0).toUpperCase();
                       return (
                         <div
                           key={v.userId}
-                          className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl p-3 hover:border-slate-300 dark:hover:border-slate-600 transition-all"
+                          className="flex items-center justify-between bg-surface-sunken border border-line rounded-2xl p-3 hover:border-line-strong transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#0B2447] dark:bg-blue-800 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                              {initials}
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{name}</p>
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500">{v.email}</p>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <PenguinFace size={32} />
+                            <div className="min-w-0">
+                              <p className="font-black text-ink-strong truncate">{name}</p>
+                              <p className="text-sm text-ink-faint truncate">{v.email}</p>
                             </div>
                           </div>
                           <button
                             onClick={() => handleRemoveVolunteer(v.userId)}
-                            className="w-6 h-6 rounded-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900 dark:hover:bg-red-600 dark:hover:text-white flex items-center justify-center font-bold text-sm transition-all"
+                            className="w-8 h-8 shrink-0 rounded-full bg-urgent text-[#B42318] hover:bg-[#B42318] hover:text-white flex items-center justify-center transition-colors"
                             title="Remove from this generation run"
+                            aria-label={`Remove ${name} from this generation run`}
                           >
-                            −
+                            <LineIcon d={ICONS.close} size={16} strokeWidth={2.6} />
                           </button>
                         </div>
                       );
@@ -568,19 +568,24 @@ const unfilledCount = totalShiftCount - filledCount;
 
               {/*------------------------------------ Scheduled Shifts ----------------------------------------------------*/}
 
-              <div className="border border-slate-200/80 dark:border-slate-700 rounded-2xl overflow-hidden">
+              <div className="border border-line rounded-3xl overflow-hidden">
                 <button
                   onClick={() => setExpandedSection(expandedSection === "shifts" ? null : "shifts")}
-                  className="w-full bg-slate-50/80 dark:bg-slate-800/80 px-5 py-3.5 flex items-center justify-between font-bold text-slate-800 dark:text-slate-200 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="w-full bg-surface-sunken px-5 py-4 flex items-center justify-between font-black text-ink-strong hover:bg-tint transition-colors"
                 >
                   <span>Shifts Scheduled ({shifts.length})</span>
-                  <span>{expandedSection === "shifts" ? "▲" : "▼"}</span>
+                  <LineIcon
+                    d={ICONS.chevronDown}
+                    size={18}
+                    strokeWidth={2.6}
+                    className={`transition-transform ${expandedSection === "shifts" ? "rotate-180" : ""}`}
+                  />
                 </button>
 
                 {expandedSection === "shifts" && (
-                  <div className="p-5 bg-white dark:bg-slate-900 space-y-2">
+                  <div className="p-5 bg-surface space-y-2">
                     {shifts.length === 0 ? (
-                      <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-4">
+                      <p className="font-semibold text-ink-faint text-center py-4">
                         No shifts scheduled for {weekLabel}.
                       </p>
                     ) : (
@@ -608,9 +613,10 @@ const unfilledCount = totalShiftCount - filledCount;
               <div className="flex justify-end pt-2">
                 <button
                   onClick={handleStartGeneration}
-                  className="px-6 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs transition-colors flex items-center gap-2"
+                  className={buttonPrimary}
                 >
-                  ⚡ Generate Roster for {weekLabel}
+                  <LineIcon d={ICONS.bolt} size={18} strokeWidth={2.2} />
+                  Generate Roster for {weekLabel}
                 </button>
               </div>
             </div>
@@ -620,16 +626,16 @@ const unfilledCount = totalShiftCount - filledCount;
 
           {isGenerating && (
             <div className="py-20 text-center space-y-4">
-              <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">Generating roster for {weekLabel}...</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Optimising shift assignments...</p>
-              <div className="w-64 h-2 bg-slate-100 dark:bg-slate-800 rounded-full mx-auto overflow-hidden">
+              <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin mx-auto" />
+              <h3 className="font-black text-ink-strong text-lg">Generating roster for {weekLabel}...</h3>
+              <p className="font-semibold text-ink-muted">Optimising shift assignments...</p>
+              <div className="w-64 h-2.5 bg-surface-sunken rounded-full mx-auto overflow-hidden">
                 <div
-                  className="h-full bg-blue-700 transition-all duration-300"
+                  className="h-full bg-brand transition-all duration-300"
                   style={{ width: `${generationProgress}%` }}
                 />
               </div>
-              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">{generationProgress}%</p>
+              <p className="font-extrabold text-ink-faint">{generationProgress}%</p>
             </div>
           )}
 
@@ -637,15 +643,16 @@ const unfilledCount = totalShiftCount - filledCount;
 
           {step === 2 && !isGenerating && (
             <div className="space-y-6">
-              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-300 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
-                <span>✓ Roster Generated for {weekLabel} — Review assignments before publishing.</span>
+              <div className="font-bold text-ok-ink bg-ok px-4 py-3 rounded-2xl flex items-center gap-2 flex-wrap">
+                <LineIcon d={ICONS.check} size={18} strokeWidth={2.8} />
+                Roster Generated for {weekLabel} — Review assignments before publishing.
               </div>
 
               {/* 3 Grid Stat Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard label="Shifts Filled" value={filledCount} color="text-emerald-600 dark:text-emerald-300" />
-                <StatCard label="Shifts Remaining" value={unfilledCount} color="text-red-600 dark:text-red-300" />
-                <StatCard label="Volunteers Assigned" value={scheduledVolunteerCount} color="text-blue-700 dark:text-blue-300" />
+                <StatCard label="Shifts Filled" value={filledCount} tone="ok" />
+                <StatCard label="Shifts Remaining" value={unfilledCount} tone="urgent" />
+                <StatCard label="Volunteers Assigned" value={scheduledVolunteerCount} tone="brand" />
               </div>
 
               {/* Roster Matrix */}
@@ -655,19 +662,21 @@ const unfilledCount = totalShiftCount - filledCount;
               <RosterMatrix volunteers={volunteers} assignments={assignments} mondayDate={currentWeekStart} />
 
               {/* Footer */}
-              <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between pt-4 border-t border-line-soft flex-wrap gap-3">
                 <button
                   onClick={() => setStep(1)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                  className="px-4 py-2.5 rounded-full font-extrabold text-ink-muted hover:bg-surface-sunken transition-colors inline-flex items-center gap-1.5"
                 >
-                  ← Back to Review Inputs
+                  <LineIcon d={ICONS.chevronLeft} size={16} strokeWidth={2.8} />
+                  Back to Review Inputs
                 </button>
                 <button
                   onClick={() => setIsPublishModalOpen(true)}
                   disabled={isPublished}
                   title={isPublished ? "This roster has already been published" : undefined}
-                  className="px-6 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`${buttonPrimary} disabled:opacity-50 disabled:cursor-not-allowed`}
                >
+                 <LineIcon d={ICONS.check} size={18} strokeWidth={2.6} />
                  {isPublished ? "Already Published" : "Publish Roster"}
               </button>
               </div>
@@ -680,31 +689,32 @@ const unfilledCount = totalShiftCount - filledCount;
 
       {isGenerateConfirmOpen && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-[#0E2A3D]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => setIsGenerateConfirmOpen(false)}
         >
           <div
-            className="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5"
+            className="bg-surface border border-line rounded-3xl shadow-xl p-6 w-full max-w-md space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Generate roster for {weekLabel}?</h2>
+              <h2 className="text-xl font-black text-ink-strong">Generate roster for {weekLabel}?</h2>
               <button
                 onClick={() => setIsGenerateConfirmOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold"
+                className="text-ink-faint hover:text-ink-strong"
+                aria-label="Close"
               >
-                ✕
+                <LineIcon d={ICONS.close} size={22} strokeWidth={2.4} />
               </button>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="font-semibold text-ink-muted">
               {roster
                 ? "A roster already exists for this week. You'll be taken to Review Inputs to check the volunteer pool and shifts before generating again."
                 : "You'll be taken to Review Inputs to check the volunteer pool and shifts before anything is generated."}
             </p>
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-line-soft">
               <button
                 onClick={() => setIsGenerateConfirmOpen(false)}
-                className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                className={buttonOutline}
               >
                 Cancel
               </button>
@@ -714,7 +724,7 @@ const unfilledCount = totalShiftCount - filledCount;
                   setStep(1);
                   setActiveTab("generate");
                 }}
-                className="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800 transition-colors"
+                className={buttonPrimary}
               >
                 Continue
               </button>
@@ -726,55 +736,58 @@ const unfilledCount = totalShiftCount - filledCount;
       {/*------------------------------------ Publish Modal ----------------------------------------------------*/}
 
       {isPublishModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setIsPublishModalOpen(false)}>
-          <div className="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-[#0E2A3D]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setIsPublishModalOpen(false)}>
+          <div className="bg-surface border border-line rounded-3xl shadow-xl p-6 w-full max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Publish roster for {weekLabel}?</h2>
-              <button onClick={() => setIsPublishModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold">✕</button>
+              <h2 className="text-xl font-black text-ink-strong">Publish roster for {weekLabel}?</h2>
+              <button onClick={() => setIsPublishModalOpen(false)} className="text-ink-faint hover:text-ink-strong" aria-label="Close">
+                <LineIcon d={ICONS.close} size={22} strokeWidth={2.4} />
+              </button>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="font-semibold text-ink-muted">
               Once published, volunteers will be notified on the mobile app.{" "}
-              <span className="font-semibold text-slate-700 dark:text-slate-300">This can&apos;t be undone.</span>
+              <span className="font-black text-ink-strong">This can&apos;t be undone.</span>
             </p>
 
             {unfilledCount > 0 && (
-              <div className="bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-300 text-xs px-3 py-2 rounded-lg">
+              <div className="font-bold text-warn-ink bg-warn border border-warn-line px-4 py-3 rounded-2xl">
                 {unfilledCount} of {totalShiftCount} shifts are not fully staffed.
               </div>
             )}
 
             {publishError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300 text-xs px-3 py-2 rounded-lg">
+              <div className="font-bold text-urgent-ink bg-urgent px-4 py-3 rounded-2xl">
                 {publishError}
               </div>
             )}
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-center">
-                <p className="text-[10px] text-slate-400 dark:text-slate-500">Total Shifts</p>
-                <p className="text-lg font-bold text-slate-800 dark:text-slate-200">{totalShiftCount}</p>
+              <div className="bg-surface-sunken p-3 rounded-2xl text-center">
+                <p className="text-sm font-semibold text-ink-faint">Total Shifts</p>
+                <p className="text-xl font-black text-ink-strong">{totalShiftCount}</p>
               </div>
-              <div className="bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl text-center">
-                <p className="text-[10px] text-emerald-600 dark:text-emerald-400">Filled</p>
-                <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{filledCount}</p>
+              <div className="bg-ok p-3 rounded-2xl text-center">
+                <p className="text-sm font-semibold text-ok-ink">Filled</p>
+                <p className="text-xl font-black text-ok-ink">{filledCount}</p>
               </div>
-              <div className="bg-red-50 dark:bg-red-950/40 p-3 rounded-xl text-center">
-                <p className="text-[10px] text-red-600 dark:text-red-400">Unfilled</p>
-                <p className="text-lg font-bold text-red-700 dark:text-red-300">{unfilledCount}</p>
+              <div className="bg-urgent p-3 rounded-2xl text-center">
+                <p className="text-sm font-semibold text-urgent-ink">Unfilled</p>
+                <p className="text-xl font-black text-urgent-ink">{unfilledCount}</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-line-soft">
               <button
                 onClick={() => setIsPublishModalOpen(false)}
-                className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                className={buttonOutline}
               >
                 Cancel
               </button>
               <button
                 onClick={handlePublishRoster}
-                className="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800 transition-colors"
+                className={buttonPrimary}
               >
+                <LineIcon d={ICONS.check} size={18} strokeWidth={2.6} />
                 Publish Roster
               </button>
             </div>
@@ -785,46 +798,49 @@ const unfilledCount = totalShiftCount - filledCount;
 {/*------------------------------------ Delete Roster Modal ----------------------------------------------------*/}
 
       {isDeleteModalOpen && roster && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => !isDeleting && setIsDeleteModalOpen(false)}>
-          <div className="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-2xl shadow-xl p-6 w-full max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-[#0E2A3D]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => !isDeleting && setIsDeleteModalOpen(false)}>
+          <div className="bg-surface border border-line rounded-3xl shadow-xl p-6 w-full max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Delete roster for {weekLabel}?</h2>
-              <button onClick={() => setIsDeleteModalOpen(false)} disabled={isDeleting} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold">✕</button>
+              <h2 className="text-xl font-black text-ink-strong">Delete roster for {weekLabel}?</h2>
+              <button onClick={() => setIsDeleteModalOpen(false)} disabled={isDeleting} className="text-ink-faint hover:text-ink-strong" aria-label="Close">
+                <LineIcon d={ICONS.close} size={22} strokeWidth={2.4} />
+              </button>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="font-semibold text-ink-muted">
                             This will delete the roster and its {assignments.length} volunteer assignment{assignments.length === 1 ? "" : "s"}.
               Shifts and volunteer records are kept.{" "}
-              <span className="font-semibold text-slate-700 dark:text-slate-300">This can&apos;t be undone.</span>
+              <span className="font-black text-ink-strong">This can&apos;t be undone.</span>
             </p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 -mt-3">
+            <p className="text-sm text-ink-faint -mt-3">
               Rosters with attendance records or shift-change requests can&apos;t be deleted.
             </p>
 
             {isPublished && (
-              <div className="bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-300 text-xs px-3 py-2 rounded-lg">
+              <div className="font-bold text-warn-ink bg-warn border border-warn-line px-4 py-3 rounded-2xl">
                 This roster is Published, so volunteers may already be able to see these shifts on the mobile app.
               </div>
             )}
 
             {deleteError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300 text-xs px-3 py-2 rounded-lg">
+              <div className="font-bold text-urgent-ink bg-urgent px-4 py-3 rounded-2xl">
                 {deleteError}
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-line-soft">
               <button
                 onClick={() => setIsDeleteModalOpen(false)}
                 disabled={isDeleting}
-                className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                className={buttonOutline}
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteRoster}
                 disabled={isDeleting}
-                className="px-4 py-2 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-60"
+                className="min-h-12 px-5 rounded-full bg-[#B42318] text-white font-extrabold inline-flex items-center justify-center gap-2 hover:bg-[#9A1D14] disabled:opacity-60 transition-colors"
               >
+                <LineIcon d={ICONS.trash} size={18} strokeWidth={2.2} />
                 {isDeleting ? "Deleting..." : "Delete Roster"}
               </button>
             </div>
@@ -919,6 +935,24 @@ function shiftAssignedInfo(
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
+// Small coloured pill summarising this week's roster status: Published (green), a
+// generated-but-unpublished draft (amber), or no roster yet (grey).
+//</summary>
+//---------------------------------------------------------------------------------------------------------------//
+function RosterStatusBadge({ roster }: { roster: Roster | null }) {
+  const tone = roster ? (roster.status === "Published" ? "ok" : "warn") : "none";
+  const label = roster ? roster.status ?? "Needs Review" : "No Roster Generated";
+  const classes =
+    tone === "ok"
+      ? "bg-ok text-ok-ink"
+      : tone === "warn"
+        ? "bg-warn text-warn-ink border border-warn-line"
+        : "bg-surface-sunken text-ink-muted border border-line";
+  return <span className={`font-black px-3.5 py-1.5 rounded-full ${classes}`}>{label}</span>;
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
 // Renders the date, session, location, and volunteer capacity information for one scheduled shift.
 //</summary>
 //---------------------------------------------------------------------------------------------------------------//
@@ -937,56 +971,41 @@ function ShiftDetailCard({
   const isFull = assignedInfo.assigned >= assignedInfo.capacity;
 
   return (
-    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl p-4">
+    <div className="flex items-center gap-4 bg-surface-sunken border border-line rounded-2xl p-4">
       {/* Date tile */}
-      <div className="w-14 h-14 rounded-xl bg-blue-700 text-white flex flex-col items-center justify-center shrink-0">
-        <span className="text-lg font-bold leading-none">{dayNum}</span>
-        <span className="text-[10px] font-semibold leading-none mt-1">{dayName}</span>
+      <div className="w-14 h-14 rounded-2xl bg-brand text-brand-ink flex flex-col items-center justify-center shrink-0">
+        <span className="text-lg font-black leading-none">{dayNum}</span>
+        <span className="text-[10px] font-extrabold leading-none mt-1">{dayName}</span>
       </div>
 
       {/* Session, time slot and location */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+        <p className="font-black text-ink-strong">
           {shiftSessionLabel(shift.timeSlot)}{" "}
-          <span className="font-normal text-slate-400 dark:text-slate-500">· {shift.timeSlot}</span>
+          <span className="font-semibold text-ink-faint">· {shift.timeSlot}</span>
         </p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-          <LocationIcon className="w-3.5 h-3.5 shrink-0" />
+        <p className="font-semibold text-ink-muted flex items-center gap-1.5 mt-0.5">
+          <LineIcon d={ICONS.location} size={16} strokeWidth={2.2} />
           {shift.location}
         </p>
       </div>
 
       {/* Assigned / capacity badge: green when full, amber when places remain */}
       <div
-        className={`text-right shrink-0 px-3 py-1.5 rounded-xl border ${
+        className={`text-right shrink-0 px-3.5 py-2 rounded-2xl border ${
           isFull
-            ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-900"
-            : "bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-900"
+            ? "bg-ok border-transparent"
+            : "bg-warn border-warn-line"
         }`}
       >
-        <p className={`text-sm font-bold ${isFull ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}`}>
+        <p className={`font-black ${isFull ? "text-ok-ink" : "text-warn-ink"}`}>
           {assignedInfo.assigned}/{assignedInfo.capacity}
         </p>
-        <p className={`text-[10px] ${isFull ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>volunteers</p>
+        <p className={`text-[11px] font-semibold ${isFull ? "text-ok-ink" : "text-warn-ink"}`}>volunteers</p>
       </div>
     </div>
   );
 }
-
-//-----------------------------------------------------------------------------------------------//
-//<summary>
-// Renders the reusable location-pin SVG icon used by shift detail cards.
-//</summary>
-//---------------------------------------------------------------------------------------------------------------//
-function LocationIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11Z" />
-      <circle cx="12" cy="10" r="2.5" />
-    </svg>
-  );
-}
-
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
@@ -996,18 +1015,20 @@ function LocationIcon({ className }: { className?: string }) {
 function StatCard({
   label,
   value,
-  color = "text-slate-900 dark:text-slate-100",
+  tone = "default",
   isText = false,
 }: {
   label: string;
   value: number | string;
-  color?: string;
+  tone?: "default" | "ok" | "urgent" | "brand";
   isText?: boolean;
 }) {
+  const valueColor =
+    tone === "ok" ? "text-ok-ink" : tone === "urgent" ? "text-urgent-ink" : tone === "brand" ? "text-brand" : "text-ink-strong";
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
-      <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">{label}</p>
-      <p className={`font-bold ${isText ? "text-sm text-slate-800 dark:text-slate-200" : "text-2xl " + color}`}>{value}</p>
+    <div className={`${card} p-4`}>
+      <p className="text-sm font-semibold text-ink-faint mb-1">{label}</p>
+      <p className={`font-black ${isText ? "text-base text-ink-strong" : `text-2xl ${valueColor}`}`}>{value}</p>
     </div>
   );
 }
@@ -1033,8 +1054,6 @@ function RosterMatrix({
   onRemove?: (a: RosterAssignment) => void;
 }) {
   // Generate Mon-Sun labels + ISO date keys based on selected mondayDate.
-  // Was [0,1,2,3,4] (Mon-Fri only) — extended to 0-6 so Saturday and Sunday
-  // render too.
   const days = [0, 1, 2, 3, 4, 5, 6].map((offset) => {
     const d = new Date(mondayDate);
     d.setDate(mondayDate.getDate() + offset);
@@ -1059,34 +1078,32 @@ function RosterMatrix({
   }
 
   return (
-    <div className="overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-2xl">
-      <table className="w-full text-left text-xs">
+    <div className="overflow-x-auto border border-line rounded-3xl">
+      <table className="w-full text-left">
         {/* Header row: volunteer column plus Monday to Sunday */}
-        <thead className="bg-slate-50/80 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100 dark:border-slate-800">
+        <thead className="bg-surface-sunken text-ink-faint font-black uppercase tracking-wider text-xs border-b border-line">
           <tr>
-            <th className="py-3 px-4">Volunteer</th>
+            <th className="py-3.5 px-4">Volunteer</th>
             {days.map((d) => (
-              <th key={d.iso} className="py-3 px-4">{d.dayName} {d.dayNum}</th>
+              <th key={d.iso} className="py-3.5 px-4">{d.dayName} {d.dayNum}</th>
             ))}
           </tr>
         </thead>
         {/* One row per rostered volunteer */}
-        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody className="divide-y divide-line-soft">
           {rosteredVolunteers.length === 0 ? (
             <tr>
-              <td colSpan={days.length + 1} className="py-8 px-4 text-center text-slate-400 dark:text-slate-500">
+              <td colSpan={days.length + 1} className="py-8 px-4 text-center text-ink-faint font-semibold">
                 No volunteers assigned this week.
               </td>
             </tr>
           ) : (
             rosteredVolunteers.map((v) => (
-              <tr key={v.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+              <tr key={v.id} className="hover:bg-tint/40 transition-colors">
                 <td className="py-3.5 px-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-[#0B2447] dark:bg-blue-800 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
-                      {v.initials}
-                    </div>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{v.name}</span>
+                    <PenguinFace size={30} />
+                    <span className="font-extrabold text-ink-strong">{v.name}</span>
                   </div>
                 </td>
                 {/* Day cells: one card per assignment (with Swap / Remove when enabled), or a dash if none */}
@@ -1099,26 +1116,30 @@ function RosterMatrix({
                           {cell.map((a) => (
                             <div
                               key={a.rosterAssignmentId}
-                              className="bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-300 p-2 rounded-xl text-[11px] font-semibold space-y-0.5"
+                              className="bg-ok text-ok-ink p-2.5 rounded-2xl text-xs font-extrabold space-y-0.5"
                             >
-                              <p className="text-[10px] text-emerald-600 dark:text-emerald-400">{a.timeSlot}</p>
+                              <p className="text-[11px] font-semibold opacity-80">{a.timeSlot}</p>
                               <p>{a.location ?? "—"}</p>
-                              {a.status && <p className="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">{a.status}</p>}
+                              {a.status && <p className="text-[10px] font-semibold opacity-80">{a.status}</p>}
                               {(onSwap || onRemove) && (
                                 <div className="flex gap-3 pt-1">
                                   {onSwap && (
                                     <button
                                       onClick={() => onSwap(a)}
-                                      className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+                                      aria-label={`Swap ${a.firstName ?? "this volunteer"}`}
+                                      className="inline-flex items-center gap-1 text-[11px] font-extrabold hover:underline"
                                     >
+                                      <LineIcon d={ICONS.swap} size={13} strokeWidth={2.6} />
                                       Swap
                                     </button>
                                   )}
                                   {onRemove && (
                                     <button
                                       onClick={() => onRemove(a)}
-                                      className="text-[10px] font-semibold text-red-600 dark:text-red-300 hover:underline"
+                                      aria-label={`Remove ${a.firstName ?? "this volunteer"}`}
+                                      className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#B42318] hover:underline"
                                     >
+                                      <LineIcon d={ICONS.trash} size={13} strokeWidth={2.6} />
                                       Remove
                                     </button>
                                   )}
@@ -1128,7 +1149,7 @@ function RosterMatrix({
                           ))}
                         </div>
                       ) : (
-                        <span className="text-slate-300 dark:text-slate-600">—</span>
+                        <span className="text-ink-faint font-bold">—</span>
                       )}
                     </td>
                   );
