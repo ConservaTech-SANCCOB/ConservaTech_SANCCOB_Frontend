@@ -1,22 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useAuth } from "../../lib/auth-context";
 import { fetchVacancies, fetchShifts, createShift, Vacancy, Shift, ShiftPayload } from "../../lib/api/shifts";
 import { ShiftFormModal } from "../../../components/shifts/ShiftFormModal";
 import VacanciesList from "../../../components/VacanciesList";
-
-//-----------------------------------------------------------------------------------------------//
-//<summary>
-// Time slot mapping constants for shift display formatting.
-//</summary>
-
-const TIME_SLOT_LABELS: Record<string, string> = {
-  "08:00-13:00": "AM",
-  "14:00-17:00": "PM",
-  "08:00-17:00": "Full Day",
-};
+import { card, buttonPrimary } from "@/components/ui/styles";
+import { ICONS, LineIcon } from "@/components/ui/line-icon";
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
@@ -88,57 +78,44 @@ export default function VacanciesPage() {
   }, [vacancies, allShifts]);
 
   return (
-    <div className="space-y-6">
+    <div className="p-8 space-y-6">
       {/*------------------------------------ Header Section ------------------------------------*/}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Vacancy Management</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Open shift vacancies, calculated live from shift capacity and assignments
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-4xl font-black text-brand">Vacancies</h1>
+          <p className="text-lg text-ink-muted">
+            Open spots, worked out live from each shift&apos;s capacity and who is assigned.
           </p>
         </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="px-4 py-2 rounded-lg bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800"
-        >
-          + Create Shift
+        <button onClick={() => setIsCreateModalOpen(true)} className={buttonPrimary}>
+          <LineIcon d={ICONS.plus} size={18} />
+          Create a shift
         </button>
       </div>
 
-      {/*------------------------------------ Explanation Banner ------------------------------------*/}
-      {/* Honest explanation banner — vacancies aren't editable records
-      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-300">
-        Vacancies aren't separate records — they're calculated automatically from each shift's
-        capacity and current assignments. To open a new vacancy, create or edit a shift in{" "}
-        <Link href="/shifts" className="font-semibold underline">
-          Shift Scheduling
-        </Link>
-        , and it'll appear here if it still has open spots.
-      </div> */}
-
       {/*------------------------------------ Error Alert ------------------------------------*/}
       {errorMessage && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+        <div className="p-4 rounded-2xl bg-urgent border border-urgent-line text-sm font-bold text-urgent-ink">
           {errorMessage}
         </div>
       )}
 
       {/*------------------------------------ Stat Cards Grid ------------------------------------*/}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Shifts With Openings" value={stats.totalVacancies} />
-        <StatCard label="Open Positions" value={stats.openPositions} color="text-blue-700 dark:text-blue-300" />
-        <StatCard label="Fully Staffed" value={stats.fullyFilled} color="text-emerald-600 dark:text-emerald-300" />
-        <StatCard label="Urgent (<50% filled)" value={stats.urgent} color="text-red-600 dark:text-red-300" />
+        <StatCard label="Shifts with openings" value={stats.totalVacancies} tone="muted" />
+        <StatCard label="Open positions" value={stats.openPositions} tone="brand" />
+        <StatCard label="Fully staffed" value={stats.fullyFilled} tone="ok" />
+        <StatCard label="Urgent (<50% filled)" value={stats.urgent} tone="urgent" />
       </div>
 
       {/*------------------------------------ Vacancies Content Section ------------------------------------*/}
       {isLoading ? (
-        <div className="py-16 text-center text-slate-400 dark:text-slate-500 text-sm">Loading vacancies…</div>
+        <p className="py-16 text-center text-ink-faint font-semibold">Loading vacancies…</p>
       ) : vacancies.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-10 text-center">
-          <p className="text-4xl mb-2">📋</p>
-          <p className="font-semibold text-slate-800 dark:text-slate-200">No open vacancies right now</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+        <div className={`${card} p-10 text-center flex flex-col items-center gap-2`}>
+          <LineIcon d={ICONS.calendarCheck} size={40} className="text-ink-faint" />
+          <p className="font-extrabold text-ink-strong">No open vacancies right now</p>
+          <p className="text-sm text-ink-faint">
             Every existing shift is fully staffed, or no shifts have been created yet.
           </p>
         </div>
@@ -166,16 +143,19 @@ export default function VacanciesPage() {
 function StatCard({
   label,
   value,
-  color = "text-slate-900 dark:text-slate-100",
+  tone,
 }: {
   label: string;
   value: number;
-  color?: string;
+  tone: "muted" | "brand" | "ok" | "urgent";
 }) {
+  const valueColor =
+    tone === "ok" ? "text-ok-ink" : tone === "brand" ? "text-brand" : tone === "urgent" ? "text-urgent-ink" : "text-ink-strong";
+  const cardTone = tone === "urgent" ? "bg-urgent border-urgent-line" : "bg-surface border-line";
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
-      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">{label}</p>
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+    <div className={`border-[1.5px] rounded-3xl p-5 ${cardTone}`}>
+      <p className="text-xs font-extrabold text-ink-muted uppercase tracking-wide">{label}</p>
+      <p className={`text-3xl font-black mt-2 ${valueColor}`}>{value}</p>
     </div>
   );
 }

@@ -30,6 +30,7 @@ export const ICONS = {
   edit: "M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4",
   copy: "M8 8h12v12H8zM16 8V4H4v12h4",
   search: "M11 3.5a7.5 7.5 0 1 0 0 15a7.5 7.5 0 1 0 0-15ZM21 21l-4.3-4.3",
+    bell: "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0",
 } as const;
 
 export function LineIcon({

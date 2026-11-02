@@ -4,7 +4,11 @@ import { useState } from "react";
 import { useAuth } from "../app/lib/auth-context";
 import { notifyOpenVacancy } from "../app/lib/api/notifications";
 import { Vacancy, ShiftPayload, updateShift } from "../app/lib/api/shifts";
+import { slotKey, SLOT_INFO } from "../app/lib/centre-week";
 import { ShiftFormModal } from "./shifts/ShiftFormModal";
+import { card, buttonPrimary, buttonOutline } from "./ui/styles";
+import { ICONS, LineIcon } from "./ui/line-icon";
+import { SlotChip } from "./ui/slot-chip";
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
@@ -15,6 +19,38 @@ import { ShiftFormModal } from "./shifts/ShiftFormModal";
 interface VacanciesListProps {
   vacancies: Vacancy[];
   onRefresh: () => void;
+}
+
+const WEEKDAY_ABBR = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Parses a "YYYY-MM-DD" date on the local calendar, the same way the rest of the app
+// reads shift dates, so a shift doesn't shift a day backward/forward across time zones.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+function parseLocalDate(iso: string): Date | null {
+  const [y, m, d] = (iso ?? "").split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// "Today" / "Tomorrow" / "In N days" relative to today, or a short date once it's more
+// than a week out or already in the past.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+function whenLabel(iso: string): string {
+  const date = parseLocalDate(iso);
+  if (!date) return iso;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((date.getTime() - today.getTime()) / 86400000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays > 1 && diffDays <= 13) return `In ${diffDays} days`;
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 //-----------------------------------------------------------------------------------------------//
@@ -76,80 +112,106 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
     <div className="space-y-4">
       {/*------------------------------------ Success Banner ----------------------------------------------------*/}
       {notifySuccess && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-300 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
+        <div className="bg-ok border border-ok-bar/30 text-ok-ink text-sm font-bold px-4 py-3 rounded-2xl flex items-center justify-between gap-3">
           <span>{notifySuccess}</span>
           <button
             type="button"
             onClick={() => setNotifySuccess(null)}
-            className="font-bold"
+            className="shrink-0"
             aria-label="Dismiss"
           >
-            ✕
+            <LineIcon d={ICONS.close} size={18} />
           </button>
         </div>
       )}
 
-      {/*------------------------------------ Vacancy Display Cards Grid ----------------------------------------------------*/}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {vacancies.map((vacancy) => (
-          <div
-            key={vacancy.shiftId}
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm space-y-4 hover:border-slate-200 dark:hover:border-slate-700 transition-all"
-          >
-            {/*------------------------------------ Card Header: Location, Open Spots, Date & Time ----------------------------------------------------*/}
-            <div>
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-300 px-2.5 py-1 rounded-md">
-                  {vacancy.location}
+      {/*------------------------------------ Vacancy Row Cards ----------------------------------------------------*/}
+      <div className="flex flex-col gap-3">
+        {vacancies.map((vacancy) => {
+          const isUrgent = vacancy.capacity > 0 && vacancy.assignedVolunteers / vacancy.capacity < 0.5;
+          const date = parseLocalDate(vacancy.shiftDate);
+          const slot = slotKey(vacancy.timeSlot);
+          const isNotifying = notifyingShiftId === vacancy.shiftId;
+          const openCount = Math.max(vacancy.vacanciesAvailable, 0);
+          const seats = Array.from({ length: vacancy.capacity }, (_, k) => k < vacancy.assignedVolunteers);
+
+          return (
+            <div
+              key={vacancy.shiftId}
+              className={`${card} ${isUrgent ? "border-urgent-line" : ""} p-5 flex flex-wrap items-center gap-4`}
+            >
+              {/*------------------------------------ Date badge ----------------------------------------------------*/}
+              <div className="w-20 shrink-0 rounded-2xl bg-sand text-sand-ink flex flex-col items-center justify-center gap-0.5 py-3">
+                <span className="text-3xl font-black leading-none">{date ? date.getDate() : "—"}</span>
+                <span className="text-xs font-extrabold tracking-wide">
+                  {date ? WEEKDAY_ABBR[date.getDay()] : ""}
                 </span>
-                <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900 px-2 py-0.5 rounded-full">
-                  {vacancy.vacanciesAvailable} Open Spot{vacancy.vacanciesAvailable > 1 ? "s" : ""}
-                </span>
               </div>
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base mt-2">
-                {vacancy.shiftDate}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{vacancy.timeSlot}</p>
-            </div>
 
-            {/*------------------------------------ Card Stats: Assigned & Bird Count ----------------------------------------------------*/}
-            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 flex justify-between text-xs text-slate-600 dark:text-slate-300">
-              <div>
-                <p className="text-slate-400 dark:text-slate-500 text-[10px]">Assigned</p>
-                <p className="font-bold text-slate-800 dark:text-slate-200">{vacancy.assignedVolunteers} / {vacancy.capacity}</p>
+              {/*------------------------------------ Main info ----------------------------------------------------*/}
+              <div className="flex-1 min-w-[260px] flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {isUrgent && (
+                    <span className="text-xs font-black uppercase tracking-wide text-white bg-[#B42318] rounded-full px-2.5 py-1">
+                      Urgent
+                    </span>
+                  )}
+                  <h3 className="font-black text-lg text-ink-strong">{vacancy.location}</h3>
+                  <span className="text-sm font-extrabold text-urgent-ink bg-urgent rounded-full px-2.5 py-1">
+                    {openCount === 1 ? "1 open spot" : `${openCount} open spots`}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <SlotChip slot={slot} />
+                  <span className="font-bold text-ink-muted">{SLOT_INFO[slot].time}</span>
+                  <span className="font-black text-ink-strong">{whenLabel(vacancy.shiftDate)}</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-1.5" aria-hidden="true">
+                    {seats.map((filled, i) => (
+                      <span
+                        key={i}
+                        className={`w-5 h-5 rounded-full ${
+                          filled ? "bg-brand" : "border-2 border-dashed border-line-strong"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm font-extrabold text-ink-strong">
+                    {vacancy.assignedVolunteers} of {vacancy.capacity} filled
+                  </span>
+                  {vacancy.birdCount != null && (
+                    <span className="text-sm text-ink-faint">{vacancy.birdCount} birds</span>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-slate-400 dark:text-slate-500 text-[10px]">Bird Count</p>
-                <p className="font-bold text-slate-800 dark:text-slate-200">{vacancy.birdCount ?? "N/A"}</p>
+
+              {/*------------------------------------ Actions ----------------------------------------------------*/}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingVacancy(vacancy)}
+                  className={buttonOutline}
+                >
+                  <LineIcon d={ICONS.edit} size={16} />
+                  Edit shift
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleNotifyVolunteers(vacancy)}
+                  disabled={isNotifying}
+                  className={buttonPrimary}
+                  title="Notify qualified volunteers matching required skill levels"
+                >
+                  <LineIcon d={ICONS.bell} size={16} />
+                  {isNotifying ? "Sending..." : "Notify Qualified"}
+                </button>
               </div>
             </div>
-
-            {/*------------------------------------ Action Buttons ----------------------------------------------------*/}
-            <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-              {/*------------------------------------ Edit Button ----------------------------------------------------*/}
-              <button
-                type="button"
-                onClick={() => setEditingVacancy(vacancy)}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors"
-              >
-                <EditIcon />
-                Edit Shift
-              </button>
-
-              {/*------------------------------------ Notify Qualifying Volunteers Button ----------------------------------------------------*/}
-              <button
-                type="button"
-                onClick={() => handleNotifyVolunteers(vacancy)}
-                disabled={notifyingShiftId === vacancy.shiftId}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold transition-colors disabled:opacity-60"
-                title="Post to qualified volunteers matching required skill levels"
-              >
-                <BellIcon />
-                {notifyingShiftId === vacancy.shiftId ? "Sending..." : "Notify Qualified"}
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/*------------------------------------ Edit Modal (reuses the same form as "New Shift" so both stay in sync) ----------------------------------------------------*/}
@@ -162,36 +224,6 @@ export default function VacanciesList({ vacancies, onRefresh }: VacanciesListPro
         />
       )}
     </div>
-  );
-}
-
-//------------------------------------------------ICONS---------------------------------------------------------------//
-
-//-----------------------------------------------------------------------------------------------//
-//<summary>
-// Pen-and-page icon used on the "Edit Shift" button.
-//</summary>
-//-----------------------------------------------------------------------------------------------//
-function EditIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-      <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" />
-    </svg>
-  );
-}
-
-//-----------------------------------------------------------------------------------------------//
-//<summary>
-// Bell icon used on the "Notify Qualified" button.
-//</summary>
-//-----------------------------------------------------------------------------------------------//
-function BellIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-    </svg>
   );
 }
 
