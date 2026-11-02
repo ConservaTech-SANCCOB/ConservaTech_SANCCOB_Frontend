@@ -19,7 +19,6 @@ import {
   AssignVolunteerModal,
   RemoveAssignmentModal,
 } from "../../../components/roster/AssignmentModals";
-import { PenguinFace } from "../../../components/ui/penguin";
 import { ICONS, LineIcon } from "../../../components/ui/line-icon";
 import { buttonOutline, buttonPrimary, card, cardTitle } from "../../../components/ui/styles";
 
@@ -537,15 +536,20 @@ const unfilledCount = totalShiftCount - filledCount;
                   <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-surface">
                     {selectedVolunteers.map((v) => {
                       // The pool items only carry firstName / lastName / email,
-                      // so the display name is built here.
+                      // so the display name and initials are built here.
                       const name = `${v.firstName ?? ""} ${v.lastName ?? ""}`.trim() || v.email || "Volunteer";
+                      const initials =
+                        ((v.firstName?.charAt(0) ?? "") + (v.lastName?.charAt(0) ?? "")).toUpperCase() ||
+                        name.charAt(0).toUpperCase();
                       return (
                         <div
                           key={v.userId}
                           className="flex items-center justify-between bg-surface-sunken border border-line rounded-2xl p-3 hover:border-line-strong transition-colors"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <PenguinFace size={32} />
+                            <div className="w-8 h-8 rounded-full bg-brand text-brand-ink font-black text-xs flex items-center justify-center shrink-0">
+                              {initials}
+                            </div>
                             <div className="min-w-0">
                               <p className="font-black text-ink-strong truncate">{name}</p>
                               <p className="text-sm text-ink-faint truncate">{v.email}</p>
