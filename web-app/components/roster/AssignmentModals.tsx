@@ -14,6 +14,8 @@ import {
 } from "../../app/lib/api/training_staff";
 import { Volunteer } from "../../app/lib/api/volunteers";
 import { ModalOverlay } from "../shifts/ShiftFormModal";
+import { ICONS, LineIcon } from "../ui/line-icon";
+import { buttonOutline, buttonPrimary, input } from "../ui/styles";
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
@@ -248,17 +250,17 @@ export function AssignVolunteerModal({
   return (
     <ModalOverlay onClose={onClose}>
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-          {mode === "add" ? "Assign Volunteer to Shift" : "Swap Volunteer"}
+        <h2 className="text-xl font-black text-ink-strong">
+          {mode === "add" ? "Assign a volunteer" : "Swap volunteer"}
         </h2>
-        <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" aria-label="Close">
-          ✕
+        <button type="button" onClick={onClose} className="text-ink-faint hover:text-ink-strong" aria-label="Close">
+          <LineIcon d={ICONS.close} size={22} strokeWidth={2.4} />
         </button>
       </div>
 
       {mode === "swap" && swapTarget && (
-        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-          Replacing <span className="font-semibold text-slate-800 dark:text-slate-100">{swapName}</span> on{" "}
+        <p className="font-semibold text-ink-muted mb-4">
+          Replacing <span className="font-black text-ink-strong">{swapName}</span> on{" "}
           {swapTarget.shiftDate.slice(0, 10)} · {swapTarget.timeSlot} · {swapTarget.location}
         </p>
       )}
@@ -266,7 +268,7 @@ export function AssignVolunteerModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         {mode === "add" && (
           <div>
-            <label htmlFor="assign-shift" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            <label htmlFor="assign-shift" className="block font-extrabold text-ink-strong mb-1.5">
               Shift
             </label>
             <select
@@ -276,7 +278,7 @@ export function AssignVolunteerModal({
                 setShiftId(e.target.value ? Number(e.target.value) : "");
                 setUserId("");
               }}
-              className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+              className={input}
             >
               <option value="" disabled>Select a shift...</option>
               {shiftOptions.map((s) => (
@@ -287,7 +289,7 @@ export function AssignVolunteerModal({
         )}
 
         <div>
-          <label htmlFor="assign-volunteer" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+          <label htmlFor="assign-volunteer" className="block font-extrabold text-ink-strong mb-1.5">
             {mode === "add" ? "Volunteer" : "New volunteer"}
           </label>
           <select
@@ -295,7 +297,7 @@ export function AssignVolunteerModal({
             value={userId}
             onChange={(e) => setUserId(e.target.value ? Number(e.target.value) : "")}
             disabled={!target || isCheckingSkills}
-            className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 disabled:opacity-60"
+            className={`${input} disabled:opacity-60`}
           >
             <option value="" disabled>{volunteerPlaceholder}</option>
             {candidates.map((v) => (
@@ -303,7 +305,7 @@ export function AssignVolunteerModal({
             ))}
           </select>
           {target && (
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
+            <p className="text-sm font-semibold text-ink-faint mt-1.5">
               Only volunteers who are free for this shift
               {needsSkillCheck ? " and signed off on its required skills" : ""} are listed.
             </p>
@@ -311,17 +313,17 @@ export function AssignVolunteerModal({
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2">{error}</p>
+          <p className="font-bold text-urgent-ink bg-urgent rounded-2xl px-4 py-3">{error}</p>
         )}
 
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <button type="button" onClick={onClose} className={buttonOutline}>
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting || isCheckingSkills}
-            className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-60"
+            className={buttonPrimary}
           >
             {isSubmitting ? "Saving..." : mode === "add" ? "Assign" : "Swap"}
           </button>
@@ -369,23 +371,24 @@ export function RemoveAssignmentModal({
 
   return (
     <ModalOverlay onClose={onClose}>
-      <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">Remove from shift?</h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-        Remove <span className="font-semibold text-slate-800 dark:text-slate-100">{name}</span> from{" "}
+      <h2 className="text-xl font-black text-ink-strong mb-2">Remove from shift?</h2>
+      <p className="font-semibold text-ink-muted mb-4">
+        Remove <span className="font-black text-ink-strong">{name}</span> from{" "}
         {assignment.shiftDate.slice(0, 10)} · {assignment.timeSlot} · {assignment.location}? The shift will have an open vacancy.
       </p>
       {error && (
-        <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2 mb-4">{error}</p>
+        <p className="font-bold text-urgent-ink bg-urgent rounded-2xl px-4 py-3 mb-4">{error}</p>
       )}
       <div className="flex justify-end gap-3">
-        <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <button onClick={onClose} className={buttonOutline}>
           Cancel
         </button>
         <button
           onClick={handleRemove}
           disabled={isRemoving}
-          className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+          className="min-h-12 px-5 rounded-full bg-[#B42318] text-white font-extrabold inline-flex items-center justify-center gap-2 hover:bg-[#9A1D14] disabled:opacity-60 transition-colors"
         >
+          <LineIcon d={ICONS.trash} size={18} strokeWidth={2.2} />
           {isRemoving ? "Removing..." : "Remove"}
         </button>
       </div>

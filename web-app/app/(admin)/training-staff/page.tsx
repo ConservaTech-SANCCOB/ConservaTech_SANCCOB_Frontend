@@ -13,6 +13,8 @@ import {
 } from "../../lib/api/training_staff";
 import { apiFetch, isUnauthorized } from "../../lib/api/http";
 import { ModalOverlay } from "@/components/shifts/ShiftFormModal";
+import { card, cardTitle, buttonPrimary, buttonOutline, input } from "@/components/ui/styles";
+import { ICONS, LineIcon } from "@/components/ui/line-icon";
 
 type Tab = "progress" | "trainers";
 type TrainerStatus = "active" | "inactive";
@@ -53,7 +55,7 @@ interface UpdateTrainerDto {
 // The two tabs on the page and their display labels.
 //</summary>
 const TABS: { label: string; value: Tab }[] = [
-  { label: "Volunteer Progress", value: "progress" },
+  { label: "Volunteers", value: "progress" },
   { label: "Trainers", value: "trainers" },
 ];
 
@@ -77,7 +79,7 @@ const statusForUpdate = (t: Trainer): TrainerStatus | null =>
 
 //<summary>
 // Staff Training page. Two tabs:
-// - Volunteer Progress: stat cards and a table of each volunteer's training progress.
+// - Volunteers: stat cards and each volunteer's training progress, with a link to their history.
 // - Trainers: create, edit, activate/deactivate and delete the staff members who sign off training.
 //</summary>
 export default function TrainingStaffPage() {
@@ -87,13 +89,14 @@ export default function TrainingStaffPage() {
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // State for the Volunteer Progress tab.
+  // State for the Volunteers tab.
   //</summary>
   const [volunteers, setVolunteers] = useState<TrainingVolunteerSummary[]>([]);
   const [dashboard, setDashboard] = useState<TrainingDashboard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<TrainingVolunteerProfile | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   //-------------------------------------------------------------------------------------------//
 
@@ -143,7 +146,7 @@ export default function TrainingStaffPage() {
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Loads the volunteer list and dashboard counts for the Volunteer Progress tab.
+  // Loads the volunteer list and dashboard counts for the Volunteers tab.
   // Logs the user out if the token is rejected.
   //</summary>
   const loadData = useCallback(async () => {
@@ -198,7 +201,7 @@ export default function TrainingStaffPage() {
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Loads the Volunteer Progress data when the page opens.
+  // Loads the Volunteers tab data when the page opens.
   //</summary>
   useEffect(() => {
     loadData();
@@ -393,131 +396,129 @@ export default function TrainingStaffPage() {
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Helpers for display: the average progress across all volunteers, a trainer's initials
-  // for the avatar, and a trainer's full name for labels.
+  // Helpers for display: initials for an avatar, a trainer's full name for labels, and the
+  // filtered + sorted volunteer list (furthest along first, filtered by the search box).
   //</summary>
-  const averageProgress =
-    volunteers.length > 0
-      ? Math.round(
-          volunteers.reduce((sum, v) => sum + v.progressPercentage, 0) / volunteers.length
-        )
-      : 0;
-
-  const initials = (t: Trainer) =>
-    `${t.firstName?.[0] ?? ""}${t.lastName?.[0] ?? ""}`.toUpperCase() || "?";
+  const initialsOf = (first: string | null, last: string | null) =>
+    `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase() || "?";
 
   const fullName = (t: Trainer) => `${t.firstName ?? ""} ${t.lastName ?? ""}`.trim();
 
+  const filteredVolunteers = volunteers
+    .filter((v) =>
+      `${v.firstName ?? ""} ${v.lastName ?? ""}`.toLowerCase().includes(searchQuery.trim().toLowerCase())
+    )
+    .slice()
+    .sort((a, b) => b.progressPercentage - a.progressPercentage);
+
+  const notStarted = dashboard
+    ? Math.max(0, dashboard.totalVolunteers - dashboard.trained - dashboard.activelyTraining)
+    : 0;
+
   return (
     <div className="p-8">
-      {/*------------------------- Page header ---------------------------------*/}
+      {/*------------------------- Hero banner ---------------------------------*/}
 
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Staff Training</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+      <div className="relative overflow-hidden rounded-3xl bg-[#24621A] text-white px-8 py-7 mb-6 flex flex-wrap items-end justify-between gap-5">
+        <div className="relative flex flex-col gap-2 max-w-xl">
+          <span className="font-black text-xs tracking-[0.18em] uppercase text-[#C8F0B4]">
+            Track skills
+          </span>
+          <h1 className="text-3xl font-black">Staff Training</h1>
+          <p className="text-sm font-semibold text-white/90">
             {activeTab === "progress"
-              ? "Track volunteer training progress through all certification stages"
-              : "Manage the staff members who sign off volunteer training"}
+              ? "Supporting areas first, then pen routines, then home pen."
+              : "Manage the staff members who sign off volunteer training."}
           </p>
         </div>
         {activeTab === "trainers" && (
-          <button
-            onClick={() => setShowCreateTrainer(true)}
-            className="rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 dark:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-          >
-            + Create Trainer
+          <button onClick={() => setShowCreateTrainer(true)} className={`${buttonPrimary} relative`}>
+            <LineIcon d={ICONS.plus} size={18} />
+            Create Trainer
           </button>
         )}
       </div>
 
       {/*------------------------- Tabs ---------------------------------*/}
 
-      <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 p-1 mb-6">
+      <div className="inline-flex items-center gap-1 rounded-full bg-surface-muted p-1 mb-6">
         {TABS.map((tab) => (
           <button
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
-            className={`rounded-full px-5 py-2 text-xs font-semibold transition-all ${
+            className={`rounded-full px-5 py-2.5 text-sm font-extrabold transition-all flex items-center gap-2 ${
               activeTab === tab.value
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                ? "bg-surface text-ink-strong shadow-sm"
+                : "text-ink-muted hover:text-ink"
             }`}
           >
             {tab.label}
+            <span className="text-xs font-bold text-ink-faint">
+              {tab.value === "progress" ? volunteers.length : trainers.length}
+            </span>
           </button>
         ))}
       </div>
 
-      {/*------------------------- Volunteer Progress tab ---------------------------------*/}
+      {/*------------------------- Volunteers tab ---------------------------------*/}
 
       {activeTab === "progress" && (
         <>
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300 flex items-center justify-between">
+            <div className="mb-4 p-4 rounded-2xl bg-urgent border border-urgent-line text-sm font-bold text-urgent-ink flex items-center justify-between gap-3">
               {error}
-              <button onClick={loadData} className="font-semibold underline">Try again</button>
+              <button onClick={loadData} className="font-black underline shrink-0">Try again</button>
             </div>
           )}
 
           {/* Stat cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <StatCard label="Completed Training" value={dashboard?.trained ?? "—"} sub="Full certification achieved" />
-            <StatCard label="Currently Training" value={dashboard?.activelyTraining ?? "—"} sub="Actively progressing" />
-            <StatCard label="Average Progress" value={`${averageProgress}%`} sub="Across all volunteers" />
+            <StatCard label="Fully trained" value={dashboard?.trained ?? "—"} sub="All required skills signed off" tone="ok" />
+            <StatCard label="In training" value={dashboard?.activelyTraining ?? "—"} sub="Working through the stages" tone="brand" />
+            <StatCard label="Not started" value={dashboard ? notStarted : "—"} sub="No skills signed off yet" tone="muted" />
           </div>
 
-          {/* Volunteer progress table */}
-          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-6 py-3">Volunteer</th>
-                  <th className="px-6 py-3">Overall Progress</th>
-                  <th className="px-6 py-3">Modules</th>
-                  <th className="px-6 py-3">History</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500">Loading...</td></tr>
-                ) : volunteers.length === 0 ? (
-                  <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500">No volunteers in training</td></tr>
-                ) : (
-                  volunteers.map((v) => (
-                    <tr key={v.userId} className="border-b border-slate-50 dark:border-slate-800 last:border-0">
-                      <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">
-                        {v.firstName} {v.lastName}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 w-40">
-                          <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                            <div
-                              className="h-full bg-blue-800 dark:bg-blue-500"
-                              style={{ width: `${v.progressPercentage}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                            {Math.round(v.progressPercentage)}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                        {v.completedSkills} / {v.totalRequiredSkills}
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => handleOpenHistory(v.userId)}
-                          className="text-xs font-semibold text-blue-800 dark:text-blue-300 hover:underline"
-                        >
-                          History
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          {/* Search */}
+          <div className="flex flex-col gap-2 mb-4 max-w-md">
+            <label htmlFor="train-search" className="text-sm font-extrabold text-ink-strong">
+              Find a volunteer
+            </label>
+            <div className="relative">
+              <LineIcon
+                d={ICONS.search}
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint"
+              />
+              <input
+                id="train-search"
+                type="search"
+                placeholder="Type a name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`${input} pl-11`}
+              />
+            </div>
+          </div>
+
+          {/* Volunteer progress list */}
+          <div className={card}>
+            {isLoading ? (
+              <p className="px-6 py-8 text-center text-ink-faint font-semibold">Loading...</p>
+            ) : filteredVolunteers.length === 0 ? (
+              <p className="px-6 py-8 text-center text-ink-faint font-semibold">
+                {volunteers.length === 0 ? "No volunteers in training" : "No volunteers match that search"}
+              </p>
+            ) : (
+              filteredVolunteers.map((v, i) => (
+                <TrainingRow
+                  key={v.userId}
+                  volunteer={v}
+                  initials={initialsOf(v.firstName, v.lastName)}
+                  isLast={i === filteredVolunteers.length - 1}
+                  onViewHistory={() => handleOpenHistory(v.userId)}
+                />
+              ))
+            )}
           </div>
         </>
       )}
@@ -527,114 +528,96 @@ export default function TrainingStaffPage() {
       {activeTab === "trainers" && (
         <>
           {trainersError && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300 flex items-center justify-between">
+            <div className="mb-4 p-4 rounded-2xl bg-urgent border border-urgent-line text-sm font-bold text-urgent-ink flex items-center justify-between gap-3">
               {trainersError}
-              <button onClick={loadTrainers} className="font-semibold underline">Try again</button>
+              <button onClick={loadTrainers} className="font-black underline shrink-0">Try again</button>
             </div>
           )}
 
-          {/* Trainers table */}
-          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-6 py-3">Profile</th>
-                  <th className="px-6 py-3">Name</th>
-                  <th className="px-6 py-3">Surname</th>
-                  <th className="px-6 py-3">Contact Details</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {trainersLoading ? (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500">Loading...</td></tr>
-                ) : trainers.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500">No trainers yet</td></tr>
-                ) : (
-                  trainers.map((t) => {
-                    const status: TrainerStatus = isActive(t) ? "active" : "inactive";
-                    const isToggling = togglingId === t.trainerId;
-                    return (
-                      <tr key={t.trainerId} className="border-b border-slate-50 dark:border-slate-800 last:border-0">
-                        <td className="px-6 py-4">
-                          <div className="w-9 h-9 rounded-full bg-blue-800 text-white flex items-center justify-center text-xs font-semibold">
-                            {initials(t)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{t.firstName}</td>
-                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{t.lastName}</td>
-                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                          {t.email || t.phone ? (
-                            <>
-                              {t.email && <p>{t.email}</p>}
-                              {t.phone && <p className="text-xs text-slate-500 dark:text-slate-400">{t.phone}</p>}
-                            </>
-                          ) : (
-                            <span className="text-slate-400 dark:text-slate-500">—</span>
-                          )}
-                        </td>
-                        {/* Active / Inactive toggle (saved to the backend) */}
-                        <td className="px-6 py-4">
-                          <div className="inline-flex rounded-full bg-slate-100 dark:bg-slate-800 p-0.5">
-                            {STATUS_OPTIONS.map((option) => (
-                              <button
-                                key={option}
-                                type="button"
-                                disabled={isToggling}
-                                onClick={() => handleSetStatus(t, option)}
-                                className={`rounded-full px-3 py-1 text-xs font-semibold transition-all disabled:opacity-60 ${
-                                  status === option
-                                    ? option === "active"
-                                      ? "bg-green-500 text-white shadow-sm"
-                                      : "bg-slate-500 text-white shadow-sm"
-                                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                                }`}
-                              >
-                                {option}
-                              </button>
-                            ))}
-                          </div>
-                        </td>
-                        {/* Edit / delete actions */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => openEditTrainer(t)}
-                              aria-label={`Edit ${fullName(t)}`}
-                              title="Edit trainer"
-                              className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-blue-300 transition-colors"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" />
-                              </svg>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDeletingTrainer(t);
-                                setDeleteTrainerError(null);
-                              }}
-                              aria-label={`Delete ${fullName(t)}`}
-                              title="Delete trainer"
-                              className="p-2 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-950/40 dark:hover:text-red-300 transition-colors"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 6h18" />
-                                <path d="M8 6V4h8v2" />
-                                <path d="M6 6l1 14h10l1-14" />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+          {/* Trainers list */}
+          <div className={card}>
+            {trainersLoading ? (
+              <p className="px-6 py-8 text-center text-ink-faint font-semibold">Loading...</p>
+            ) : trainers.length === 0 ? (
+              <p className="px-6 py-8 text-center text-ink-faint font-semibold">No trainers yet</p>
+            ) : (
+              trainers.map((t, i) => {
+                const status: TrainerStatus = isActive(t) ? "active" : "inactive";
+                const isToggling = togglingId === t.trainerId;
+                return (
+                  <div
+                    key={t.trainerId}
+                    className={`flex flex-wrap items-center gap-4 px-6 py-4 ${
+                      i !== trainers.length - 1 ? "border-b border-line-soft" : ""
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-brand text-brand-ink font-black text-sm flex items-center justify-center shrink-0">
+                      {initialsOf(t.firstName, t.lastName)}
+                    </div>
+                    <div className="flex-1 min-w-[160px]">
+                      <p className="font-extrabold text-ink-strong">{fullName(t)}</p>
+                      <p className="text-sm text-ink-muted">
+                        {t.email || t.phone ? (
+                          <>
+                            {t.email}
+                            {t.email && t.phone && " · "}
+                            {t.phone}
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Active / Inactive toggle (saved to the backend) */}
+                    <div className="inline-flex rounded-full bg-surface-muted p-1">
+                      {STATUS_OPTIONS.map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          disabled={isToggling}
+                          onClick={() => handleSetStatus(t, option)}
+                          className={`rounded-full px-4 py-1.5 text-xs font-extrabold capitalize transition-all disabled:opacity-60 ${
+                            status === option
+                              ? option === "active"
+                                ? "bg-ok text-ok-ink"
+                                : "bg-surface text-ink-strong shadow-sm"
+                              : "text-ink-muted hover:text-ink"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Edit / delete actions */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openEditTrainer(t)}
+                        aria-label={`Edit ${fullName(t)}`}
+                        title="Edit trainer"
+                        className="p-2.5 rounded-xl text-ink-muted hover:bg-tint hover:text-brand transition-colors"
+                      >
+                        <LineIcon d={ICONS.edit} size={18} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeletingTrainer(t);
+                          setDeleteTrainerError(null);
+                        }}
+                        aria-label={`Delete ${fullName(t)}`}
+                        title="Delete trainer"
+                        className="p-2.5 rounded-xl text-ink-muted hover:bg-urgent hover:text-urgent-ink transition-colors"
+                      >
+                        <LineIcon d={ICONS.trash} size={18} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </>
       )}
@@ -649,14 +632,14 @@ export default function TrainingStaffPage() {
       {showCreateTrainer && (
         <ModalOverlay onClose={() => setShowCreateTrainer(false)}>
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-black dark:text-slate-100">Create Trainer</h2>
+            <h2 className={cardTitle}>Create Trainer</h2>
             <button
               type="button"
               onClick={() => setShowCreateTrainer(false)}
-              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              className="text-ink-muted hover:text-ink-strong"
               aria-label="Close"
             >
-              ✕
+              <LineIcon d={ICONS.close} size={20} />
             </button>
           </div>
 
@@ -664,10 +647,7 @@ export default function TrainingStaffPage() {
             {/* First & last name */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="trainer-first-name"
-                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
-                >
+                <label htmlFor="trainer-first-name" className="block text-xs font-extrabold text-ink-strong mb-1.5">
                   First name
                 </label>
                 <input
@@ -677,14 +657,11 @@ export default function TrainingStaffPage() {
                   maxLength={100}
                   value={trainerFirstName}
                   onChange={(e) => setTrainerFirstName(e.target.value)}
-                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className={input}
                 />
               </div>
               <div>
-                <label
-                  htmlFor="trainer-last-name"
-                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
-                >
+                <label htmlFor="trainer-last-name" className="block text-xs font-extrabold text-ink-strong mb-1.5">
                   Last name
                 </label>
                 <input
@@ -694,7 +671,7 @@ export default function TrainingStaffPage() {
                   maxLength={100}
                   value={trainerLastName}
                   onChange={(e) => setTrainerLastName(e.target.value)}
-                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className={input}
                 />
               </div>
             </div>
@@ -702,10 +679,7 @@ export default function TrainingStaffPage() {
             {/* Email & phone */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="trainer-email"
-                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
-                >
+                <label htmlFor="trainer-email" className="block text-xs font-extrabold text-ink-strong mb-1.5">
                   Email
                 </label>
                 <input
@@ -716,14 +690,11 @@ export default function TrainingStaffPage() {
                   value={trainerEmail}
                   onChange={(e) => setTrainerEmail(e.target.value)}
                   placeholder="trainer@example.com"
-                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className={input}
                 />
               </div>
               <div>
-                <label
-                  htmlFor="trainer-phone"
-                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
-                >
+                <label htmlFor="trainer-phone" className="block text-xs font-extrabold text-ink-strong mb-1.5">
                   Phone
                 </label>
                 <input
@@ -734,30 +705,22 @@ export default function TrainingStaffPage() {
                   value={trainerPhone}
                   onChange={(e) => setTrainerPhone(e.target.value)}
                   placeholder="Phone number"
-                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className={input}
                 />
               </div>
             </div>
 
             {createTrainerError && (
-              <p className="text-sm text-red-700 bg-red-50 border border-red-200 dark:text-red-300 dark:bg-red-950/40 dark:border-red-900 rounded-lg px-3 py-2">
+              <p className="text-sm font-bold text-urgent-ink bg-urgent border border-urgent-line rounded-2xl px-4 py-2.5">
                 {createTrainerError}
               </p>
             )}
 
             <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowCreateTrainer(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-              >
+              <button type="button" onClick={() => setShowCreateTrainer(false)} className={buttonOutline}>
                 Cancel
               </button>
-              <button
-                type="submit"
-                disabled={isSavingTrainer}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-60"
-              >
+              <button type="submit" disabled={isSavingTrainer} className={buttonPrimary}>
                 {isSavingTrainer ? "Saving..." : "Create"}
               </button>
             </div>
@@ -770,14 +733,14 @@ export default function TrainingStaffPage() {
       {editingTrainer && (
         <ModalOverlay onClose={() => setEditingTrainer(null)}>
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-black dark:text-slate-100">Edit Trainer</h2>
+            <h2 className={cardTitle}>Edit Trainer</h2>
             <button
               type="button"
               onClick={() => setEditingTrainer(null)}
-              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              className="text-ink-muted hover:text-ink-strong"
               aria-label="Close"
             >
-              ✕
+              <LineIcon d={ICONS.close} size={20} />
             </button>
           </div>
 
@@ -785,10 +748,7 @@ export default function TrainingStaffPage() {
             {/* First & last name */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="edit-trainer-first-name"
-                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
-                >
+                <label htmlFor="edit-trainer-first-name" className="block text-xs font-extrabold text-ink-strong mb-1.5">
                   First name
                 </label>
                 <input
@@ -798,14 +758,11 @@ export default function TrainingStaffPage() {
                   maxLength={100}
                   value={editFirstName}
                   onChange={(e) => setEditFirstName(e.target.value)}
-                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className={input}
                 />
               </div>
               <div>
-                <label
-                  htmlFor="edit-trainer-last-name"
-                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
-                >
+                <label htmlFor="edit-trainer-last-name" className="block text-xs font-extrabold text-ink-strong mb-1.5">
                   Last name
                 </label>
                 <input
@@ -815,7 +772,7 @@ export default function TrainingStaffPage() {
                   maxLength={100}
                   value={editLastName}
                   onChange={(e) => setEditLastName(e.target.value)}
-                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className={input}
                 />
               </div>
             </div>
@@ -823,10 +780,7 @@ export default function TrainingStaffPage() {
             {/* Email & phone */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="edit-trainer-email"
-                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
-                >
+                <label htmlFor="edit-trainer-email" className="block text-xs font-extrabold text-ink-strong mb-1.5">
                   Email
                 </label>
                 <input
@@ -837,14 +791,11 @@ export default function TrainingStaffPage() {
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
                   placeholder="trainer@example.com"
-                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className={input}
                 />
               </div>
               <div>
-                <label
-                  htmlFor="edit-trainer-phone"
-                  className="block text-xs font-semibold text-black dark:text-slate-200 mb-1.5"
-                >
+                <label htmlFor="edit-trainer-phone" className="block text-xs font-extrabold text-ink-strong mb-1.5">
                   Phone
                 </label>
                 <input
@@ -855,30 +806,22 @@ export default function TrainingStaffPage() {
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
                   placeholder="Phone number"
-                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-black dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  className={input}
                 />
               </div>
             </div>
 
             {editTrainerError && (
-              <p className="text-sm text-red-700 bg-red-50 border border-red-200 dark:text-red-300 dark:bg-red-950/40 dark:border-red-900 rounded-lg px-3 py-2">
+              <p className="text-sm font-bold text-urgent-ink bg-urgent border border-urgent-line rounded-2xl px-4 py-2.5">
                 {editTrainerError}
               </p>
             )}
 
             <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setEditingTrainer(null)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-              >
+              <button type="button" onClick={() => setEditingTrainer(null)} className={buttonOutline}>
                 Cancel
               </button>
-              <button
-                type="submit"
-                disabled={isSavingEdit}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-60"
-              >
+              <button type="submit" disabled={isSavingEdit} className={buttonPrimary}>
                 {isSavingEdit ? "Saving..." : "Save Changes"}
               </button>
             </div>
@@ -890,30 +833,26 @@ export default function TrainingStaffPage() {
 
       {deletingTrainer && (
         <ModalOverlay onClose={() => setDeletingTrainer(null)}>
-          <h2 className="text-lg font-bold text-black dark:text-slate-100 mb-2">Delete trainer?</h2>
-          <p className="text-sm text-slate-700 dark:text-slate-300 mb-4">
+          <h2 className={`${cardTitle} mb-2`}>Delete trainer?</h2>
+          <p className="text-sm font-semibold text-ink mb-4">
             {fullName(deletingTrainer)} will be removed from the trainers list. This can&apos;t be undone.
           </p>
 
           {deleteTrainerError && (
-            <p className="text-sm text-red-700 bg-red-50 border border-red-200 dark:text-red-300 dark:bg-red-950/40 dark:border-red-900 rounded-lg px-3 py-2 mb-4">
+            <p className="text-sm font-bold text-urgent-ink bg-urgent border border-urgent-line rounded-2xl px-4 py-2.5 mb-4">
               {deleteTrainerError}
             </p>
           )}
 
           <div className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setDeletingTrainer(null)}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-black hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
+            <button type="button" onClick={() => setDeletingTrainer(null)} className={buttonOutline}>
               Cancel
             </button>
             <button
               type="button"
               onClick={handleDeleteTrainer}
               disabled={isDeletingTrainer}
-              className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+              className="min-h-12 px-5 rounded-full bg-[#B42318] hover:bg-[#9A1D14] text-white font-extrabold inline-flex items-center justify-center gap-2 disabled:opacity-60 transition-colors"
             >
               {isDeletingTrainer ? "Deleting..." : "Delete trainer"}
             </button>
@@ -927,15 +866,98 @@ export default function TrainingStaffPage() {
 //---------------------------------------------------------------//
 
 //<summary>
-// A summary card used at the top of the Volunteer Progress tab:
-// an uppercase label, a large value and a short caption.
+// A summary card used at the top of the Volunteers tab: an uppercase label, a
+// large value and a short caption, tinted by tone.
 //</summary>
-function StatCard({ label, value, sub }: { label: string; value: string | number; sub: string }) {
+function StatCard({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string | number;
+  sub: string;
+  tone: "ok" | "brand" | "muted";
+}) {
+  const valueColor =
+    tone === "ok" ? "text-ok-ink" : tone === "brand" ? "text-brand" : "text-ink-strong";
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5">
-      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">{label}</p>
-      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">{value}</p>
-      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{sub}</p>
+    <div className={`${card} p-5`}>
+      <p className="text-xs font-extrabold text-ink-muted uppercase tracking-wide">{label}</p>
+      <p className={`text-3xl font-black mt-2 ${valueColor}`}>{value}</p>
+      <p className="text-sm text-ink-faint mt-1">{sub}</p>
+    </div>
+  );
+}
+
+//---------------------------------------------------------------//
+
+//<summary>
+// One row in the Volunteers progress list: initials avatar, name, a status chip
+// (fully trained / not started), an overall progress bar, the skill count and a
+// button that opens the full training-history modal.
+//</summary>
+function TrainingRow({
+  volunteer,
+  initials,
+  isLast,
+  onViewHistory,
+}: {
+  volunteer: TrainingVolunteerSummary;
+  initials: string;
+  isLast: boolean;
+  onViewHistory: () => void;
+}) {
+  const pct = Math.round(volunteer.progressPercentage);
+  const isFull = volunteer.totalRequiredSkills > 0 && volunteer.completedSkills >= volunteer.totalRequiredSkills;
+  const notStarted = volunteer.completedSkills === 0;
+
+  return (
+    <div
+      className={`flex flex-wrap items-center gap-4 px-6 py-4 ${isLast ? "" : "border-b border-line-soft"}`}
+    >
+      <div className="flex items-center gap-3 flex-1 min-w-[220px]">
+        <div className="w-10 h-10 rounded-full bg-brand text-brand-ink font-black text-sm flex items-center justify-center shrink-0">
+          {initials}
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-extrabold text-ink-strong">
+              {volunteer.firstName} {volunteer.lastName}
+            </span>
+            {isFull && (
+              <span className="text-xs font-extrabold rounded-full px-2.5 py-0.5 bg-ok text-ok-ink">
+                Fully trained
+              </span>
+            )}
+            {!isFull && notStarted && (
+              <span className="text-xs font-extrabold rounded-full px-2.5 py-0.5 bg-surface-muted text-ink-muted">
+                Not started
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 flex-[2_1_240px] min-w-[200px]">
+        <div className="flex-1 h-3 rounded-full bg-surface-sunken overflow-hidden">
+          <div className="h-full rounded-full bg-ok-bar" style={{ width: `${pct}%` }} />
+        </div>
+        <span className="text-sm font-extrabold text-ink-strong w-11 text-right">{pct}%</span>
+      </div>
+
+      <div className="flex flex-col gap-0.5 flex-none">
+        <span className="font-black text-ink-strong">
+          {volunteer.completedSkills} of {volunteer.totalRequiredSkills}
+        </span>
+        <span className="text-xs text-ink-faint">skills signed off</span>
+      </div>
+
+      <button onClick={onViewHistory} className={`${buttonOutline} ml-auto`}>
+        View history
+        <LineIcon d={ICONS.arrowRight} size={16} />
+      </button>
     </div>
   );
 }

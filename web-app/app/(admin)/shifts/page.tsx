@@ -13,6 +13,8 @@ import {
   Vacancy,
   ShiftPayload,
 } from "../../lib/api/shifts";
+import { ICONS, LineIcon } from "../../../components/ui/line-icon";
+import { buttonOutline, buttonPrimary, card, cardTitle } from "../../../components/ui/styles";
 
 //-----------------------------------------------------------------------------------------------//
 
@@ -185,7 +187,7 @@ export default function ShiftSchedulingPage() {
   // - Understaffed (amber): half or more staffed, but not full.
   //</summary>
 
-  function getStatus(shift: Shift): { label: string; color: string; assigned: number } {
+  function getStatus(shift: Shift): { label: string; color: "green" | "amber" | "red"; assigned: number } {
     const vacancy = vacancyMap.get(shift.shiftId);
     const assigned = vacancy ? vacancy.assignedVolunteers : shift.capacity;
     const capacity = shift.capacity;
@@ -245,54 +247,66 @@ export default function ShiftSchedulingPage() {
 
   return (
     <div className="space-y-6">
-      
+
    {/*------------------------------------ Page header: title, month navigation, New Shift button ----------------------------------------------------*/}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Shift Scheduling</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+          <h1 className="text-3xl font-black text-ink-strong tracking-tight">Shift Scheduling</h1>
+          <p className="font-semibold text-ink-muted mt-1">
+            Which shifts happen each day, and how many volunteers each one needs.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-            >
-              ‹ Previous
-            </button>
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 w-32 text-center">
-              {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-            </span>
-            <button
-              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-            >
-             Next ›
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setModalState({ mode: "create" })}
+            className={buttonPrimary}
+          >
+            <LineIcon d={ICONS.plus} size={18} strokeWidth={2.6} />
+            Add a shift
           </button>
-          </div>
-         
         </div>
       </div>
 
     {/*------------------------------------ Error banner ----------------------------------------------------*/}
       {errorMessage && (
-        <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+        <div className="font-bold text-urgent-ink bg-urgent rounded-2xl px-4 py-3">
           {errorMessage}
         </div>
       )}
+
+      {/*------------------------------------ Month Navigation ----------------------------------------------------*/}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center bg-surface-sunken border border-line rounded-full overflow-hidden p-1">
+          <button
+            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+            aria-label="Previous month"
+            className="w-9 h-9 flex items-center justify-center text-ink-muted hover:text-ink-strong hover:bg-tint rounded-full transition-colors"
+          >
+            <LineIcon d={ICONS.chevronLeft} size={18} strokeWidth={2.6} />
+          </button>
+          <span className="font-black text-ink-strong px-3 min-w-44 text-center">
+            {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+          </span>
+          <button
+            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+            aria-label="Next month"
+            className="w-9 h-9 flex items-center justify-center text-ink-muted hover:text-ink-strong hover:bg-tint rounded-full transition-colors"
+          >
+            <LineIcon d={ICONS.chevronRightSm} size={18} strokeWidth={2.6} />
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
 
     {/*------------------------------------ Calendar ----------------------------------------------------*/}
 
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className={`${card} overflow-hidden`}>
           {/* Weekday headings */}
-          <div className="grid grid-cols-7 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-7 bg-surface-sunken border-b border-line">
             {WEEKDAY_LABELS.map((day) => (
-              <div key={day} className="py-3 text-center text-xs font-bold text-slate-400 dark:text-slate-500">
+              <div key={day} className="py-3 text-center text-xs font-black text-ink-faint tracking-wide">
                 {day}
               </div>
             ))}
@@ -300,10 +314,10 @@ export default function ShiftSchedulingPage() {
 
           {/* Weeks and day cells */}
           {isLoading ? (
-            <div className="py-16 text-center text-slate-400 dark:text-slate-500 text-sm">Loading shifts…</div>
+            <div className="py-16 text-center text-ink-faint font-semibold">Loading shifts…</div>
           ) : (
             weeks.map((week, wi) => (
-              <div key={wi} className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800 last:border-b-0">
+              <div key={wi} className="grid grid-cols-7 border-b border-line-soft last:border-b-0">
                 {week.map((date, di) => {
                   const dayShifts = date ? shiftsByDate.get(toDateKey(date)) || [] : [];
                   const isToday = date && toDateKey(date) === toDateKey(new Date());
@@ -316,15 +330,15 @@ export default function ShiftSchedulingPage() {
                           : undefined
                       }
                       title={date ? "Click a shift badge to view details, or click a day to add a shift" : undefined}
-                      className={`min-h-[110px] border-r border-slate-100 dark:border-slate-800 last:border-r-0 p-2 ${
-                        date ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" : ""
+                      className={`min-h-[110px] border-r border-line-soft last:border-r-0 p-2 ${
+                        date ? "cursor-pointer hover:bg-tint/40 transition-colors" : ""
                       }`}
                     >
                       {date && (
                         <>
                           <span
-                            className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold ${
-                              isToday ? "bg-blue-700 text-white" : "text-slate-500 dark:text-slate-400"
+                            className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-black ${
+                              isToday ? "bg-brand text-brand-ink" : "text-ink-muted"
                             }`}
                           >
                             {date.getDate()}
@@ -335,10 +349,10 @@ export default function ShiftSchedulingPage() {
                               const status = getStatus(shift);
                               const colorClasses =
                                 status.color === "green"
-                                  ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
+                                  ? "bg-ok text-ok-ink"
                                   : status.color === "amber"
-                                  ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300"
-                                  : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300";
+                                  ? "bg-warn text-warn-ink"
+                                  : "bg-urgent text-urgent-ink";
                               return (
                                 <button
                                   key={shift.shiftId}
@@ -346,8 +360,8 @@ export default function ShiftSchedulingPage() {
                                     e.stopPropagation(); // don't also trigger the day click
                                     setSelectedShiftId(shift.shiftId);
                                   }}
-                                  className={`w-full text-left px-1.5 py-1 rounded text-[10px] font-semibold truncate ${colorClasses} ${
-                                    selectedShiftId === shift.shiftId ? "ring-2 ring-blue-500" : ""
+                                  className={`w-full text-left px-1.5 py-1 rounded-lg text-[10px] font-extrabold truncate ${colorClasses} ${
+                                    selectedShiftId === shift.shiftId ? "ring-2 ring-focus" : ""
                                   }`}
                                   title={`${shift.location} · ${shift.timeSlot}`}
                                 >
@@ -369,10 +383,10 @@ export default function ShiftSchedulingPage() {
    {/*------------------------------------ Side panel: shift details + status legend ----------------------------------------------------*/}
         <div className="space-y-4">
           {!selectedShift ? (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 text-center">
-              <p className="text-4xl mb-2">📅</p>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">No shift selected</p>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+            <div className={`${card} p-6 text-center`}>
+              <LineIcon d={ICONS.calendar} size={40} strokeWidth={1.8} className="mx-auto mb-2 text-ink-faint" />
+              <p className="font-black text-ink-strong">No shift selected</p>
+              <p className="text-sm font-semibold text-ink-faint mt-1">
                 Click a shift badge on the calendar to view details
               </p>
             </div>
@@ -392,14 +406,14 @@ export default function ShiftSchedulingPage() {
             />
           )}
 
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
-            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">
+          <div className={`${card} p-5`}>
+            <h3 className="text-xs font-black text-ink-faint uppercase tracking-wider mb-3">
               Capacity Status
             </h3>
-            <div className="space-y-2 text-sm">
-              <LegendRow color="bg-emerald-500" label="Fully Staffed" />
-              <LegendRow color="bg-amber-500" label="Understaffed" />
-              <LegendRow color="bg-red-500" label="Over Capacity / Critical" />
+            <div className="space-y-2">
+              <LegendRow dot="bg-[#2E9A1E]" label="Fully Staffed" />
+              <LegendRow dot="bg-[#E8C64A]" label="Understaffed" />
+              <LegendRow dot="bg-[#B42318]" label="Over Capacity / Critical" />
             </div>
           </div>
         </div>
@@ -422,22 +436,23 @@ export default function ShiftSchedulingPage() {
   {/*------------------------------------ Delete confirmation modal ----------------------------------------------------*/}
       {deletingShift && (
         <ModalOverlay onClose={() => setDeletingShift(null)}>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Delete Shift</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-6">
+          <h2 className="text-xl font-black text-ink-strong">Delete Shift</h2>
+          <p className="font-semibold text-ink-muted mt-2 mb-6">
             Are you sure you want to delete the {deletingShift.location} shift on{" "}
             {deletingShift.shiftDate}? This can&apos;t be undone.
           </p>
           <div className="flex justify-end gap-3">
             <button
               onClick={() => setDeletingShift(null)}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className={buttonOutline}
             >
               Cancel
             </button>
             <button
               onClick={handleConfirmDelete}
-              className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700"
+              className="min-h-12 px-5 rounded-full bg-[#B42318] text-white font-extrabold inline-flex items-center justify-center gap-2 hover:bg-[#9A1D14] transition-colors"
             >
+              <LineIcon d={ICONS.trash} size={18} strokeWidth={2.2} />
               Delete
             </button>
           </div>
@@ -465,7 +480,7 @@ function ShiftDetailPanel({
   onClose,
 }: {
   shift: Shift;
-  status: { label: string; color: string; assigned: number };
+  status: { label: string; color: "green" | "amber" | "red"; assigned: number };
   capacityMode: "people" | "birds";
   onCapacityModeChange: (mode: "people" | "birds") => void;
   notes: string;
@@ -475,25 +490,27 @@ function ShiftDetailPanel({
   onClose: () => void;
 }) {
   const barColor =
-    status.color === "green" ? "bg-emerald-500" : status.color === "amber" ? "bg-amber-500" : "bg-red-500";
+    status.color === "green" ? "bg-[#2E9A1E]" : status.color === "amber" ? "bg-[#E8C64A]" : "bg-[#B42318]";
+  const labelColor =
+    status.color === "green" ? "text-ok-ink" : status.color === "amber" ? "text-warn-ink" : "text-urgent-ink";
   const percent = shift.capacity > 0 ? Math.min((status.assigned / shift.capacity) * 100, 100) : 0;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div className={`${card} overflow-hidden`}>
 
       {/*------------------------------------ Panel header ----------------------------------------------------*/}
       <div className="px-5 pt-5 flex items-start justify-between">
         <div>
-          <span className="inline-block text-[10px] font-bold uppercase text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full mb-1.5">
+          <span className="inline-block text-xs font-black uppercase text-brand bg-tint px-2.5 py-1 rounded-full mb-1.5">
             {TIME_SLOT_LABELS[shift.timeSlot]?.split(" ")[0] || shift.timeSlot}
           </span>
-          <h3 className="font-bold text-slate-900 dark:text-slate-100">{shift.location}</h3>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+          <h3 className={cardTitle}>{shift.location}</h3>
+          <p className="text-sm font-semibold text-ink-faint">
             {shift.shiftDate} · {shift.timeSlot}
           </p>
         </div>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-          ✕
+        <button onClick={onClose} className="text-ink-faint hover:text-ink-strong" aria-label="Close">
+          <LineIcon d={ICONS.close} size={20} strokeWidth={2.4} />
         </button>
       </div>
 
@@ -501,17 +518,17 @@ function ShiftDetailPanel({
      {/*------------------------------------ Capacity (People / Birds toggle) ----------------------------------------------------*/}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Capacity Mode</span>
-            <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs font-semibold">
+            <span className="text-xs font-black text-ink-faint uppercase tracking-wide">Capacity Mode</span>
+            <div className="flex rounded-full border border-line overflow-hidden font-extrabold text-xs">
               <button
                 onClick={() => onCapacityModeChange("people")}
-                className={`px-2.5 py-1 ${capacityMode === "people" ? "bg-blue-700 text-white" : "text-slate-500 dark:text-slate-400"}`}
+                className={`px-3 py-1.5 ${capacityMode === "people" ? "bg-brand text-brand-ink" : "text-ink-muted"}`}
               >
                 People
               </button>
               <button
                 onClick={() => onCapacityModeChange("birds")}
-                className={`px-2.5 py-1 ${capacityMode === "birds" ? "bg-blue-700 text-white" : "text-slate-500 dark:text-slate-400"}`}
+                className={`px-3 py-1.5 ${capacityMode === "birds" ? "bg-brand text-brand-ink" : "text-ink-muted"}`}
               >
                 Birds
               </button>
@@ -519,48 +536,31 @@ function ShiftDetailPanel({
           </div>
 
           {capacityMode === "people" ? (
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {status.assigned} <span className="text-sm font-normal text-slate-400 dark:text-slate-500">/ {shift.capacity} Volunteers</span>
+            <p className="text-2xl font-black text-ink-strong">
+              {status.assigned} <span className="text-sm font-semibold text-ink-faint">/ {shift.capacity} Volunteers</span>
             </p>
           ) : (
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {shift.birdCount ?? 0} <span className="text-sm font-normal text-slate-400 dark:text-slate-500">Birds</span>
+            <p className="text-2xl font-black text-ink-strong">
+              {shift.birdCount ?? 0} <span className="text-sm font-semibold text-ink-faint">Birds</span>
             </p>
           )}
-          <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
+          <div className="w-full h-2 bg-surface-sunken rounded-full mt-2 overflow-hidden">
             <div className={`h-full rounded-full ${barColor}`} style={{ width: `${percent}%` }} />
           </div>
-          <p
-            className={`text-xs font-semibold mt-1 ${
-              status.color === "green"
-                ? "text-emerald-600 dark:text-emerald-400"
-                : status.color === "amber"
-                ? "text-amber-600 dark:text-amber-400"
-                : "text-red-600 dark:text-red-400"
-            }`}
-          >
+          <p className={`text-sm font-extrabold mt-1 ${labelColor}`}>
             {status.label}
           </p>
         </div>
 
-        {/*------------------------------------ Assigned volunteers (placeholder) ----------------------------------------------------*/}
-        {/* <div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Assigned Volunteers</p>
-          <p className="text-xs text-slate-400 italic bg-slate-50 rounded-lg px-3 py-3">
-            Volunteer names aren't available yet — the backend currently only returns a count
-            ({status.assigned} assigned), not who they are.
-          </p>
-        </div> */}
-
         {/*------------------------------------ Notes (local only) ----------------------------------------------------*/}
         <div>
-          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">Notes</p>
+          <p className="text-xs font-black text-ink-faint uppercase tracking-wide mb-2">Notes</p>
           <textarea
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
             placeholder="Add a note (not saved to the server yet)…"
             rows={3}
-            className="w-full text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="w-full font-semibold text-ink-strong placeholder:text-ink-faint border-2 border-line-strong rounded-2xl px-3 py-2 bg-surface-sunken focus:outline-none focus:border-focus focus:ring-4 focus:ring-focus/20"
           />
         </div>
 
@@ -568,14 +568,16 @@ function ShiftDetailPanel({
         <div className="flex gap-2 pt-1">
           <button
             onClick={onEdit}
-            className="flex-1 px-3 py-2 rounded-lg bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800"
+            className={`${buttonPrimary} flex-1 !min-h-11`}
           >
+            <LineIcon d={ICONS.edit} size={16} strokeWidth={2.2} />
             Edit Shift
           </button>
           <button
             onClick={onDelete}
-            className="px-3 py-2 rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-950/40"
+            className="min-h-11 px-4 rounded-full border-2 border-[#E2A39C] bg-surface text-[#B42318] font-extrabold inline-flex items-center gap-2 hover:bg-urgent transition-colors"
           >
+            <LineIcon d={ICONS.trash} size={16} strokeWidth={2.2} />
             Delete
           </button>
         </div>
@@ -589,11 +591,11 @@ function ShiftDetailPanel({
 //<summary>
 // One row of the status legend: a coloured dot and its label.
 //</summary>
-function LegendRow({ color, label }: { color: string; label: string }) {
+function LegendRow({ dot, label }: { dot: string; label: string }) {
   return (
     <div className="flex items-center gap-2">
-      <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
-      <span className="text-slate-600 dark:text-slate-300">{label}</span>
+      <span className={`w-2.5 h-2.5 rounded-full ${dot}`} />
+      <span className="font-semibold text-ink-muted">{label}</span>
     </div>
   );
 }
