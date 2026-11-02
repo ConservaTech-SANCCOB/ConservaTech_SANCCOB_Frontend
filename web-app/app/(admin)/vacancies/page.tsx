@@ -5,10 +5,13 @@ import { useAuth } from "../../lib/auth-context";
 import { fetchVacancies, fetchShifts, createShift, Vacancy, Shift, ShiftPayload } from "../../lib/api/shifts";
 import { ShiftFormModal } from "../../../components/shifts/ShiftFormModal";
 import VacanciesList from "../../../components/VacanciesList";
+import { card, buttonPrimary } from "@/components/ui/styles";
+import { ICONS, LineIcon } from "@/components/ui/line-icon";
+
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
-// Main page component for viewing, filtering, and creating vacancies.
+// Main page component for viewing, filtering, and creating vacancies in the web app
 //</summary>
 
 export default function VacanciesPage() {
