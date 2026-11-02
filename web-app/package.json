@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "jest"
+    "test": "jest --maxWorkers=50%"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.11",

@@ -38,7 +38,7 @@ const LEE = volunteer("2", "Lee", "Ndlovu", "lee.n@sanccob.co.za");
 const THANDI = volunteer("3", "Thandi", "Mokoena", "thandi@sanccob.co.za");
 
 async function fillCreateForm() {
-  const user = userEvent.setup();
+  const user = userEvent.setup({ delay: null });
   await user.click(screen.getByRole("button", { name: "Create Volunteer" }));
   const form = screen.getByText("Create Volunteer Profile").closest("form")!;
   const [firstName, lastName, email, phone, nationality] = within(form).getAllByRole("textbox");
@@ -70,7 +70,7 @@ beforeEach(() => {
 
 describe("VolunteersPage", () => {
   it("lists volunteers from the API, and search filters by name or email", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<VolunteersPage />);
 
     expect(await screen.findByText("Sam Volunteer")).toBeInTheDocument();

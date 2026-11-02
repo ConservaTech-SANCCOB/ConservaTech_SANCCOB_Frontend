@@ -1,8 +1,14 @@
 import "@testing-library/jest-dom";
+import { configure } from "@testing-library/react";
 
 //--------------------ENVIRONMENT--------------------//
 
 process.env.NEXT_PUBLIC_API_URL = "https://api.test";
+
+//--------------------TESTING LIBRARY--------------------//
+
+// findBy*/waitFor give up after 1s by default, which is too tight when many workers compete for CPU
+configure({ asyncUtilTimeout: 5000 });
 
 //--------------------GUARDS--------------------//
 

@@ -148,7 +148,6 @@ async function fetchConservationImpact(
 export async function fetchReportsData(
   token: string | null,
   year: string,
-  department: string
 ): Promise<ReportsData> {
   //-----------------------------------------------------------------------------------------------//
   // Environment Check

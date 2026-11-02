@@ -1,6 +1,6 @@
 import { fetchReportsData } from "../app/lib/api/reports";
 
-//--------------------HELPERS--------------------//
+//---------------------------------------------------------------------------------HELPERS-------------------------------------------------------//
 
 const rawReport = {
   totalVolunteerHours: 1240,
@@ -14,7 +14,7 @@ const rawReport = {
 
 const rawConservation = { totalRescued: 300, totalReleased: 240, percentReleased: 80 };
 
-//--------------------TESTS--------------------//
+//------------------------------------------------------TESTS------------------------------------------------------------------------------------------------//
 
 describe("fetchReportsData", () => {
   it("backend report fields are mapped to what the page shows", async () => {
@@ -25,7 +25,7 @@ describe("fetchReportsData", () => {
     }));
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    const report = await fetchReportsData("jwt-token", "2026", "");
+    const report = await fetchReportsData("jwt-token", "2026");
 
     expect(report).toEqual({
       totalVolunteerHours: 1240,
@@ -37,8 +37,10 @@ describe("fetchReportsData", () => {
       attendanceByMonth: [{ month: "Jan", rate: 91 }],
       topContributors: [{ name: "Sam Volunteer", hours: 64 }],
     });
-    expect(fetchMock.mock.calls[0][0]).toBe("https://api.test/api/admin/reports?year=2026");
+    const urls = fetchMock.mock.calls.map((c) => c[0]);
+    expect(urls).toContain("https://api.test/api/admin/reports?year=2026");
+    expect(urls.some((u) => u.includes("conservation-impact"))).toBe(true);
   });
 });
 
-//----------------------------------- END OF FILE ---------------------------------//
+//--------------------------------------------------------- END OF FILE ---------------------------------------------------------------------------//
