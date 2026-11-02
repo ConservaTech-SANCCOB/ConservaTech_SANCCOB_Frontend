@@ -1,208 +1,155 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../lib/auth-context";
-import { useIsDark } from "../../lib/theme-context";
 import { getFirstName } from "../../lib/user-display";
-import { isUnauthorized } from "../../lib/api/http";
+import { ApiError, isUnauthorized } from "../../lib/api/http";
 import {
   ConservationStats,
   fetchActiveTraining,
   fetchConservationImpact,
-  fetchShiftDistribution,
-  fetchTodaysOverview,
-  fetchVolunteersByAge,
-  ShiftDistribution,
-  TodaysShift,
   TrainingVolunteerSummary,
   updateConservationImpact,
-  VolunteersByAge,
 } from "../../lib/api/dashboard";
+import { fetchWeeklyRoster } from "../../lib/api/roster";
+import {
+  approveShiftRequest,
+  declineShiftRequest,
+  fetchShiftRequests,
+  type ShiftRequest,
+} from "../../lib/api/volunteers";
+import { addDays, getMonday, toISODate, weekRangeLabel } from "../../lib/centre-week";
+import { useCentreWeek } from "../../lib/use-centre-week";
+import { useSection } from "../../lib/use-section";
+import { DashboardHero } from "@/components/dashboard/hero";
+import { AttentionCard } from "@/components/dashboard/attention-card";
+import { TodayAtCentre } from "@/components/dashboard/today-at-centre";
+import { ChangeRequestsPanel, type Decision, type DecisionStatus } from "@/components/dashboard/change-requests";
+import { WeekTiles } from "@/components/dashboard/week-tiles";
+import { ImpactCard, RoomScreenCard, TrainingCard } from "@/components/dashboard/side-cards";
+import { ICONS } from "@/components/ui/line-icon";
+import { buttonOutline, buttonPrimary, input } from "@/components/ui/styles";
 
 //-----------------------------------------------------------------------------------------------//
-
-//<summary>
-// Dashboard chart colour constants. The *_DARK values are used when the dark theme is active,
-// because recharts takes colours as props and can't use Tailwind dark: classes.
-//</summary>
-const NAVY = "#0B2447";
-const NAVY_DARK = "#6366F1";
-const BLUE = "#2563EB";
-const LIGHT_BLUE = "#60A5FA";
-const GREEN = "#16A34A";
-
-// Card surface colours (slate-900 / white), used as the gap colour between donut slices.
-const CARD_DARK = "#0f172a";
-const CARD_LIGHT = "#ffffff";
-// Axis label colours (slate-400 / slate-500).
-const AXIS_DARK = "#94a3b8";
-const AXIS_LIGHT = "#64748b";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2];
-const MAX_TRAINING_ROWS = 5;
 
-//-----------------------------------------------------------------------------------------------//
+// For the welcome sentence: "Two things need you today."
+const COUNT_WORDS = ["Nothing", "One thing", "Two things", "Three things"];
 
-//<summary>
-// Represents the loading, error and data state for an individual dashboard section.
-//</summary>
-interface Section<T> {
-  data: T | null;
-  error: string;
-  loaded: boolean;
+function greetingFor(hour: number): string {
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
-//-----------------------------------------------------------------------------------------------//
-
-//<summary>
-// Loads one dashboard card's data. Each card loads independently so one failing endpoint
-// only shows an error in that card instead of blanking the whole dashboard.
-//</summary>
-
-/**
- * Loads one dashboard card's data. Each card loads on its own so one failing endpoint
- * only shows an error in that card instead of blanking the whole dashboard. A 401
- * logs out (the admin layout then redirects to login), matching the Volunteers page.
- */
-function useSection<T>(load: (() => Promise<T>) | null, onUnauthorized: () => void) {
-  const [state, setState] = useState<Section<T>>({ data: null, error: "", loaded: false });
-  const onUnauthorizedRef = useRef(onUnauthorized);
-
-  useEffect(() => {
-    onUnauthorizedRef.current = onUnauthorized;
-  }, [onUnauthorized]);
-
-  useEffect(() => {
-    if (!load) return;
-    let cancelled = false;
-    load()
-      .then((data) => {
-        if (!cancelled) setState({ data, error: "", loaded: true });
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        if (isUnauthorized(err)) {
-          onUnauthorizedRef.current();
-          return;
-        }
-        setState({
-          data: null,
-          error: err instanceof Error ? err.message : "Something went wrong.",
-          loaded: true,
-        });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [load]);
-
-  return [state, setState] as const;
-}
-
-//-----------------------------------------------------------------------------------------------//
-
-//<summary>
-// Builds the initials used for a volunteer's avatar.
-//</summary>
-
-function initialsFor(firstName: string | null, lastName: string | null) {
-  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
-}
-
-//-----------------------------------------------------------------------------------------------//
-
-//<summary>
-// Creates a short display label for the volunteers assigned to a shift.
-//</summary>
-
-function peopleLabel(names: string[] | null) {
-  if (!names || names.length === 0) return "No volunteers assigned";
-  if (names.length <= 2) return names.join(", ");
-  return `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
+function plural(n: number, one: string, many: string): string {
+  return n === 1 ? one : many;
 }
 
 //---------------------------------------------------------------------------------------------------------------//
-
 //<summary>
-// Dashboard page containing analytics, conservation impact, today's operational overview
-// and active staff and volunteer training information.
+// Dashboard: a welcome banner, three "Needs your attention" cards, today at the centre, change
+// requests (approve or decline right here), this week at a glance, and smaller cards for the room
+// screen, conservation impact and training. Each part loads on its own, so one failing endpoint
+// only shows an error in that part.
 //</summary>
-
+//---------------------------------------------------------------------------------------------------------------//
 export default function DashboardPage() {
-  //<summary>
-  // Authentication details used to load dashboard data and handle unauthorized requests.
-  //</summary>
   const { token, logout, user } = useAuth();
-  //<summary>
-  // Theme-dependent chart colours (recharts props can't use Tailwind dark: classes).
-  //</summary>
-  const isDark = useIsDark();
-  const axisColor = isDark ? AXIS_DARK : AXIS_LIGHT;
-  const sliceGap = isDark ? CARD_DARK : CARD_LIGHT;
-  const morningColor = isDark ? NAVY_DARK : NAVY;
-  //<summary>
-  // Year selections used by the age and conservation dashboard sections.
-  //</summary>
-  const [ageYear, setAgeYear] = useState(CURRENT_YEAR);
-  const [conservationYear, setConservationYear] = useState(CURRENT_YEAR);
 
-  //------------------------------------------------------------------------------------------------------//
+  // This week's shifts and roster, shared by the banner, today, change requests and the week tiles.
+  const { week, error: weekError, loaded: weekLoaded, reload: reloadWeek } = useCentreWeek(token, logout);
 
-  //<summary>
-  // API loaders for each independent dashboard section.
-  //</summary>
-  const loadAge = useMemo(
-    () => (token ? () => fetchVolunteersByAge(token, ageYear) : null),
-    [token, ageYear]
+  // Next week's roster status. null means it hasn't been made yet (the backend answers 404).
+  const nextMonday = useMemo(() => addDays(getMonday(), 7), []);
+  const loadNextRoster = useMemo(
+    () =>
+      token
+        ? () =>
+            fetchWeeklyRoster(token, toISODate(nextMonday))
+              .then((roster) => roster.status ?? "Draft")
+              .catch((err: unknown) => {
+                if (err instanceof ApiError && err.status === 404) return null;
+                throw err;
+              })
+        : null,
+    [token, nextMonday]
   );
-  const loadConservation = useMemo(
-    () => (token ? () => fetchConservationImpact(token, conservationYear) : null),
-    [token, conservationYear]
-  );
-  const loadShifts = useMemo(() => (token ? () => fetchShiftDistribution(token, CURRENT_YEAR) : null), [token]);
-  const loadToday = useMemo(() => (token ? () => fetchTodaysOverview(token) : null), [token]);
-  const loadTraining = useMemo(() => (token ? () => fetchActiveTraining(token) : null), [token]);
+  const [nextRoster] = useSection<string | null>(loadNextRoster, logout);
 
-  //------------------------------------------------------------------------------------------------------//
+  const loadRequests = useMemo(() => (token ? () => fetchShiftRequests(token) : null), [token]);
+  const [requests, setRequests] = useSection<ShiftRequest[]>(loadRequests, logout);
+  const [decisionStatus, setDecisionStatus] = useState<DecisionStatus | null>(null);
 
-  //<summary>
-  // Dashboard section state for each API-backed card.
-  //</summary>
-  const [age] = useSection<VolunteersByAge>(loadAge, logout);
+  const [year, setYear] = useState(CURRENT_YEAR);
+  const loadConservation = useMemo(() => (token ? () => fetchConservationImpact(token, year) : null), [token, year]);
   const [conservation, setConservation] = useSection<ConservationStats>(loadConservation, logout);
-  const [shifts] = useSection<ShiftDistribution>(loadShifts, logout);
-  const [today] = useSection<TodaysShift[]>(loadToday, logout);
+
+  const loadTraining = useMemo(() => (token ? () => fetchActiveTraining(token) : null), [token]);
   const [training] = useSection<TrainingVolunteerSummary[]>(loadTraining, logout);
 
   //------------------------------------------------------------------------------------------------------//
-
   //<summary>
-  // Modal state used when editing conservation impact figures.
+  // Approves or declines a change request, then takes it off the list. Approving frees a spot,
+  // so this week's numbers reload too. Resolves true when the save worked.
   //</summary>
-  // Modal State for Editing Conservation Impact
+  //------------------------------------------------------------------------------------------------------//
+  const decideRequest = useCallback(
+    async (request: ShiftRequest, decision: Decision): Promise<boolean> => {
+      try {
+        if (decision === "approve") await approveShiftRequest(token, request.id);
+        else await declineShiftRequest(token, request.id);
+
+        setRequests((prev) => ({ ...prev, data: (prev.data ?? []).filter((r) => r.id !== request.id) }));
+        setDecisionStatus({
+          text: `${request.volunteerName}'s request was ${decision === "approve" ? "approved" : "declined"}.`,
+          tone: "ok",
+        });
+        if (decision === "approve") reloadWeek();
+        return true;
+      } catch (err) {
+        if (isUnauthorized(err)) {
+          logout();
+          return false;
+        }
+        setDecisionStatus({
+          text: err instanceof Error ? err.message : "That couldn't be saved. Please try again.",
+          tone: "error",
+        });
+        return false;
+      }
+    },
+    [token, logout, reloadWeek, setRequests]
+  );
+
+  //------------------------------------------------------------------------------------------------------//
+  // "Update the numbers" dialog for conservation impact (same checks and endpoint as before)
+  //------------------------------------------------------------------------------------------------------//
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [rescuedInput, setRescuedInput] = useState("");
   const [releasedInput, setReleasedInput] = useState("");
   const [modalError, setModalError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  //------------------------------------------------------------------------------------------------------//
+  const openModal = () => {
+    setRescuedInput(conservation.data ? conservation.data.totalRescued.toString() : "");
+    setReleasedInput(conservation.data ? conservation.data.totalReleased.toString() : "");
+    setModalError("");
+    setIsModalOpen(true);
+  };
 
-  //<summary>
-  // Saves the updated conservation impact values through the backend.
-  //</summary>
+  // Escape closes the dialog, unless it's busy saving.
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isSaving) setIsModalOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isModalOpen, isSaving]);
+
   const handleSaveConservationData = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError("");
@@ -222,14 +169,14 @@ export default function DashboardPage() {
 
     setIsSaving(true);
     try {
-      const updated = await updateConservationImpact(token, conservationYear, {
+      const updated = await updateConservationImpact(token, year, {
         totalRescued: rescued,
         totalReleased: released,
       });
       // Use the backend's saved figures; fall back to what was sent if it returns no body.
       setConservation({
         data: updated ?? {
-          year: conservationYear,
+          year,
           totalRescued: rescued,
           totalReleased: released,
           percentReleased: rescued > 0 ? (released / rescued) * 100 : 0,
@@ -250,317 +197,176 @@ export default function DashboardPage() {
   };
 
   //------------------------------------------------------------------------------------------------------//
-
-  //<summary>
-  // Opens the conservation impact modal and populates it with the current values.
-  //</summary>
-
-  const openModal = () => {
-    setRescuedInput(conservation.data ? conservation.data.totalRescued.toString() : "");
-    setReleasedInput(conservation.data ? conservation.data.totalReleased.toString() : "");
-    setModalError("");
-    setIsModalOpen(true);
-  };
-
+  // What needs Cathy: requests waiting, open spots this week, and next week's roster if it isn't out
   //------------------------------------------------------------------------------------------------------//
+  const requestCount = requests.data?.length ?? 0;
+  const openSpots = week?.openSpots ?? 0;
+  const nextStatus = nextRoster.data;
+  const nextIsPublished = nextStatus?.toLowerCase() === "published";
+  const needsYou =
+    (requestCount > 0 ? 1 : 0) +
+    (openSpots > 0 ? 1 : 0) +
+    (nextRoster.loaded && !nextRoster.error && !nextIsPublished ? 1 : 0);
 
-  //<summary>
-  // Formats today's date for the dashboard overview heading.
-  //</summary>
+  let summary = "Loading this week…";
+  if (weekLoaded && weekError) {
+    summary = "This week's shifts couldn't be loaded.";
+  } else if (weekLoaded && week) {
+    summary =
+      week.totalSpots === 0
+        ? "No shifts are set up for this week yet."
+        : `This week, ${week.filledSpots} of ${week.totalSpots} spots are filled.`;
+    if (week.totalSpots > 0 && week.rosterStatus?.toLowerCase() !== "published") {
+      summary += week.rosterStatus ? " This week's roster is still a draft." : " This week has no roster yet.";
+    }
+    summary += ` ${COUNT_WORDS[needsYou]} ${
+      needsYou === 0 ? "needs you right now." : needsYou === 1 ? "needs you today." : "need you today."
+    }`;
+  }
 
-  const todayLabel = new Date().toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const neediest = week?.neediestDay;
+  let openText = weekError ? "This week's shifts couldn't be loaded." : "Checking this week…";
+  if (week) {
+    if (week.totalSpots === 0) openText = "No shifts are set up for this week yet.";
+    else if (neediest)
+      openText = `${neediest.dayName} needs the most help, with ${neediest.open} ${plural(neediest.open, "spot", "spots")} open.`;
+    else openText = "Every spot this week is filled.";
+  }
+  const noShifts = week?.totalSpots === 0;
+
+  const nextRange = weekRangeLabel(nextMonday);
+  let next = { value: "…", text: "Checking next week…", action: "Open the roster" };
+  if (nextRoster.loaded && nextRoster.error) {
+    next = { value: "?", text: "Next week's roster couldn't be checked.", action: "Open the roster" };
+  } else if (nextRoster.loaded && nextStatus === null) {
+    next = { value: "Not made", text: `${nextRange} has no roster yet.`, action: "Make the roster" };
+  } else if (nextRoster.loaded && nextIsPublished) {
+    next = { value: "Published", text: `${nextRange} is out to volunteers.`, action: "Open the roster" };
+  } else if (nextRoster.loaded) {
+    next = { value: "Draft", text: `${nextRange} is ready for you to check.`, action: "Check and publish" };
+  }
 
   return (
-    <div className="bg-slate-100/80 dark:bg-slate-900/40 p-6 min-h-screen rounded-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Welcome back,{getFirstName(user)} </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">
-          Here&apos;s what&apos;s happening at SANCCOB today.
-        </p>
-      </div>
+    <div className="flex flex-col gap-7">
+      <DashboardHero greeting={greetingFor(new Date().getHours())} name={getFirstName(user)} summary={summary} />
 
-      {/*------------------------------------ Row 1: Analytics cards ----------------------------------------------------*/}
-      <div className="grid grid-cols-3 gap-6 items-stretch">
-        <Card
-          title="New Volunteers by Age"
-          subtitle="Cohort breakdown by year"
-          headerRight={<YearDropdown value={ageYear} onChange={setAgeYear} />}
-        >
-          <SectionBody section={age}>
-            {(data) => (
-              <>
-                <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={data.volunteersByAge}>
-                    <XAxis dataKey="age" tick={{ fontSize: 10, fill: axisColor }} axisLine={false} tickLine={false} />
-                    <YAxis hide />
-                    <Bar dataKey="count" fill={BLUE} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-slate-800 mt-3">
-                  <span className="text-sm text-slate-500 dark:text-slate-400">Total new recruits</span>
-                  <span className="text-lg font-bold text-slate-900 dark:text-slate-100">{data.totalNewRecruits}</span>
-                </div>
-              </>
-            )}
-          </SectionBody>
-        </Card>
-
-        {/*------------------------------------ Conservation Impact Card ----------------------------------------------------*/}
-        <Card
-          title="Conservation Impact"
-          subtitle="Bird rescue & release outcomes"
-          headerRight={<YearDropdown value={conservationYear} onChange={setConservationYear} />}
-        >
-          <SectionBody section={conservation}>
-            {(data) => (
-              <div className="flex items-center gap-4 flex-1">
-                <div className="relative w-28 h-28 shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: "Released", value: data.totalReleased },
-                          { name: "Admitted to care", value: Math.max(0, data.totalRescued - data.totalReleased) },
-                        ]}
-                        dataKey="value"
-                        innerRadius={36}
-                        outerRadius={54}
-                        startAngle={90}
-                        endAngle={-270}
-                        stroke={sliceGap}
-                      >
-                        <Cell fill={GREEN} />
-                        <Cell fill={BLUE} />
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-bold text-slate-900 dark:text-slate-100">{Math.round(data.percentReleased)}%</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Released</span>
-                  </div>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs">Total Rescued</p>
-                    <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{data.totalRescued}</p>
-                    <LegendDot color={BLUE} label="Admitted to care" />
-                  </div>
-                  <div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs">Total Released</p>
-                    <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{data.totalReleased}</p>
-                    <LegendDot color={GREEN} label="Successfully released" />
-                  </div>
-                </div>
-              </div>
-            )}
-          </SectionBody>
-
-          {/*------------------------------------ Edit Data Button ----------------------------------------------------*/}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 mt-3 flex justify-start">
-            <button
-              onClick={openModal}
-              className="text-xs font-semibold text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-900 rounded-md px-2.5 py-1 transition-colors"
-            >
-              Edit Data
-            </button>
-          </div>
-        </Card>
-
-        <Card title="Shift Distribution" subtitle={`Morning vs afternoon coverage — ${CURRENT_YEAR}`}>
-          <SectionBody section={shifts}>
-            {(data) => (
-              <div className="flex items-center gap-4 flex-1">
-                <div className="relative w-28 h-28 shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: "Morning", value: data.morningCount },
-                          { name: "Afternoon", value: data.afternoonCount },
-                        ]}
-                        dataKey="value"
-                        innerRadius={36}
-                        outerRadius={54}
-                        startAngle={90}
-                        endAngle={-270}
-                        stroke={sliceGap}
-                      >
-                        <Cell fill={morningColor} />
-                        <Cell fill={LIGHT_BLUE} />
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-bold text-slate-900 dark:text-slate-100">{data.totalShifts}</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Total Shifts</span>
-                  </div>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <LegendDot color={morningColor} label="Morning" />
-                    <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{Math.round(data.morningPercent)}%</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{data.morningCount} shifts</p>
-                  </div>
-                  <div>
-                    <LegendDot color={LIGHT_BLUE} label="Afternoon" />
-                    <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{Math.round(data.afternoonPercent)}%</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{data.afternoonCount} shifts</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </SectionBody>
-        </Card>
-      </div>
-
-      {/*------------------------------------ Row 2: Operational cards ----------------------------------------------------*/}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:items-stretch">
-        <Card
-          title="Today's Overview"
-          subtitle={todayLabel}
-          headerRight={<LinkHeader href="/roster" text="Full Roster" />}
-        >
-          <SectionBody section={today}>
-            {(data) =>
-              data.length === 0 ? (
-                <EmptyNote text="No shifts are scheduled for today." />
-              ) : (
-                <div className="space-y-3">
-                  {data.map((shift) => (
-                    <div
-                      key={shift.shiftId}
-                      className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors rounded-lg px-4 py-3"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">{shift.location ?? "Unassigned location"}</p>
-                          {shift.status && <StatusBadge status={shift.status} />}
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {shift.timeSlot ?? "Time not set"} · {peopleLabel(shift.volunteerNames)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
+      {/*------------------------------------ Needs your attention ----------------------------------------------------*/}
+      <section aria-labelledby="attention-title" className="flex flex-col gap-3.5">
+        <h2 id="attention-title" className="text-sm font-black tracking-[0.16em] uppercase text-ink-strong">
+          Needs your attention
+        </h2>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-4.5">
+          <AttentionCard
+            tone="morning"
+            icon={ICONS.swap}
+            value={requests.loaded ? requestCount : "…"}
+            label={plural(requestCount, "change request", "change requests")}
+            text={
+              requests.error
+                ? "Change requests couldn't be loaded."
+                : requestCount > 0
+                  ? "Volunteers asking to swap or drop a shift."
+                  : "No one has asked to change a shift."
             }
-          </SectionBody>
-        </Card>
+            href="#requests"
+            action="Review requests"
+          />
+          <AttentionCard
+            tone="afternoon"
+            icon={ICONS.personPlus}
+            value={week ? openSpots : "…"}
+            label={plural(openSpots, "open spot this week", "open spots this week")}
+            text={openText}
+            href={noShifts ? "/shifts" : "/vacancies"}
+            action={noShifts ? "Set up shifts" : "Fill open spots"}
+          />
+          <AttentionCard
+            tone="sand"
+            icon={ICONS.calendarCheck}
+            value={next.value}
+            label="next week's roster"
+            text={next.text}
+            href="/roster"
+            action={next.action}
+          />
+        </div>
+      </section>
 
-        <Card
-          title="Staff & Volunteer Training"
-          subtitle="Active training sessions"
-          headerRight={<LinkHeader href="/training-staff" text="Training Hub" />}
-        >
-          <SectionBody section={training}>
-            {(data) =>
-              data.length === 0 ? (
-                <EmptyNote text="No volunteers are currently in training." />
-              ) : (
-                <div className="space-y-3">
-                  {data.slice(0, MAX_TRAINING_ROWS).map((volunteer) => {
-                    const progress = Math.min(100, Math.max(0, Math.round(volunteer.progressPercentage)));
-                    const name =
-                      `${volunteer.firstName ?? ""} ${volunteer.lastName ?? ""}`.trim() || "Unnamed volunteer";
-                    return (
-                      <div
-                        key={volunteer.userId}
-                        className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors rounded-lg px-4 py-3"
-                      >
-                        <div className="w-9 h-9 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-semibold shrink-0">
-                          {initialsFor(volunteer.firstName, volunteer.lastName)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate">{name}</p>
-                            {volunteer.trainingStatus && <StatusBadge status={volunteer.trainingStatus} />}
-                          </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {volunteer.completedSkills} of {volunteer.totalRequiredSkills} skills signed off
-                          </p>
-                          <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-1.5">
-                            <div
-                              className={`h-1.5 rounded-full ${progress === 100 ? "bg-green-600" : "bg-blue-600"}`}
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )
-            }
-          </SectionBody>
-        </Card>
+      {/*------------------------------------ Today + change requests ----------------------------------------------------*/}
+      <div className="flex flex-wrap gap-6 items-start">
+        <TodayAtCentre week={week} loaded={weekLoaded} error={weekError} />
+        <ChangeRequestsPanel
+          requests={requests.data ?? []}
+          loaded={requests.loaded}
+          error={requests.error}
+          week={week}
+          status={decisionStatus}
+          onDecide={decideRequest}
+        />
       </div>
-      {/*------------------------------------ Modal for Editing Conservation Data ----------------------------------------------------*/}
+
+      <WeekTiles week={week} loaded={weekLoaded} error={weekError} />
+
+      {/*------------------------------------ Room screen, impact, training ----------------------------------------------------*/}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-4.5 items-start">
+        <RoomScreenCard week={week} />
+        <ImpactCard section={conservation} year={year} years={YEARS} onYearChange={setYear} onEdit={openModal} />
+        <TrainingCard section={training} />
+      </div>
+
+      {/*------------------------------------ Update the numbers dialog ----------------------------------------------------*/}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl max-w-sm w-full p-6 space-y-4">
+        <div className="fixed inset-0 bg-[#0E2A3D]/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="impact-dialog-title"
+            className="bg-surface rounded-3xl border-[1.5px] border-line shadow-xl max-w-md w-full p-7 flex flex-col gap-5"
+          >
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Update Conservation Data</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Enter the total rescued and released numbers for {conservationYear}.
-              </p>
+              <h2 id="impact-dialog-title" className="text-2xl font-black text-ink-strong">
+                Update the numbers
+              </h2>
+              <p className="text-ink-muted mt-1">Enter the total birds rescued and released in {year}.</p>
             </div>
 
             {modalError && (
-              <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md p-2">
-                {modalError}
-              </p>
+              <p className="text-sm font-semibold text-urgent-ink bg-urgent rounded-2xl px-4 py-3">{modalError}</p>
             )}
 
-            <form onSubmit={handleSaveConservationData} className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Total Birds Rescued
-                </label>
+            <form onSubmit={handleSaveConservationData} className="flex flex-col gap-4">
+              <label className="flex flex-col gap-2">
+                <span className="font-extrabold">Birds rescued</span>
                 <input
                   type="number"
                   min="0"
+                  inputMode="numeric"
+                  autoFocus
                   value={rescuedInput}
                   onChange={(e) => setRescuedInput(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className={input}
                   required
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Total Birds Released
-                </label>
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="font-extrabold">Birds released</span>
                 <input
                   type="number"
                   min="0"
+                  inputMode="numeric"
                   value={releasedInput}
                   onChange={(e) => setReleasedInput(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className={input}
                   required
                 />
-              </div>
+              </label>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={isSaving}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
+              <div className="flex flex-wrap justify-end gap-2.5 pt-2">
+                <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSaving} className={buttonOutline}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 transition-colors"
-                >
-                  {isSaving ? "Saving…" : "Save Changes"}
+                <button type="submit" disabled={isSaving} className={buttonPrimary}>
+                  {isSaving ? "Saving…" : "Save the numbers"}
                 </button>
               </div>
             </form>
@@ -568,187 +374,6 @@ export default function DashboardPage() {
         </div>
       )}
     </div>
-  );
-}
-
-//---------------------------------------------------------------------------------------------------------------------//
-
-//<summary>
-// Reusable dashboard components and UI helpers.
-//</summary>
-
-//---------------------------------------------------------------------------------------------------------------------//
-
-//<summary>
-// Reusable dashboard card container with an optional header action.
-//</summary>
-
-function Card({
-  title,
-  subtitle,
-  headerRight,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  headerRight?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border-t border-l border-slate-200/80 dark:border-slate-800 border-b-4 border-r-2 border-slate-300 dark:border-slate-700 shadow-lg shadow-black/10 dark:shadow-black/40 hover:shadow-xl hover:shadow-black/15 transition-all transform hover:-translate-y-0.5 p-5 h-full flex flex-col">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h2 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{title}</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
-        </div>
-        {headerRight}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-//---------------------------------------------------------------------------------------------------------------------//
-
-//<summary>
-// Displays loading, error or content state for a dashboard section.
-//</summary>
-function SectionBody<T>({
-  section,
-  children,
-}: {
-  section: Section<T>;
-  children: (data: T) => React.ReactNode;
-}) {
-  if (!section.loaded) {
-    return <p className="text-sm text-slate-500 dark:text-slate-400 py-8 text-center flex-1">Loading…</p>;
-  }
-  if (section.error || !section.data) {
-    return (
-      <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2 my-4">
-        {section.error || "Something went wrong."}
-      </p>
-    );
-  }
-  return <>{children(section.data)}</>;
-}
-
-//---------------------------------------------------------------------------------------------------------------//
-
-//<summary>
-// Displays an empty-state message inside a dashboard section.
-//</summary>
-
-function EmptyNote({ text }: { text: string }) {
-  return <p className="text-sm text-slate-500 dark:text-slate-400 py-6 text-center">{text}</p>;
-}
-
-//---------------------------------------------------------------------------------------------------------------//
-
-//<summary>
-// Displays a navigation link in a dashboard card header.
-//</summary>
-
-function LinkHeader({ href, text }: { href: string; text: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors group"
-    >
-      <span>{text}</span>
-      <svg
-        className="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M5 12h14" />
-        <path d="m12 5 7 7-7 7" />
-      </svg>
-    </Link>
-  );
-}
-
-//---------------------------------------------------------------------------------------------------------------//
-
-//<summary>
-// Dropdown used to select the dashboard year.
-//</summary>
-
-function YearDropdown({ value, onChange }: { value: number; onChange: (year: number) => void }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 transition-colors"
-      >
-        {value}
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
-      {open && (
-        <div className="absolute right-0 mt-1 w-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg z-10 overflow-hidden">
-          {YEARS.map((y) => (
-            <button
-              key={y}
-              onClick={() => {
-                onChange(y);
-                setOpen(false);
-              }}
-              className={`block w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-800 ${
-                y === value
-                  ? "text-blue-700 dark:text-blue-300 font-medium"
-                  : "text-slate-600 dark:text-slate-300"
-              }`}
-            >
-              {y}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-//---------------------------------------------------------------------------------------------------------------//
-
-//<summary>
-// Displays a coloured legend dot and its label.
-//</summary>
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <p className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-      {label}
-    </p>
-  );
-}
-
-//---------------------------------------------------------------------------------------------------------------//
-
-//<summary>
-// Displays a status badge using the appropriate status colour.
-//</summary>
-
-function StatusBadge({ status }: { status: string }) {
-  const styles =
-    status === "Confirmed" || status === "Completed"
-      ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
-      : status === "Pending" || status === "In Progress"
-      ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
-      : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300";
-
-  return (
-    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${styles}`}>
-      {status}
-    </span>
   );
 }
 
