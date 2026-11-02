@@ -1106,7 +1106,9 @@ function RosterMatrix({
               <tr key={v.id} className="hover:bg-tint/40 transition-colors">
                 <td className="py-3.5 px-4">
                   <div className="flex items-center gap-2.5">
-                    <PenguinFace size={30} />
+                    <div className="w-8 h-8 rounded-full bg-brand text-brand-ink font-black text-xs flex items-center justify-center shrink-0">
+                      {v.initials}
+                    </div>
                     <span className="font-extrabold text-ink-strong">{v.name}</span>
                   </div>
                 </td>

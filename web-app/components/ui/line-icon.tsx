@@ -26,6 +26,9 @@ export const ICONS = {
   chevronLeft: "M15 5l-7 7 7 7",
   chevronRightSm: "M9 5l7 7-7 7",
   location: "M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11ZM12 13.5a2.5 2.5 0 1 0 0-5a2.5 2.5 0 0 0 0 5Z",
+  calendar: "M4 6h16v14H4zM4 10h16M8.5 3.5v4M15.5 3.5v4",
+  edit: "M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4",
+  copy: "M8 8h12v12H8zM16 8V4H4v12h4",
 } as const;
 
 export function LineIcon({
