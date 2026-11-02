@@ -17,17 +17,20 @@ import {
 import { useAuth } from "../../lib/auth-context";
 import { useIsDark } from "../../lib/theme-context";
 import { fetchReportsData, ReportsData } from "../../lib/api/reports";
+import { card, buttonPrimary, buttonOutline } from "@/components/ui/styles";
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
-// Colour constants used throughout the Reports & Analytics page. The *_DARK
-// versions are lighter so the chart lines and slices stay visible on dark cards.
+// Colour constants used throughout the Reports & Analytics page. These are plain hex because
+// recharts takes colour props directly, not Tailwind classes — they're kept in step with the
+// brand/ok design tokens in globals.css (light values = :root, dark values = .dark).
+// The *_DARK versions are lighter so the chart lines and slices stay visible on dark cards.
 //</summary>
 //-----------------------------------------------------------------------------------------------//
-const BLUE = "#2563EB";
-const GREEN = "#16A34A";
-const BLUE_DARK = "#60A5FA";
-const GREEN_DARK = "#4ADE80";
+const BLUE = "#0B4A70";
+const GREEN = "#2E9A1E";
+const BLUE_DARK = "#7CC4F0";
+const GREEN_DARK = "#4CB83A";
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
@@ -57,18 +60,18 @@ export default function ReportsPage() {
 //-----------------------------------------------------------------------------------------------//
 //<summary>
 // Chart colours that Tailwind classes can't reach (recharts takes plain colour props).
-// Light values are exactly the originals, so light mode is unchanged.
+// Light values match the design tokens exactly, so light mode is unchanged.
 //</summary>
 //-----------------------------------------------------------------------------------------------//
-  const gridColor = isDark ? "#334155" : "#e2e8f0";
-  const tickColor = isDark ? "#94a3b8" : "#64748b";
+  const gridColor = isDark ? "#24394C" : "#e3e9ef";
+  const tickColor = isDark ? "#a9bccd" : "#3f5468";
   const lineBlue = isDark ? BLUE_DARK : BLUE;
   const lineGreen = isDark ? GREEN_DARK : GREEN;
-  const pieGapColor = isDark ? "#0f172a" : "#ffffff";
+  const pieGapColor = isDark ? "#10202f" : "#ffffff";
   const tooltipContentStyle = isDark
-    ? { backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: 8, color: "#e2e8f0" }
+    ? { backgroundColor: "#142838", border: "1px solid #24394c", borderRadius: 8, color: "#e6eef5" }
     : undefined;
-  const tooltipLabelStyle = isDark ? { color: "#e2e8f0" } : undefined;
+  const tooltipLabelStyle = isDark ? { color: "#e6eef5" } : undefined;
 
 //-----------------------------------------------------------------------------------------------//
 //<summary>
@@ -216,7 +219,7 @@ export default function ReportsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-slate-500 dark:text-slate-400 text-sm">Loading reports…</p>
+        <p className="text-ink-faint text-sm font-semibold">Loading reports…</p>
       </div>
     );
   }
@@ -229,7 +232,7 @@ export default function ReportsPage() {
   if (error || !data) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-red-600 dark:text-red-300 text-sm bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-4 py-3">
+        <p className="text-sm font-bold text-urgent-ink bg-urgent border border-urgent-line rounded-2xl px-4 py-3">
           {error || "Something went wrong."}
         </p>
       </div>
@@ -245,7 +248,7 @@ export default function ReportsPage() {
   const totalInCare = data.conservation.totalRescued - data.conservation.totalReleased;
 
   return (
-    <div className="bg-slate-100/80 dark:bg-slate-900/40 p-6 min-h-screen rounded-2xl space-y-6">
+    <div className="bg-surface-sunken p-6 min-h-screen rounded-3xl space-y-6">
       <style jsx global>{`
         @media print {
           body * {
@@ -267,24 +270,17 @@ export default function ReportsPage() {
       {/*------------------------------------ Page header: title and report export buttons ----------------------------------------------------*/}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Reports &amp; Analytics</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
+          <h1 className="text-2xl font-black text-ink-strong">Reports &amp; Analytics</h1>
+          <p className="text-ink-muted mt-1">
             Conservation impact and volunteer programme metrics
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportPDF}
-            className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-white hover:bg-slate-50 border border-blue-200 dark:text-blue-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-blue-900 rounded-lg px-3 py-2 transition-colors"
-          >
+          <button onClick={handleExportPDF} className={buttonOutline}>
             <DownloadIcon />
             Export PDF
           </button>
-          <button
-            onClick={handleExportExcel}
-            disabled={isExportingExcel}
-            className="flex items-center gap-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg px-3 py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <button onClick={handleExportExcel} disabled={isExportingExcel} className={buttonPrimary}>
             <DownloadIcon light />
             {isExportingExcel ? "Exporting…" : "Export Excel"}
           </button>
@@ -292,18 +288,18 @@ export default function ReportsPage() {
       </div>
 
       {/*------------------------------------ Report filters ----------------------------------------------------*/}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm px-5 py-3 flex items-center gap-4">
-        <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+      <div className={`${card} px-5 py-3 flex items-center gap-4`}>
+        <div className="flex items-center gap-1.5 text-ink-muted">
           <FilterIcon />
-          <span className="text-xs font-medium">Filters:</span>
+          <span className="text-xs font-bold">Filters:</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 dark:text-slate-400">Year:</span>
+          <span className="text-xs text-ink-muted">Year:</span>
           <select
             value={year}
             onChange={(e) => setYear(e.target.value)}
-            className="text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="text-xs font-bold text-ink bg-surface-muted border border-line rounded-md px-2 py-1.5 focus:outline-none focus:ring-4 focus:ring-focus/20 focus:border-focus"
           >
             <option value="2026">2026</option>
             <option value="2025">2025</option>
@@ -315,7 +311,7 @@ export default function ReportsPage() {
 
         <button
           onClick={handleReset}
-          className="ml-auto flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+          className="ml-auto flex items-center gap-1.5 text-xs font-bold text-ink-muted hover:text-ink-strong transition-colors"
         >
           <RefreshIcon />
           Reset
@@ -331,7 +327,7 @@ export default function ReportsPage() {
             trend={`Jan–${year === "2026" ? "Aug" : "Dec"} ${year}`}
             trendUp
             icon={<ClockIcon />}
-            iconBg="bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300"
+            iconBg="bg-tint text-brand"
           />
           <StatCard
             label="AVG ATTENDANCE RATE"
@@ -339,7 +335,7 @@ export default function ReportsPage() {
             trend="Across all shifts"
             trendUp
             icon={<UserCheckIcon />}
-            iconBg="bg-green-100 text-green-600 dark:bg-green-950/40 dark:text-green-300"
+            iconBg="bg-ok text-ok-ink"
           />
           <StatCard
             label="MISSED SHIFTS"
@@ -347,7 +343,7 @@ export default function ReportsPage() {
             trend={`Jan–${year === "2026" ? "Aug" : "Dec"} ${year}`}
             trendUp={false}
             icon={<AlertIcon />}
-            iconBg="bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-300"
+            iconBg="bg-urgent text-urgent-ink"
           />
           <StatCard
             label="ACTIVE VOLUNTEERS"
@@ -355,7 +351,7 @@ export default function ReportsPage() {
             trend="In programme"
             trendUp
             icon={<UsersIcon />}
-            iconBg="bg-purple-100 text-purple-600 dark:bg-purple-950/40 dark:text-purple-300"
+            iconBg="bg-surface-muted text-ink-strong"
           />
         </div>
 
@@ -365,7 +361,7 @@ export default function ReportsPage() {
               title="Monthly Volunteer Hours"
               subtitle={`Total hours logged per month — ${year}`}
               headerRight={
-                <span className="text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 dark:text-blue-300 dark:bg-blue-950/50 dark:border-blue-900 rounded-full px-2.5 py-1">
+                <span className="text-xs font-bold text-brand bg-tint border border-line rounded-full px-2.5 py-1">
                   {totalMonthlyHours.toLocaleString()} hrs total
                 </span>
               }
@@ -411,23 +407,23 @@ export default function ReportsPage() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">{data.conservation.percentReleased}%</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Released</span>
+                  <span className="text-2xl font-black text-ink-strong">{data.conservation.percentReleased}%</span>
+                  <span className="text-xs text-ink-muted">Released</span>
                 </div>
               </div>
 
               <div className="w-full mt-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <LegendDot color={lineGreen} label="Released" />
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{data.conservation.totalReleased}</span>
+                  <span className="font-bold text-ink-strong">{data.conservation.totalReleased}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <LegendDot color={lineBlue} label="In Care" />
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{totalInCare}</span>
+                  <span className="font-bold text-ink-strong">{totalInCare}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-500 dark:text-slate-400">Total Rescued</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{data.conservation.totalRescued}</span>
+                <div className="flex items-center justify-between text-sm pt-2 border-t border-line-soft">
+                  <span className="text-ink-muted">Total Rescued</span>
+                  <span className="font-bold text-ink-strong">{data.conservation.totalRescued}</span>
                 </div>
               </div>
             </div>
@@ -458,7 +454,7 @@ export default function ReportsPage() {
         <Card title={`Top Contributors — ${year}`} subtitle="Volunteers with the most logged hours">
           <div className="space-y-3">
             {data.topContributors.length === 0 && (
-              <p className="text-sm text-slate-400 dark:text-slate-500">No contributor data available yet.</p>
+              <p className="text-sm text-ink-faint">No contributor data available yet.</p>
             )}
             {data.topContributors.map((contributor, index) => {
               const initial = contributor.name?.charAt(0)?.toUpperCase() ?? "?";
@@ -467,19 +463,19 @@ export default function ReportsPage() {
 
               return (
                 <div key={`${contributor.name}-${index}`} className="flex items-center gap-3">
-                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 w-4">{index + 1}</span>
-                  <div className="w-8 h-8 rounded-full bg-blue-700 dark:bg-blue-800 text-white flex items-center justify-center text-xs font-semibold shrink-0">
+                  <span className="text-xs font-bold text-ink-faint w-4">{index + 1}</span>
+                  <div className="w-8 h-8 rounded-full bg-brand text-brand-ink flex items-center justify-center text-xs font-black shrink-0">
                     {initial}
                   </div>
                   <div className="flex-1">
-                    <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-surface-sunken rounded-full overflow-hidden">
                       <div
-                        className={`h-2 rounded-full ${isTop ? "bg-green-600 dark:bg-green-500" : "bg-blue-600 dark:bg-blue-500"}`}
+                        className={`h-2 rounded-full ${isTop ? "bg-ok-bar" : "bg-brand"}`}
                         style={{ width: `${widthPercent}%` }}
                       />
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 w-16 text-right">
+                  <span className="text-sm font-bold text-ink-strong w-16 text-right">
                     {contributor.hours} hrs
                   </span>
                   {isTop && <StarIcon />}
@@ -512,11 +508,11 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border-t border-l border-slate-200/80 border-b-4 border-r-2 border-slate-300 dark:border-slate-700 shadow-lg shadow-black/10 hover:shadow-xl hover:shadow-black/15 transition-all transform hover:-translate-y-0.5 p-5 h-full flex flex-col">
+    <div className={`${card} shadow-sm p-5 h-full flex flex-col`}>
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h2 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{title}</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
+          <h2 className="font-extrabold text-ink-strong text-sm">{title}</h2>
+          <p className="text-xs text-ink-muted">{subtitle}</p>
         </div>
         {headerRight}
       </div>
@@ -546,13 +542,13 @@ function StatCard({
   iconBg: string;
 }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
+    <div className={`${card} p-5`}>
       <div className="flex items-start justify-between mb-3">
-        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wide">{label}</span>
+        <span className="text-[11px] font-extrabold text-ink-muted tracking-wide">{label}</span>
         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${iconBg}`}>{icon}</div>
       </div>
-      <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
-      <p className={`text-xs mt-1 flex items-center gap-1 ${trendUp ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
+      <p className="text-3xl font-black text-ink-strong">{value}</p>
+      <p className={`text-xs mt-1 flex items-center gap-1 font-semibold ${trendUp ? "text-ok-ink" : "text-urgent-ink"}`}>
         {trendUp ? <TrendUpIcon /> : <TrendDownIcon />}
         {trend}
       </p>
@@ -567,7 +563,7 @@ function StatCard({
 //-----------------------------------------------------------------------------------------------//
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <p className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+    <p className="flex items-center gap-1.5 text-ink-muted">
       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
       {label}
     </p>
@@ -641,7 +637,7 @@ function TrendDownIcon() {
 
 function DownloadIcon({ light = false }: { light?: boolean }) {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={light ? "white" : "currentColor"} strokeWidth="2.5">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={light ? "currentColor" : "currentColor"} strokeWidth="2.5">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <path d="M7 10l5 5 5-5" />
       <path d="M12 15V3" />
