@@ -29,6 +29,7 @@ export const ICONS = {
   calendar: "M4 6h16v14H4zM4 10h16M8.5 3.5v4M15.5 3.5v4",
   edit: "M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4",
   copy: "M8 8h12v12H8zM16 8V4H4v12h4",
+  search: "M11 3.5a7.5 7.5 0 1 0 0 15a7.5 7.5 0 1 0 0-15ZM21 21l-4.3-4.3",
 } as const;
 
 export function LineIcon({
