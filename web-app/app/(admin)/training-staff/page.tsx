@@ -7,11 +7,13 @@ import {
   fetchTrainingVolunteers,
   fetchTrainingDashboard,
   fetchTrainingVolunteerProfile,
+  fetchTrainerPin,
+  resetTrainerPin,
   TrainingVolunteerSummary,
   TrainingDashboard,
   TrainingVolunteerProfile,
 } from "../../lib/api/training_staff";
-import { apiFetch, isUnauthorized } from "../../lib/api/http";
+import { apiFetch, isUnauthorized, ApiError } from "../../lib/api/http";
 import { ModalOverlay } from "@/components/shifts/ShiftFormModal";
 import { card, cardTitle, buttonPrimary, buttonOutline, input } from "@/components/ui/styles";
 import { ICONS, LineIcon } from "@/components/ui/line-icon";
@@ -23,7 +25,8 @@ type TrainerStatus = "active" | "inactive";
 
 //<summary>
 // Trainer shapes for /api/trainers (TrainerDto, CreateTrainerDto, UpdateTrainerDto).
-// Email, phone and status are real backend fields now.
+// Email, phone and status are real backend fields now. TrainerCreated is the POST response,
+// which also carries the generated PIN (shown once in a modal, never kept in the list).
 //</summary>
 interface Trainer {
   trainerId: number;
@@ -32,6 +35,10 @@ interface Trainer {
   email: string | null;
   phone: string | null;
   status: string | null;
+}
+
+interface TrainerCreated extends Trainer {
+  pin: string | null;
 }
 
 interface CreateTrainerDto {
@@ -63,6 +70,8 @@ const STATUS_OPTIONS: TrainerStatus[] = ["active", "inactive"];
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
+const PIN_MASK = "••••••";
+
 //<summary>
 // A trainer counts as Active only when the backend says so.
 //</summary>
@@ -80,7 +89,8 @@ const statusForUpdate = (t: Trainer): TrainerStatus | null =>
 //<summary>
 // Staff Training page. Two tabs:
 // - Volunteers: stat cards and each volunteer's training progress, with a link to their history.
-// - Trainers: create, edit, activate/deactivate and delete the staff members who sign off training.
+// - Trainers: create, view, edit, activate/deactivate and delete the staff members who sign off
+//   training, and reveal or reset each trainer's PIN.
 //</summary>
 export default function TrainingStaffPage() {
   const { token, logout } = useAuth();
@@ -107,6 +117,31 @@ export default function TrainingStaffPage() {
   const [trainersLoading, setTrainersLoading] = useState(false);
   const [trainersError, setTrainersError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // State for trainer PINs. PINs live only in memory while revealed (trainerId -> PIN) and are
+  // cleared on hide, on closing the profile modal and on switching tabs. noPinIds holds trainers
+  // the backend has no readable PIN for (older trainers whose PIN was hashed) so the row offers
+  // a reset instead. Never put a PIN in localStorage/sessionStorage or console.log.
+  //</summary>
+  const [revealedPins, setRevealedPins] = useState<Record<number, string>>({});
+  const [noPinIds, setNoPinIds] = useState<number[]>([]);
+  const [pinLoadingId, setPinLoadingId] = useState<number | null>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
+
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // State for the PIN modals: the one-time "trainer created" PIN, the View Profile modal,
+  // and the Reset PIN confirmation.
+  //</summary>
+  const [createdPin, setCreatedPin] = useState<{ name: string; pin: string } | null>(null);
+  const [viewingTrainer, setViewingTrainer] = useState<Trainer | null>(null);
+  const [resettingTrainer, setResettingTrainer] = useState<Trainer | null>(null);
+  const [isResettingPin, setIsResettingPin] = useState(false);
+  const [resetPinError, setResetPinError] = useState<string | null>(null);
 
   //-------------------------------------------------------------------------------------------//
 
@@ -219,6 +254,27 @@ export default function TrainingStaffPage() {
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
+  // Forgets every revealed PIN and any PIN error (hide all). Used when leaving the tab or
+  // closing the profile modal.
+  //</summary>
+  const clearPins = () => {
+    setRevealedPins({});
+    setPinError(null);
+  };
+
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Switches tab and hides any revealed PINs.
+  //</summary>
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    clearPins();
+  };
+
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
   // Opens the training history modal for a volunteer.
   //</summary>
   const handleOpenHistory = async (userId: number) => {
@@ -237,8 +293,82 @@ export default function TrainingStaffPage() {
   //-------------------------------------------------------------------------------------------//
 
   //<summary>
-  // Creates a trainer (name, email and phone all go to the API). Clears the form and
-  // refreshes the table on success.
+  // Eye button. If the PIN is showing, hides it. Otherwise fetches it from
+  // GET /api/trainers/{id}/pin and shows it. An empty PIN (or a 404) means the trainer has no
+  // readable PIN, so the row offers "Reset PIN" instead.
+  //</summary>
+  const handleTogglePin = async (t: Trainer) => {
+    const id = t.trainerId;
+    if (revealedPins[id] !== undefined) {
+      setRevealedPins((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      return;
+    }
+    if (pinLoadingId !== null) return;
+    setPinLoadingId(id);
+    setPinError(null);
+    try {
+      const res = await fetchTrainerPin(id, token);
+      if (res?.pin) {
+        setRevealedPins((prev) => ({ ...prev, [id]: res.pin as string }));
+        setNoPinIds((prev) => prev.filter((x) => x !== id));
+      } else {
+        setNoPinIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      }
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        logout();
+        return;
+      }
+      if (err instanceof ApiError && err.status === 404) {
+        setNoPinIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      } else {
+        setPinError(err instanceof Error ? err.message : "Unable to load trainer PIN");
+      }
+    } finally {
+      setPinLoadingId(null);
+    }
+  };
+
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Confirms a PIN reset: calls PUT /api/trainers/{id}/reset-pin, then shows the new PIN in the
+  // row and profile modal. The old PIN stops working. Errors are shown in the confirm modal.
+  //</summary>
+  const handleResetPin = async () => {
+    if (!resettingTrainer) return;
+    const id = resettingTrainer.trainerId;
+    setResetPinError(null);
+    setIsResettingPin(true);
+    try {
+      const res = await resetTrainerPin(id, token);
+      if (!res?.pin) {
+        setResetPinError("The server did not return a new PIN.");
+        return;
+      }
+      setRevealedPins((prev) => ({ ...prev, [id]: res.pin as string }));
+      setNoPinIds((prev) => prev.filter((x) => x !== id));
+      setResettingTrainer(null);
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        logout();
+        return;
+      }
+      setResetPinError(err instanceof Error ? err.message : "Unable to reset trainer PIN");
+    } finally {
+      setIsResettingPin(false);
+    }
+  };
+
+  //-------------------------------------------------------------------------------------------//
+
+  //<summary>
+  // Creates a trainer (name, email and phone all go to the API). The response carries the
+  // generated PIN, which is shown once in a modal. Clears the form and refreshes the table.
   //</summary>
   const handleCreateTrainer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,7 +381,7 @@ export default function TrainingStaffPage() {
         email: trainerEmail.trim() || null,
         phone: trainerPhone.trim() || null,
       };
-      await apiFetch<Trainer>(
+      const created = await apiFetch<TrainerCreated>(
         "/api/trainers",
         token,
         { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(payload) },
@@ -262,6 +392,12 @@ export default function TrainingStaffPage() {
       setTrainerLastName("");
       setTrainerEmail("");
       setTrainerPhone("");
+      if (created?.pin) {
+        setCreatedPin({
+          name: `${payload.firstName} ${payload.lastName}`.trim(),
+          pin: created.pin,
+        });
+      }
       await loadTrainers();
     } catch (err) {
       if (isUnauthorized(err)) {
@@ -445,7 +581,7 @@ export default function TrainingStaffPage() {
         {TABS.map((tab) => (
           <button
             key={tab.value}
-            onClick={() => setActiveTab(tab.value)}
+            onClick={() => handleTabChange(tab.value)}
             className={`rounded-full px-5 py-2.5 text-sm font-extrabold transition-all flex items-center gap-2 ${
               activeTab === tab.value
                 ? "bg-surface text-ink-strong shadow-sm"
@@ -534,6 +670,12 @@ export default function TrainingStaffPage() {
             </div>
           )}
 
+          {pinError && !viewingTrainer && (
+            <div className="mb-4 p-4 rounded-2xl bg-urgent border border-urgent-line text-sm font-bold text-urgent-ink">
+              {pinError}
+            </div>
+          )}
+
           {/* Trainers list */}
           <div className={card}>
             {trainersLoading ? (
@@ -544,6 +686,9 @@ export default function TrainingStaffPage() {
               trainers.map((t, i) => {
                 const status: TrainerStatus = isActive(t) ? "active" : "inactive";
                 const isToggling = togglingId === t.trainerId;
+                const pin = revealedPins[t.trainerId];
+                const hasNoPin = noPinIds.includes(t.trainerId);
+                const isPinLoading = pinLoadingId === t.trainerId;
                 return (
                   <div
                     key={t.trainerId}
@@ -569,6 +714,42 @@ export default function TrainingStaffPage() {
                       </p>
                     </div>
 
+                    {/* PIN column: masked until the admin asks to see it */}
+                    <div className="flex items-center gap-2 min-w-[150px]">
+                      <span className="text-xs font-extrabold text-ink-muted uppercase tracking-wide">PIN</span>
+                      {hasNoPin ? (
+                        <>
+                          <span className="text-xs font-bold text-ink-faint">No PIN set</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setResettingTrainer(t);
+                              setResetPinError(null);
+                            }}
+                            className="text-xs font-black text-brand underline"
+                          >
+                            Reset PIN
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-mono font-black tracking-widest text-ink-strong min-w-[4.5rem]">
+                            {pin ?? PIN_MASK}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePin(t)}
+                            disabled={isPinLoading}
+                            aria-label={pin ? `Hide PIN for ${fullName(t)}` : `Show PIN for ${fullName(t)}`}
+                            title={pin ? "Hide PIN" : "Show PIN"}
+                            className="p-2 rounded-xl text-ink-muted hover:bg-tint hover:text-brand transition-colors disabled:opacity-60"
+                          >
+                            <LineIcon d={pin ? ICONS.eyeOff : ICONS.eye} size={18} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+
                     {/* Active / Inactive toggle (saved to the backend) */}
                     <div className="inline-flex rounded-full bg-surface-muted p-1">
                       {STATUS_OPTIONS.map((option) => (
@@ -590,8 +771,20 @@ export default function TrainingStaffPage() {
                       ))}
                     </div>
 
-                    {/* Edit / delete actions */}
+                    {/* View / edit / delete actions */}
                     <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setViewingTrainer(t);
+                          setPinError(null);
+                        }}
+                        aria-label={`View ${fullName(t)}`}
+                        title="View profile"
+                        className="p-2.5 rounded-xl text-ink-muted hover:bg-tint hover:text-brand transition-colors"
+                      >
+                        <LineIcon d={ICONS.user} size={18} />
+                      </button>
                       <button
                         type="button"
                         onClick={() => openEditTrainer(t)}
@@ -710,6 +903,10 @@ export default function TrainingStaffPage() {
               </div>
             </div>
 
+            <p className="text-xs font-semibold text-ink-muted">
+              A PIN is generated automatically and shown once the trainer is created.
+            </p>
+
             {createTrainerError && (
               <p className="text-sm font-bold text-urgent-ink bg-urgent border border-urgent-line rounded-2xl px-4 py-2.5">
                 {createTrainerError}
@@ -725,6 +922,178 @@ export default function TrainingStaffPage() {
               </button>
             </div>
           </form>
+        </ModalOverlay>
+      )}
+
+      {/*------------------------- Trainer created (PIN) modal ---------------------------------*/}
+
+      {createdPin && (
+        <ModalOverlay onClose={() => setCreatedPin(null)}>
+          <h2 className={`${cardTitle} mb-2`}>Trainer created</h2>
+          <p className="text-sm font-semibold text-ink mb-4">
+            {createdPin.name} can now sign off skills on the mobile app with this PIN. You can view it
+            again later from the Trainers tab.
+          </p>
+          <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-muted px-5 py-4 mb-5">
+            <span className="font-mono text-3xl font-black tracking-[0.3em] text-ink-strong">
+              {createdPin.pin}
+            </span>
+            <CopyPinButton pin={createdPin.pin} />
+          </div>
+          <div className="flex justify-end">
+            <button type="button" onClick={() => setCreatedPin(null)} className={buttonPrimary}>
+              Done
+            </button>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/*------------------------- View Trainer profile modal ---------------------------------*/}
+
+      {viewingTrainer && (
+        <ModalOverlay
+          onClose={() => {
+            setViewingTrainer(null);
+            clearPins();
+          }}
+        >
+          <div className="flex items-center justify-between mb-5">
+            <h2 className={cardTitle}>Trainer profile</h2>
+            <button
+              type="button"
+              onClick={() => {
+                setViewingTrainer(null);
+                clearPins();
+              }}
+              className="text-ink-muted hover:text-ink-strong"
+              aria-label="Close"
+            >
+              <LineIcon d={ICONS.close} size={20} />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4 mb-5">
+            <div className="w-14 h-14 rounded-full bg-brand text-brand-ink font-black text-lg flex items-center justify-center shrink-0">
+              {initialsOf(viewingTrainer.firstName, viewingTrainer.lastName)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-lg font-black text-ink-strong">{fullName(viewingTrainer)}</p>
+              <span
+                className={`inline-block mt-1 text-xs font-extrabold rounded-full px-2.5 py-0.5 capitalize ${
+                  isActive(viewingTrainer) ? "bg-ok text-ok-ink" : "bg-surface-muted text-ink-muted"
+                }`}
+              >
+                {isActive(viewingTrainer) ? "active" : "inactive"}
+              </span>
+            </div>
+          </div>
+
+          <dl className="space-y-3 mb-5">
+            <div>
+              <dt className="text-xs font-extrabold text-ink-muted uppercase tracking-wide">Email</dt>
+              <dd className="text-sm font-semibold text-ink-strong">{viewingTrainer.email || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-extrabold text-ink-muted uppercase tracking-wide">Phone</dt>
+              <dd className="text-sm font-semibold text-ink-strong">{viewingTrainer.phone || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-extrabold text-ink-muted uppercase tracking-wide mb-1">PIN</dt>
+              <dd>
+                {noPinIds.includes(viewingTrainer.trainerId) ? (
+                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-muted px-4 py-3">
+                    <span className="text-sm font-bold text-ink-muted">No PIN set</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResettingTrainer(viewingTrainer);
+                        setResetPinError(null);
+                      }}
+                      className={buttonOutline}
+                    >
+                      Reset PIN
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 rounded-2xl bg-surface-muted px-4 py-2">
+                    <span className="font-mono text-xl font-black tracking-[0.3em] text-ink-strong">
+                      {revealedPins[viewingTrainer.trainerId] ?? PIN_MASK}
+                    </span>
+                    <div className="flex items-center">
+                      {revealedPins[viewingTrainer.trainerId] && (
+                        <CopyPinButton pin={revealedPins[viewingTrainer.trainerId]} />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePin(viewingTrainer)}
+                        disabled={pinLoadingId === viewingTrainer.trainerId}
+                        aria-label={revealedPins[viewingTrainer.trainerId] ? "Hide PIN" : "Show PIN"}
+                        title={revealedPins[viewingTrainer.trainerId] ? "Hide PIN" : "Show PIN"}
+                        className="p-2.5 rounded-xl text-ink-muted hover:bg-tint hover:text-brand transition-colors disabled:opacity-60"
+                      >
+                        <LineIcon d={revealedPins[viewingTrainer.trainerId] ? ICONS.eyeOff : ICONS.eye} size={18} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </dd>
+            </div>
+          </dl>
+
+          {pinError && (
+            <p className="text-sm font-bold text-urgent-ink bg-urgent border border-urgent-line rounded-2xl px-4 py-2.5 mb-4">
+              {pinError}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setResettingTrainer(viewingTrainer);
+                setResetPinError(null);
+              }}
+              className={buttonOutline}
+            >
+              Reset PIN
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setViewingTrainer(null);
+                clearPins();
+              }}
+              className={buttonPrimary}
+            >
+              Close
+            </button>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/*------------------------- Reset PIN confirmation modal ---------------------------------*/}
+
+      {resettingTrainer && (
+        <ModalOverlay onClose={() => setResettingTrainer(null)}>
+          <h2 className={`${cardTitle} mb-2`}>Reset PIN?</h2>
+          <p className="text-sm font-semibold text-ink mb-4">
+            {fullName(resettingTrainer)} gets a new PIN and the current one stops working straight away.
+          </p>
+
+          {resetPinError && (
+            <p className="text-sm font-bold text-urgent-ink bg-urgent border border-urgent-line rounded-2xl px-4 py-2.5 mb-4">
+              {resetPinError}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setResettingTrainer(null)} className={buttonOutline}>
+              Cancel
+            </button>
+            <button type="button" onClick={handleResetPin} disabled={isResettingPin} className={buttonPrimary}>
+              {isResettingPin ? "Resetting..." : "Reset PIN"}
+            </button>
+          </div>
         </ModalOverlay>
       )}
 
@@ -860,6 +1229,38 @@ export default function TrainingStaffPage() {
         </ModalOverlay>
       )}
     </div>
+  );
+}
+
+//---------------------------------------------------------------//
+
+//<summary>
+// Copies a PIN to the clipboard and briefly swaps the copy icon for a tick.
+// The PIN is only passed in as a prop; nothing is stored or logged.
+//</summary>
+function CopyPinButton({ pin }: { pin: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(pin);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      aria-label="Copy PIN"
+      title={copied ? "Copied" : "Copy PIN"}
+      className="p-2.5 rounded-xl text-ink-muted hover:bg-tint hover:text-brand transition-colors"
+    >
+      <LineIcon d={copied ? ICONS.check : ICONS.copy} size={18} />
+    </button>
   );
 }
 

@@ -200,4 +200,35 @@ export async function deleteTrainer(trainerId: number, token: string | null): Pr
   }, "Unable to delete trainer");
 }
 
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// A trainer's PIN as returned by GET /api/trainers/{trainerId}/pin and
+// PUT /api/trainers/{trainerId}/reset-pin. Never log or store this value.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+export interface TrainerPin {
+  trainerId: number;
+  pin: string | null;
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// GET /api/trainers/{trainerId}/pin
+// Fetches one trainer's PIN (admin only). Called only when the admin asks to see it.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+export async function fetchTrainerPin(trainerId: number, token: string | null): Promise<TrainerPin> {
+  return apiFetch<TrainerPin>(`/api/trainers/${trainerId}/pin`, token, { method: "GET" }, "Unable to load trainer PIN");
+}
+
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// PUT /api/trainers/{trainerId}/reset-pin
+// Generates a new PIN for the trainer (the old one stops working) and returns it.
+//</summary>
+//-----------------------------------------------------------------------------------------------//
+export async function resetTrainerPin(trainerId: number, token: string | null): Promise<TrainerPin> {
+  return apiFetch<TrainerPin>(`/api/trainers/${trainerId}/reset-pin`, token, { method: "PUT" }, "Unable to reset trainer PIN");
+}
+
 //------------------------------------0-0-0- End Of File -0-0-0------------------------------------------------------//
