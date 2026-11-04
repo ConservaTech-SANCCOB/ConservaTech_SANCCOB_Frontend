@@ -1,0 +1,121 @@
+﻿web-app/
+|-- .swc/
+|   \-- plugins/
+|       \-- windows_x86_64_30.0.1/
+|-- __tests__/
+|   |-- AdminLayout.test.tsx
+|   |-- AttendanceModal.test.tsx
+|   |-- authApi.test.ts
+|   |-- AuthProvider.test.tsx
+|   |-- centreWeek.test.ts
+|   |-- http.test.ts
+|   |-- LoginPage.test.tsx
+|   |-- reportsApi.test.ts
+|   |-- ShiftFormModal.test.tsx
+|   |-- ShiftsPage.test.tsx
+|   |-- shiftsRosterApi.test.ts
+|   |-- userDisplay.test.ts
+|   |-- VacanciesList.test.tsx
+|   |-- volunteersApi.test.ts
+|   \-- VolunteersPage.test.tsx
+|-- app/
+|   |-- (admin)/
+|   |   |-- dashboard/
+|   |   |   \-- page.tsx
+|   |   |-- reports/
+|   |   |   \-- page.tsx
+|   |   |-- roster/
+|   |   |   \-- page.tsx
+|   |   |-- settings/
+|   |   |   \-- page.tsx
+|   |   |-- shifts/
+|   |   |   \-- page.tsx
+|   |   |-- training-staff/
+|   |   |   \-- page.tsx
+|   |   |-- vacancies/
+|   |   |   \-- page.tsx
+|   |   |-- volunteers/
+|   |   |   \-- page.tsx
+|   |   \-- layout.tsx
+|   |-- (display)/
+|   |   |-- room/
+|   |   |   \-- page.tsx
+|   |   \-- layout.tsx
+|   |-- authentication/
+|   |   \-- login/
+|   |       \-- page.tsx
+|   |-- lib/
+|   |   |-- api/
+|   |   |   |-- admin_profile.ts
+|   |   |   |-- auth.ts
+|   |   |   |-- dashboard.ts
+|   |   |   |-- http.ts
+|   |   |   |-- notifications.ts
+|   |   |   |-- reports.ts
+|   |   |   |-- roster.ts
+|   |   |   |-- shifts.ts
+|   |   |   |-- training_staff.ts
+|   |   |   \-- volunteers.ts
+|   |   |-- auth-context.tsx
+|   |   |-- centre-week.ts
+|   |   |-- theme-context.tsx
+|   |   |-- use-centre-week.ts
+|   |   |-- use-notifications.ts
+|   |   |-- user-display.ts
+|   |   \-- use-section.ts
+|   |-- favicon.ico
+|   |-- globals.css
+|   |-- layout.tsx
+|   \-- page.tsx
+|-- components/
+|   |-- dashboard/
+|   |   |-- attention-card.tsx
+|   |   |-- change-requests.tsx
+|   |   |-- hero.tsx
+|   |   |-- side-cards.tsx
+|   |   |-- today-at-centre.tsx
+|   |   \-- week-tiles.tsx
+|   |-- layout/
+|   |   |-- admin-guard.tsx
+|   |   |-- sidebar.tsx
+|   |   \-- topbar.tsx
+|   |-- roster/
+|   |   \-- AssignmentModals.tsx
+|   |-- shifts/
+|   |   \-- ShiftFormModal.tsx
+|   |-- training-staff/
+|   |   \-- TrainingHistoryModal.tsx
+|   |-- ui/
+|   |   |-- line-icon.tsx
+|   |   |-- penguin.tsx
+|   |   |-- slot-chip.tsx
+|   |   \-- styles.tsx
+|   |-- volunteers/
+|   |   \-- AttendanceModal.tsx
+|   \-- VacanciesList.tsx
+|-- public/
+|   |-- file.svg
+|   |-- globe.svg
+|   |-- login-hero.png
+|   |-- next.svg
+|   |-- sanccob-logo.jpeg
+|   |-- slideshow-image-1.png
+|   |-- slideshow-image-2.png
+|   |-- slideshow-image-3.png
+|   |-- vercel.svg
+|   \-- window.svg
+|-- .env.local
+|-- .gitignore
+|-- AGENTS.md
+|-- CLAUDE.md
+|-- eslint.config.mjs
+|-- jest.config.mjs
+|-- jest.setup.ts
+|-- next.config.ts
+|-- next-env.d.ts
+|-- package.json
+|-- package-lock.json
+|-- postcss.config.mjs
+|-- README.md
+|-- tsconfig.json
+\-- tsconfig.tsbuildinfo
