@@ -20,6 +20,7 @@ import {
   RemoveAssignmentModal,
 } from "../../../components/roster/AssignmentModals";
 import { ICONS, LineIcon } from "../../../components/ui/line-icon";
+import { isActiveAssignment } from "../../lib/assignment-status";
 import { buttonOutline, buttonPrimary, card, cardTitle } from "../../../components/ui/styles";
 
 // Helper: Get Monday of the current or given week, normalized to local
@@ -89,6 +90,7 @@ export default function RosterPage() {
   // can look up each assigned volunteer's name and initials.
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
+
   // Only used to show "X volunteers assigned" per shift card below. Fetched
   // separately because /api/Vacancies never returns a shift that's already
   // fully booked (see shiftAssignedInfo()).
@@ -97,9 +99,17 @@ export default function RosterPage() {
   const [roster, setRoster] = useState<Roster | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+   // Every live assignment (anything but "Vacant"). Used for the grid, the eligibility checks and
+  // the delete count, so "Conflict" rows stay visible and can be fixed.
   const assignments: RosterAssignment[] = (roster?.assignments ?? []).filter(
-  (a) => a.status?.toLowerCase() !== "vacant"
+    (a) => a.status?.toLowerCase() !== "vacant"
   );
+
+  // Only "Assigned" rows use up shift capacity (same rule as the backend's staffing counts).
+  // "Conflict" rows are unresolved: shown, but not counted.
+  const countedAssignments = assignments.filter((a) => isActiveAssignment(a.status));
+  const conflictCount = assignments.length - countedAssignments.length;
+  
 
   // Wizard States
   const [step, setStep] = useState<1 | 2>(1);
@@ -176,15 +186,18 @@ const reloadRoster = async () => {
   if (!token) return;
   const weekStr = formatDateISO(currentWeekStart);
   try {
-    const [rData, vacData] = await Promise.all([
+      const [rData, vacData, sData] = await Promise.all([
       fetchWeeklyRoster(token, weekStr).catch((err) => {
         if (err instanceof ApiError && err.status === 404) return null;
         throw err;
       }),
       fetchVacanciesForWeek(token, weekStr).catch(() => []),
+      // Staffing counts now come with the shifts, so refresh them too.
+      fetchShiftsForWeek(token, weekStr).catch(() => null),
     ]);
     setRoster(rData);
     setVacancies(vacData);
+    if (sData) setShifts(sData);
   } catch (err) {
     console.error("Failed to refresh roster", err);
   }
@@ -300,7 +313,7 @@ const reloadRoster = async () => {
 // capacity. Assigned counts come from this roster's active assignments, so
 // they stay accurate after add / remove / swap.
 const assignedPerShift = new Map<number, number>();
-assignments.forEach((a) => {
+countedAssignments.forEach((a) => {
   assignedPerShift.set(a.shiftId, (assignedPerShift.get(a.shiftId) ?? 0) + 1);
 });
 
@@ -310,7 +323,7 @@ const filledCount = shifts.filter(
 ).length;
 const unfilledCount = totalShiftCount - filledCount;
   // Distinct volunteers actually on this week's roster (not just the pool).
-  const scheduledVolunteerCount = new Set(assignments.map((a) => a.userId)).size;
+  const scheduledVolunteerCount = new Set(countedAssignments.map((a) => a.userId)).size;
 
   return (
     <div className="space-y-6">
@@ -438,6 +451,13 @@ const unfilledCount = totalShiftCount - filledCount;
           </div>
 
           {/*------------------------------------ Roster Calendar Matrix ----------------------------------------------------*/}
+
+          {conflictCount > 0 && (
+            <div className="font-bold text-warn-ink bg-warn border border-warn-line px-4 py-3 rounded-2xl">
+              {conflictCount} assignment{conflictCount === 1 ? " has" : "s have"} a conflict. They are
+              shown in amber and are not counted as staffed.
+            </div>
+          )}
 
           {isLoading ? (
             <div className="py-16 text-center text-ink-faint font-semibold">Loading week roster…</div>
@@ -919,7 +939,6 @@ function shiftSessionLabel(timeSlot: string): string {
 }
 
 // /api/Vacancies never returns a shift with 0 remaining capacity, so a shift
-// with no matching vacancy entry is treated as fully assigned same default
 // used elsewhere in this project for that gap.
 //-----------------------------------------------------------------------------------------------//
 //<summary>
@@ -930,6 +949,11 @@ function shiftAssignedInfo(
   shift: Shift,
   vacancies: Vacancy[]
 ): { assigned: number; capacity: number } {
+    // The backend now sends the staffing count on the shift itself (Assigned rows only). Use it
+  // first; fall back to the vacancy list, then to "full", only if the count isn't there.
+  if (shift.assignedVolunteers != null) {
+    return { assigned: shift.assignedVolunteers, capacity: shift.capacity };
+  }
   const match = vacancies.find((v) => v.shiftId === shift.shiftId);
   if (match) {
     return { assigned: match.assignedVolunteers, capacity: match.capacity };
@@ -1122,7 +1146,11 @@ function RosterMatrix({
                           {cell.map((a) => (
                             <div
                               key={a.rosterAssignmentId}
-                              className="bg-ok text-ok-ink p-2.5 rounded-2xl text-xs font-extrabold space-y-0.5"
+                                className={`p-2.5 rounded-2xl text-xs font-extrabold space-y-0.5 ${
+                                isActiveAssignment(a.status)
+                                  ? "bg-ok text-ok-ink"
+                                  : "bg-warn text-warn-ink border border-warn-line"
+                              }`}
                             >
                               <p className="text-[11px] font-semibold opacity-80">{a.timeSlot}</p>
                               <p>{a.location ?? "—"}</p>

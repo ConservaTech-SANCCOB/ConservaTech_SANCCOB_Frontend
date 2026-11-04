@@ -8,7 +8,14 @@ import VacanciesList from "../../../components/VacanciesList";
 import { card, buttonPrimary } from "@/components/ui/styles";
 import { ICONS, LineIcon } from "@/components/ui/line-icon";
 
-
+//-----------------------------------------------------------------------------------------------//
+//<summary>
+// Today's date as "YYYY-MM-DD" on the LOCAL calendar (never toISOString, which shifts the day in UTC+2).
+//</summary>
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 //-----------------------------------------------------------------------------------------------//
 //<summary>
 // Main page component for viewing, filtering, and creating vacancies in the web app
@@ -54,29 +61,54 @@ export default function VacanciesPage() {
     setIsCreateModalOpen(false);
   }
 
+    // Staffing now comes from GET /api/Shifts (assignedVolunteers / vacanciesAvailable), so a shift
+  // with no roster is no longer mistaken for a full one. Only upcoming shifts are listed, so past
+  // shifts don't show up as vacancies. If the backend hasn't sent the counts yet, fall back to
+  // the old behaviour (the GET /api/Vacancies list).
+  const { openShifts, upcomingCount } = useMemo(() => {
+    const hasCounts = allShifts.length > 0 && allShifts.every((s) => s.vacanciesAvailable != null);
+    if (!hasCounts) return { openShifts: vacancies, upcomingCount: allShifts.length };
+
+    const today = todayKey();
+    const upcoming = allShifts.filter((s) => s.shiftDate.slice(0, 10) >= today);
+    const open: Vacancy[] = upcoming
+      .filter((s) => (s.vacanciesAvailable ?? 0) > 0)
+      .map((s) => ({
+        shiftId: s.shiftId,
+        shiftDate: s.shiftDate,
+        timeSlot: s.timeSlot,
+        location: s.location,
+        birdCount: s.birdCount ?? 0,
+        capacity: s.capacity,
+        assignedVolunteers: s.assignedVolunteers ?? 0,
+        vacanciesAvailable: s.vacanciesAvailable ?? 0,
+        requiredSkillIds: s.requiredSkillIds ?? [],
+      }))
+      .sort((a, b) =>
+        a.shiftDate === b.shiftDate
+          ? a.timeSlot.localeCompare(b.timeSlot)
+          : a.shiftDate.localeCompare(b.shiftDate)
+      );
+    return { openShifts: open, upcomingCount: upcoming.length };
+  }, [vacancies, allShifts]);
+
   const stats = useMemo(() => {
-    const openShiftsWithVacancies = vacancies.length;
-    const openPositions = vacancies.reduce((sum, v) => sum + v.vacanciesAvailable, 0);
-
-    // Shifts fully staffed = total shifts minus the ones that still show up
-    // as having openings. This works because the vacancies endpoint already
-    // excludes any shift with zero remaining capacity.
-
-    const fullyFilled = Math.max(allShifts.length - openShiftsWithVacancies, 0);
+    const openPositions = openShifts.reduce((sum, v) => sum + v.vacanciesAvailable, 0);
+    const fullyFilled = Math.max(upcomingCount - openShifts.length, 0);
 
     // "Urgent" = less than half staffed. Not an official threshold from the
-    // business rules doc — a reasonable default until one is specified.
-    const urgent = vacancies.filter(
+    // business rules doc, just a reasonable default until one is specified.
+    const urgent = openShifts.filter(
       (v) => v.capacity > 0 && v.assignedVolunteers / v.capacity < 0.5
     ).length;
 
     return {
-      totalVacancies: openShiftsWithVacancies,
+      totalVacancies: openShifts.length,
       openPositions,
       fullyFilled,
       urgent,
     };
-  }, [vacancies, allShifts]);
+  }, [openShifts, upcomingCount]);
 
   return (
     <div className="p-8 space-y-6">
@@ -112,7 +144,7 @@ export default function VacanciesPage() {
       {/*------------------------------------ Vacancies Content Section ------------------------------------*/}
       {isLoading ? (
         <p className="py-16 text-center text-ink-faint font-semibold">Loading vacancies…</p>
-      ) : vacancies.length === 0 ? (
+      ) : openShifts.length === 0 ? (
         <div className={`${card} p-10 text-center flex flex-col items-center gap-2`}>
           <LineIcon d={ICONS.calendarCheck} size={40} className="text-ink-faint" />
           <p className="font-extrabold text-ink-strong">No open vacancies right now</p>
@@ -121,7 +153,7 @@ export default function VacanciesPage() {
           </p>
         </div>
       ) : (
-        <VacanciesList vacancies={vacancies} onRefresh={loadData} />
+        <VacanciesList vacancies={openShifts} onRefresh={loadData} />
       )}
 
       {/*------------------------------------ Create Shift Modal ------------------------------------*/}

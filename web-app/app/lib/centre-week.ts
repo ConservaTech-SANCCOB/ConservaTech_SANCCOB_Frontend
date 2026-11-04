@@ -1,5 +1,6 @@
 import type { Shift } from "./api/shifts";
 import type { Roster } from "./api/roster";
+import { isActiveAssignment } from "./assignment-status";
 
 //---------------------------------------------------------------------------------------------------------------//
 //<summary>
@@ -127,10 +128,12 @@ export function buildCentreWeek(
 ): CentreWeek {
   const todayISO = toISODate(now);
 
-  // People per shift. "Vacant" rows are placeholders, not people (same rule as the roster page).
+  // People per shift. Only "Assigned" rows count: "Vacant" rows are placeholders and "Conflict"
+  // rows are unresolved, so neither uses up capacity (same rule as the backend's counts).
   const peopleByShift = new Map<number, SpotPerson[]>();
   for (const a of roster?.assignments ?? []) {
-    if (a.status?.toLowerCase() === "vacant") continue;
+    if (!isActiveAssignment(a.status)) continue;
+  
     const firstName = a.firstName?.trim() || "Volunteer";
     const person: SpotPerson = {
       assignmentId: a.rosterAssignmentId,

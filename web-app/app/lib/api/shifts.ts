@@ -12,6 +12,8 @@ export interface Shift {
   shiftDate: string;
   timeSlot: string;
   location: string;
+  assignedVolunteers?: number | null;
+  vacanciesAvailable?: number | null;
   birdCount?: number | null;
   capacity: number;
   requiredSkillIds?: number[] | null;
