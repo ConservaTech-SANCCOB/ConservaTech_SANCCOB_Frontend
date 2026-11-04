@@ -179,17 +179,15 @@ export default function ShiftSchedulingPage() {
 
   //<summary>
   // Works out how staffed a shift is and which colour badge to show.
-  // - A shift with no vacancy entry is treated as fully staffed. This relies on
-  //   /api/Vacancies only returning shifts that still have open spots.
-  // - Fully Staffed (green): assigned equals capacity.
-  // - Over Capacity (red): assigned exceeds capacity.
-  // - Critical (red): under half staffed.
-  // - Understaffed (amber): half or more staffed, but not full.
+   // Prefer the count the backend now sends on the shift itself. Fall back to the vacancy
+  // list, then to "full" (the old assumption) only if neither is available.
   //</summary>
 
   function getStatus(shift: Shift): { label: string; color: "green" | "amber" | "red"; assigned: number } {
-    const vacancy = vacancyMap.get(shift.shiftId);
-    const assigned = vacancy ? vacancy.assignedVolunteers : shift.capacity;
+    const assigned =
+      shift.assignedVolunteers ??
+      vacancyMap.get(shift.shiftId)?.assignedVolunteers ??
+      shift.capacity;
     const capacity = shift.capacity;
 
     if (capacity === 0 || assigned === capacity) {
