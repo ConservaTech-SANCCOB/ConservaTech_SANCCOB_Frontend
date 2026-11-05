@@ -1,5 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Localization from "expo-localization";
+import * as SecureStore from "expo-secure-store";
 import { I18n } from "i18n-js";
 import {
   createContext,
@@ -24,7 +23,7 @@ export const SUPPORTED_LANGUAGES = [
 
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]["code"];
 
-const STORAGE_KEY = "@conservatech/language";
+const STORAGE_KEY = "conservatech_language";
 
 // Single i18n instance — translations are merged from all four JSON files and
 // English is the fallback for any missing key so a half-translated screen never
@@ -50,14 +49,17 @@ const LanguageContext = createContext<LanguageContextValue | undefined>(
 //-----------------------------------------------------------------------------------------------//
 async function resolveInitialLanguage(): Promise<LanguageCode> {
   try {
-    const saved = await AsyncStorage.getItem(STORAGE_KEY);
+    const saved = await SecureStore.getItemAsync(STORAGE_KEY);
     if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
       return saved as LanguageCode;
     }
   } catch {
-    // Storage read failed — fall through to device locale.
+    // Storage unavailable — fall through to device language.
   }
-  const deviceCode = Localization.getLocales()?.[0]?.languageCode ?? "en";
+  // e.g. "af-ZA" -> "af"; Intl is built into Hermes, no native module needed
+  const deviceCode = (
+    Intl.DateTimeFormat().resolvedOptions().locale ?? "en"
+  ).split("-")[0];
   return (
     SUPPORTED_LANGUAGES.some((l) => l.code === deviceCode) ? deviceCode : "en"
   ) as LanguageCode;
@@ -80,7 +82,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     i18n.locale = code;
     setLanguageState(code);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, code);
+      await SecureStore.setItemAsync(STORAGE_KEY, code);
     } catch {
       // Non-fatal — the switch still applies this session.
     }
