@@ -1,10 +1,17 @@
-import React, { createContext, useContext, useEffect, useState, useMemo, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Localization from "expo-localization";
 import { I18n } from "i18n-js";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-import en from "./locales/en.json";
 import af from "./locales/af.json";
+import en from "./locales/en.json";
 import xh from "./locales/xh.json";
 import zu from "./locales/zu.json";
 
@@ -33,7 +40,9 @@ type LanguageContextValue = {
   isReady: boolean;
 };
 
-const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
+const LanguageContext = createContext<LanguageContextValue | undefined>(
+  undefined,
+);
 
 //-----------------------------------------------------------------------------------------------//
 // Resolves the initial language from (1) a previously saved choice or (2) the device locale,
@@ -49,7 +58,9 @@ async function resolveInitialLanguage(): Promise<LanguageCode> {
     // Storage read failed — fall through to device locale.
   }
   const deviceCode = Localization.getLocales()?.[0]?.languageCode ?? "en";
-  return (SUPPORTED_LANGUAGES.some((l) => l.code === deviceCode) ? deviceCode : "en") as LanguageCode;
+  return (
+    SUPPORTED_LANGUAGES.some((l) => l.code === deviceCode) ? deviceCode : "en"
+  ) as LanguageCode;
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
@@ -82,14 +93,26 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       t: (key, options) => i18n.t(key, options),
       isReady,
     }),
-    [language, isReady]
+    [language, isReady],
   );
 
-  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+  return (
+    <LanguageContext.Provider value={value}>
+      {children}
+    </LanguageContext.Provider>
+  );
 }
 
+// Fallback used when a component renders outside LanguageProvider (unit tests, or a screen
+// mounted before the provider). It reads English and ignores language switches, so nothing
+// crashes.
+const FALLBACK: LanguageContextValue = {
+  language: "en",
+  setLanguage: async () => {},
+  t: (key, options) => i18n.t(key, { locale: "en", ...options }),
+  isReady: true,
+};
+
 export function useLanguage() {
-  const ctx = useContext(LanguageContext);
-  if (!ctx) throw new Error("useLanguage must be used inside a LanguageProvider");
-  return ctx;
+  return useContext(LanguageContext) ?? FALLBACK;
 }

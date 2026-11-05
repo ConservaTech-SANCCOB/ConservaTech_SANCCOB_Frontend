@@ -3,11 +3,9 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LanguageCode, SUPPORTED_LANGUAGES, useLanguage } from "../i18n";
 import { COLORS } from "../utils/colors";
 
-const { t } = useLanguage();
 //-----------------------------------------------------------------------------------------------//
-// Vertical list of language options for the Profile screen. Each row shows the language's native
-// name and is checked when selected. Tapping a row saves the choice to AsyncStorage and
-// re-renders every screen that consumes useLanguage().
+// Language list for the Profile screen. Tapping a row saves the choice and re-renders every
+// screen that uses useLanguage().
 //-----------------------------------------------------------------------------------------------//
 export default function LanguagePicker() {
   const { language, setLanguage, t } = useLanguage();
@@ -26,6 +24,8 @@ export default function LanguagePicker() {
               style={[styles.row, selected && styles.rowSelected]}
               onPress={() => setLanguage(lang.code as LanguageCode)}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
             >
               <Text
                 style={[styles.rowLabel, selected && styles.rowLabelSelected]}
@@ -50,7 +50,7 @@ export default function LanguagePicker() {
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 0, marginTop: 0 },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 15.5,
     fontWeight: "700",
     color: COLORS.navy,
     marginBottom: 4,
@@ -68,10 +68,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.lightGrey,
     borderRadius: 16,
   },
-  rowSelected: {
-    borderColor: COLORS.blueButton,
-    borderWidth: 1.5,
-  },
+  rowSelected: { borderColor: COLORS.blueButton, borderWidth: 1.5 },
   rowLabel: { fontSize: 15, fontWeight: "600", color: COLORS.navy },
   rowLabelSelected: { color: COLORS.blueButton },
 });
