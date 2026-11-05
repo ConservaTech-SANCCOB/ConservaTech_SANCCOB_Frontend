@@ -16,6 +16,7 @@ import Svg, { Path } from "react-native-svg";
 import KeyboardAvoidingScreen from "../components/KeyboardAvoidingScreen";
 import PhotoBackdrop from "../components/PhotoBackdrop";
 import { SEABIRD_PHOTOS } from "../constants/seabirds";
+import { useLanguage } from "../i18n";
 import { login } from "../services/auth";
 import { getErrorMessage, getErrorStatus } from "../utils/api";
 import { COLORS } from "../utils/colors";
@@ -25,6 +26,7 @@ import { showErrorToast } from "../utils/toast";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,22 +34,24 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      showErrorToast("Missing details", "Enter your email and password.");
+      showErrorToast(
+        t("login.errors.missingTitle"),
+        t("login.errors.missingBody"),
+      );
       return;
     }
     setLoading(true);
     try {
       await login(email.trim(), password);
-      // Reset the stack so Back can't return to Login
       resetTo("/(tabs)/home");
     } catch (error) {
       logError("Login error", error);
       const status = getErrorStatus(error);
       showErrorToast(
-        "Login failed",
+        t("login.errors.failedTitle"),
         status === 401
-          ? "Incorrect email or password"
-          : getErrorMessage(error, "Couldn't log in. Try again in a moment."),
+          ? t("login.errors.incorrect")
+          : getErrorMessage(error, t("login.errors.generic")),
       );
     } finally {
       setLoading(false);
@@ -136,13 +140,14 @@ export default function LoginScreen() {
               />
             </LinearGradient>
           </View>
+          {/* SANCCOB is a brand/organisation name — not translated */}
           <Text style={styles.title}>SANCCOB</Text>
-          <Text style={styles.subtitle}>VOLUNTEER PORTAL</Text>
+          <Text style={styles.subtitle}>{t("login.portalSubtitle")}</Text>
         </LinearGradient>
 
         <View style={styles.background}>
           <View style={styles.form}>
-            <Text style={styles.label}>Email Address</Text>
+            <Text style={styles.label}>{t("login.emailLabel")}</Text>
             <View style={styles.inputRow}>
               <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
               <TextInput
@@ -150,13 +155,13 @@ export default function LoginScreen() {
                 placeholderTextColor={COLORS.grey}
                 value={email}
                 onChangeText={setEmail}
-                accessibilityLabel="Email address"
+                accessibilityLabel={t("login.emailAccessibility")}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
               />
             </View>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{t("login.passwordLabel")}</Text>
             <View style={styles.inputRow}>
               <Ionicons
                 name="lock-closed-outline"
@@ -168,7 +173,7 @@ export default function LoginScreen() {
                 placeholderTextColor={COLORS.grey}
                 value={password}
                 onChangeText={setPassword}
-                accessibilityLabel="Password"
+                accessibilityLabel={t("login.passwordAccessibility")}
                 secureTextEntry={!showPassword}
                 autoCorrect={false}
               />
@@ -192,15 +197,21 @@ export default function LoginScreen() {
                 {loading ? (
                   <ActivityIndicator color={COLORS.white} />
                 ) : (
-                  <Text style={styles.loginButtonText}>Log In</Text>
+                  <Text style={styles.loginButtonText}>
+                    {t("login.logInButton")}
+                  </Text>
                 )}
               </View>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push("/forgot-password")}>
-              <Text style={styles.helperText}>Forgot your password?</Text>
+              <Text style={styles.helperText}>{t("login.forgotPassword")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}>
-              <Text style={styles.helperText}>Back to options</Text>
+            <TouchableOpacity
+              onPress={() =>
+                router.canGoBack() ? router.back() : router.replace("/")
+              }
+            >
+              <Text style={styles.helperText}>{t("login.backToOptions")}</Text>
             </TouchableOpacity>
           </View>
         </View>

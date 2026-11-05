@@ -1,0 +1,114 @@
+{
+  "common": {
+    "save": "Londoloza",
+    "cancel": "Khansela",
+    "close": "Vala",
+    "loading": "Iyalayisha...",
+    "retry": "Zama futhi",
+    "back": "Emuva",
+    "done": "Kwenziwe",
+    "yes": "Yebo",
+    "no": "Cha"
+  },
+  "errors": {
+    "networkTitle": "Inkinga yoxhumano",
+    "networkBody": "Hlola i-inthanethi yakho uzame futhi.",
+    "somethingWentWrong": "Kukhona okungahambanga kahle. Sicela uzame futhi."
+  },
+  "login": {
+    "portalSubtitle": "IPHOTHALI YAMAVOLONTIYA",
+    "emailLabel": "Ikheli le-imeyili",
+    "passwordLabel": "Iphasiwedi",
+    "logInButton": "Ngena",
+    "forgotPassword": "Ukhohliwe iphasiwedi yakho?",
+    "backToOptions": "Buyela ezinketho",
+    "emailAccessibility": "Ikheli le-imeyili",
+    "passwordAccessibility": "Iphasiwedi",
+    "errors": {
+      "missingTitle": "Iminingwane engekho",
+      "missingBody": "Faka i-imeyili yakho nephasiwedi.",
+      "failedTitle": "Ukungena kwehlulekile",
+      "incorrect": "I-imeyili noma iphasiwedi ayilungile",
+      "generic": "Ayikwazanga ukungena. Zama futhi emzuzwini."
+    }
+  },
+  "activate": {
+    "title": "Vuselela i-Akhawunti",
+    "subtitle": "FAKA IMINININGWANE YAKHO NGEZANSI",
+    "emailLabel": "Ikheli le-imeyili",
+    "pinLabel": "I-PIN enezinombolo eziyisi-6",
+    "passwordLabel": "Dala Iphasiwedi",
+    "passwordHint": "Kumele ibe ngu-8+ wezinhlamvu ezinombumba omkhulu, omncane nenombolo",
+    "activateButton": "Vuselela",
+    "backToLogin": "Buyela ekungeneni",
+    "errors": {
+      "checkDetails": "Hlola iminingwane yakho",
+      "fixHighlighted": "Lungisa izinkambu eziqoqiwe uzame futhi.",
+      "emailRequired": "I-imeyili iyadingeka.",
+      "invalidEmail": "Faka ikheli le-imeyili elisebenzayo.",
+      "pinRequired": "I-PIN iyadingeka.",
+      "pinSixDigits": "I-PIN kumele ibe nezinombolo eziyisi-6.",
+      "pinDigitsOnly": "I-PIN kumele ibe nezinombolo kuphela.",
+      "passwordRequired": "Iphasiwedi iyadingeka.",
+      "passwordTooShort": "Iphasiwedi kumele ibe nezinhlamvu ezingu-8 noma ngaphezulu.",
+      "passwordUppercase": "Iphasiwedi kumele ibe nonobumba omkhulu.",
+      "passwordLowercase": "Iphasiwedi kumele ibe nonobumba omncane.",
+      "passwordNumber": "Iphasiwedi kumele ibe nenombolo.",
+      "incorrectCode": "Ikhodi ayilungile noma seyiphelelwe",
+      "activationFailed": "Ukuvuselelwa kwehlulekile",
+      "serverFlagged": "Iseva iphawule inkambu eyodwa noma ngaphezulu.",
+      "activationError": "Ayikwazanga ukuvuselela i-akhawunti yakho. Zama futhi emzuzwini."
+    }
+  },
+  "forgotPassword": {
+    "title": "Setha Kabusha Iphasiwedi",
+    "subtitle": "SIZOKUTHUMELA IKHODI",
+    "emailLabel": "Ikheli le-imeyili",
+    "sendCodeButton": "Thumela Ikhodi",
+    "codeLabel": "Ikhodi Yokusetha Kabusha",
+    "newPasswordLabel": "Iphasiwedi Entsha",
+    "submitButton": "Setha Kabusha Iphasiwedi",
+    "backToLogin": "Buyela ekungeneni"
+  },
+  "tabs": {
+    "home": "Ikhaya",
+    "schedule": "Ishejuli",
+    "vacancies": "Izikhala",
+    "profile": "Iphrofayela"
+  },
+  "home": {
+    "greeting": "Sawubona",
+    "nextShift": "Ishifti Yakho Elandelayo",
+    "noUpcomingShift": "Azikho izishifti ezizayo",
+    "viewAll": "Buka konke",
+    "recentActivity": "Umsebenzi wakamuva"
+  },
+  "profile": {
+    "nameFallback": "Igama Lakho",
+    "activeVolunteer": "IVOLONTIYA ESEBENZAYO",
+    "personalDetails": "Imininingwane Yomuntu",
+    "contactSupport": "Xhumana Nosizo",
+    "firstName": "IGAMA",
+    "lastName": "ISIBONGO",
+    "emailLabel": "IKHELI LE-IMEYILI",
+    "mobilePhone": "INOMBOLO YOMAKHALEKHUKHWINI",
+    "nationality": "UBUZWE",
+    "ageBracket": "IQEMBU LEMINYAKA",
+    "ageBracketPlaceholder": "Khetha iqembu leminyaka yakho",
+    "emergencyName": "IGAMA LOMUNTU WOKUXHUMANA NAYE",
+    "emergencyPhone": "INOMBOLO YOMUNTU WOKUXHUMANA NAYE",
+    "saveChanges": "Londoloza Izinguquko",
+    "logOut": "Phuma",
+    "logoutConfirmMessage": "Ingabe uqinisekile ufuna ukuphuma?",
+    "loadError": "Ayikwazanga ukulayisha iphrofayela yakho. Hlola uxhumano uzame futhi.",
+    "tryAgain": "Zama futhi",
+    "savedTitle": "Kulondolozwe",
+    "savedMessage": "Iphrofayela yakho ivuselelwe.",
+    "emailRequiredTitle": "I-imeyili iyadingeka",
+    "emailRequiredMessage": "Sicela ufake ikheli lakho le-imeyili.",
+    "saveErrorTitle": "Akukwazanga ukulondoloza",
+    "saveErrorMessage": "Kukhona okungahambanga kahle. Zama futhi emzuzwini.",
+    "languageSection": "Ulimi",
+    "languageDescription": "Khetha ulimi olukhethayo"
+  }
+}

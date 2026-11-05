@@ -1,27 +1,38 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { AboveBannerFill } from "../../components/BannerOverscroll";
 import { useConfirm } from "../../components/ConfirmProvider";
 import KeyboardAvoidingScreen from "../../components/KeyboardAvoidingScreen";
+import LanguagePicker from "../../components/LanguagePicker";
 import SelectDropdown from "../../components/SelectDropdown";
+import { BannerBirds, BannerPenguin } from "../../components/Wildlife";
 import { AGE_BRACKETS, isAgeBracket } from "../../constants/ageBrackets";
+import { SHEET_TOP_SHADOW } from "../../constants/glassCard";
+import { useLanguage } from "../../i18n";
 import { logout } from "../../services/auth";
+import { getMyProfile, updateMyProfile } from "../../services/profile";
 import { getErrorMessage, SessionExpiredError } from "../../utils/api";
 import { COLORS } from "../../utils/colors";
-import { getMyProfile, updateMyProfile } from "../../services/profile";
-import { showErrorToast, showSuccessToast } from "../../utils/toast";
 import { logError } from "../../utils/logError";
-import { SHEET_TOP_SHADOW } from "../../constants/glassCard";
-import { BannerBirds, BannerPenguin } from "../../components/Wildlife";
 import { resetTo } from "../../utils/navigation";
+import { showErrorToast, showSuccessToast } from "../../utils/toast";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const confirm = useConfirm();
+  const { t } = useLanguage();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,7 +55,6 @@ export default function ProfileScreen() {
       setEmail(profile.email ?? "");
       setPhone(profile.phoneNumber ?? "");
       setNationality(profile.nationality ?? "");
-      // Ignore an old value that isn't in the list
       setAgeBracket(isAgeBracket(profile.ageBracket) ? profile.ageBracket : "");
       setEmergencyName(profile.emergencyContactName ?? "");
       setEmergencyPhone(profile.emergencyContactPhone ?? "");
@@ -61,10 +71,12 @@ export default function ProfileScreen() {
   }, [loadProfile]);
 
   const handleSave = async () => {
-    // Don't overwrite the profile with an empty form
     if (loading || loadError) return;
     if (!email.trim()) {
-      showErrorToast("Email required", "Please enter your email address.");
+      showErrorToast(
+        t("profile.emailRequiredTitle"),
+        t("profile.emailRequiredMessage"),
+      );
       return;
     }
     setSaving(true);
@@ -77,12 +89,14 @@ export default function ProfileScreen() {
         emergencyContactName: emergencyName.trim() || null,
         emergencyContactPhone: emergencyPhone.trim() || null,
       });
-      showSuccessToast("Saved", "Your profile has been updated.");
+      showSuccessToast(t("profile.savedTitle"), t("profile.savedMessage"));
     } catch (error) {
-      // Already sent to Login so no toast
       if (error instanceof SessionExpiredError) return;
       logError("Save profile error", error);
-      showErrorToast("Couldn't save", getErrorMessage(error, "Something went wrong. Try again in a moment."));
+      showErrorToast(
+        t("profile.saveErrorTitle"),
+        getErrorMessage(error, t("profile.saveErrorMessage")),
+      );
     } finally {
       setSaving(false);
     }
@@ -90,10 +104,10 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     const confirmed = await confirm({
-      title: "Log Out",
-      message: "Are you sure you want to log out?",
-      confirmLabel: "Log Out",
-      cancelLabel: "Cancel",
+      title: t("profile.logOut"),
+      message: t("profile.logoutConfirmMessage"),
+      confirmLabel: t("profile.logOut"),
+      cancelLabel: t("common.cancel"),
       destructive: true,
     });
     if (!confirmed) return;
@@ -122,29 +136,76 @@ export default function ProfileScreen() {
             style={StyleSheet.absoluteFill}
           />
 
-          <Svg style={StyleSheet.absoluteFill} viewBox="0 0 400 260" preserveAspectRatio="none" pointerEvents="none">
-            <Path d="M-20,26 C40,16 90,32 140,24 C190,16 240,30 290,22 C330,16 380,26 420,18 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.03} />
-            <Path d="M-20,46 C40,38 90,52 140,44 C190,36 240,50 290,42 C330,36 380,46 420,40 L420,260 L-20,260 Z" fill={COLORS.pinkAccentLight} opacity={0.04} />
-            <Path d="M-20,68 C40,58 90,74 140,64 C190,54 240,70 290,60 C330,54 380,66 420,58 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.05} />
-            <Path d="M-20,90 C40,82 90,96 140,86 C190,76 240,92 290,82 C330,76 380,88 420,80 L420,260 L-20,260 Z" fill={COLORS.pinkAccentLight} opacity={0.07} />
-            <Path d="M-20,112 C40,102 90,118 140,108 C190,98 240,114 290,104 C330,98 380,110 420,102 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.08} />
-            <Path d="M-20,134 C40,126 90,140 140,130 C190,120 240,136 290,126 C330,120 380,132 420,124 L420,260 L-20,260 Z" fill={COLORS.pinkAccentLight} opacity={0.09} />
-            <Path d="M-20,156 C40,146 90,162 140,152 C190,142 240,158 290,148 C330,142 380,154 420,146 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.11} />
-            <Path d="M-20,178 C40,170 90,184 140,174 C190,164 240,180 290,170 C330,164 380,176 420,168 L420,260 L-20,260 Z" fill={COLORS.pinkAccentLight} opacity={0.12} />
-            <Path d="M-20,200 C40,190 90,206 140,196 C190,186 240,202 290,192 C330,186 380,198 420,190 L420,260 L-20,260 Z" fill="#ffffff" opacity={0.14} />
-            <Path d="M-20,222 C40,214 90,228 140,218 C190,208 240,224 290,214 C330,208 380,220 420,212 L420,260 L-20,260 Z" fill={COLORS.pinkAccentLight} opacity={0.16} />
+          <Svg
+            style={StyleSheet.absoluteFill}
+            viewBox="0 0 400 260"
+            preserveAspectRatio="none"
+            pointerEvents="none"
+          >
+            <Path
+              d="M-20,26 C40,16 90,32 140,24 C190,16 240,30 290,22 C330,16 380,26 420,18 L420,260 L-20,260 Z"
+              fill="#ffffff"
+              opacity={0.03}
+            />
+            <Path
+              d="M-20,46 C40,38 90,52 140,44 C190,36 240,50 290,42 C330,36 380,46 420,40 L420,260 L-20,260 Z"
+              fill={COLORS.pinkAccentLight}
+              opacity={0.04}
+            />
+            <Path
+              d="M-20,68 C40,58 90,74 140,64 C190,54 240,70 290,60 C330,54 380,66 420,58 L420,260 L-20,260 Z"
+              fill="#ffffff"
+              opacity={0.05}
+            />
+            <Path
+              d="M-20,90 C40,82 90,96 140,86 C190,76 240,92 290,82 C330,76 380,88 420,80 L420,260 L-20,260 Z"
+              fill={COLORS.pinkAccentLight}
+              opacity={0.07}
+            />
+            <Path
+              d="M-20,112 C40,102 90,118 140,108 C190,98 240,114 290,104 C330,98 380,110 420,102 L420,260 L-20,260 Z"
+              fill="#ffffff"
+              opacity={0.08}
+            />
+            <Path
+              d="M-20,134 C40,126 90,140 140,130 C190,120 240,136 290,126 C330,120 380,132 420,124 L420,260 L-20,260 Z"
+              fill={COLORS.pinkAccentLight}
+              opacity={0.09}
+            />
+            <Path
+              d="M-20,156 C40,146 90,162 140,152 C190,142 240,158 290,148 C330,142 380,154 420,146 L420,260 L-20,260 Z"
+              fill="#ffffff"
+              opacity={0.11}
+            />
+            <Path
+              d="M-20,178 C40,170 90,184 140,174 C190,164 240,180 290,170 C330,164 380,176 420,168 L420,260 L-20,260 Z"
+              fill={COLORS.pinkAccentLight}
+              opacity={0.12}
+            />
+            <Path
+              d="M-20,200 C40,190 90,206 140,196 C190,186 240,202 290,192 C330,186 380,198 420,190 L420,260 L-20,260 Z"
+              fill="#ffffff"
+              opacity={0.14}
+            />
+            <Path
+              d="M-20,222 C40,214 90,228 140,218 C190,208 240,224 290,214 C330,208 380,220 420,212 L420,260 L-20,260 Z"
+              fill={COLORS.pinkAccentLight}
+              opacity={0.16}
+            />
           </Svg>
 
           <BannerBirds top={insets.top} />
 
           <View style={styles.bannerTopRow}>
             <View style={styles.nameBadge}>
-              <Text style={styles.nameBadgeText}>{fullName || "Your Name"}</Text>
+              <Text style={styles.nameBadgeText}>
+                {fullName || t("profile.nameFallback")}
+              </Text>
             </View>
           </View>
 
           <View style={styles.titleGroup}>
-            <Text style={styles.subtitle}>ACTIVE VOLUNTEER</Text>
+            <Text style={styles.subtitle}>{t("profile.activeVolunteer")}</Text>
           </View>
 
           <BannerPenguin variant="adult" />
@@ -152,7 +213,7 @@ export default function ProfileScreen() {
 
         <View style={styles.sheet}>
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Personal Details</Text>
+            <Text style={styles.cardTitle}>{t("profile.personalDetails")}</Text>
 
             {loading ? (
               <View style={styles.loadingRow}>
@@ -160,32 +221,56 @@ export default function ProfileScreen() {
               </View>
             ) : loadError ? (
               <View style={styles.loadErrorState}>
-                <Ionicons name="warning-outline" size={26} color={COLORS.grey} />
-                <Text style={styles.loadErrorText}>Couldn&apos;t load your profile. Check your connection and try again.</Text>
+                <Ionicons
+                  name="warning-outline"
+                  size={26}
+                  color={COLORS.grey}
+                />
+                <Text style={styles.loadErrorText}>
+                  {t("profile.loadError")}
+                </Text>
                 <TouchableOpacity
                   style={styles.saveButtonWrap}
                   onPress={loadProfile}
                   accessibilityRole="button"
-                  accessibilityLabel="Try again"
+                  accessibilityLabel={t("profile.tryAgain")}
                 >
-                  <Text style={styles.saveButtonText}>Try again</Text>
+                  <Text style={styles.saveButtonText}>
+                    {t("profile.tryAgain")}
+                  </Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <>
-                <Text style={styles.fieldLabel}>FIRST NAME</Text>
+                <Text style={styles.fieldLabel}>{t("profile.firstName")}</Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="person-outline" size={18} color={COLORS.grey} />
-                  <TextInput style={styles.input} value={firstName} editable={false} />
+                  <Ionicons
+                    name="person-outline"
+                    size={18}
+                    color={COLORS.grey}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    value={firstName}
+                    editable={false}
+                  />
                 </View>
 
-                <Text style={styles.fieldLabel}>LAST NAME</Text>
+                <Text style={styles.fieldLabel}>{t("profile.lastName")}</Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="person-outline" size={18} color={COLORS.grey} />
-                  <TextInput style={styles.input} value={lastName} editable={false} />
+                  <Ionicons
+                    name="person-outline"
+                    size={18}
+                    color={COLORS.grey}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    value={lastName}
+                    editable={false}
+                  />
                 </View>
 
-                <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
+                <Text style={styles.fieldLabel}>{t("profile.emailLabel")}</Text>
                 <View style={styles.inputRow}>
                   <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
                   <TextInput
@@ -197,7 +282,9 @@ export default function ProfileScreen() {
                   />
                 </View>
 
-                <Text style={styles.fieldLabel}>MOBILE PHONE</Text>
+                <Text style={styles.fieldLabel}>
+                  {t("profile.mobilePhone")}
+                </Text>
                 <View style={styles.inputRow}>
                   <Ionicons name="call-outline" size={18} color={COLORS.grey} />
                   <TextInput
@@ -208,7 +295,9 @@ export default function ProfileScreen() {
                   />
                 </View>
 
-                <Text style={styles.fieldLabel}>NATIONALITY</Text>
+                <Text style={styles.fieldLabel}>
+                  {t("profile.nationality")}
+                </Text>
                 <View style={styles.inputRow}>
                   <Ionicons name="flag-outline" size={18} color={COLORS.grey} />
                   <TextInput
@@ -218,28 +307,36 @@ export default function ProfileScreen() {
                   />
                 </View>
 
-                <Text style={styles.fieldLabel}>AGE BRACKET</Text>
+                <Text style={styles.fieldLabel}>{t("profile.ageBracket")}</Text>
                 <SelectDropdown
                   value={ageBracket}
                   options={AGE_BRACKETS}
                   onChange={setAgeBracket}
-                  placeholder="Select your age bracket"
+                  placeholder={t("profile.ageBracketPlaceholder")}
                   icon="hourglass-outline"
-                  accessibilityLabel="Age bracket"
+                  accessibilityLabel={t("profile.ageBracket")}
                 />
 
-                <Text style={styles.fieldLabel}>EMERGENCY CONTACT NAME</Text>
+                <Text style={styles.fieldLabel}>
+                  {t("profile.emergencyName")}
+                </Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="medkit-outline" size={18} color={COLORS.grey} />
+                  <Ionicons
+                    name="medkit-outline"
+                    size={18}
+                    color={COLORS.grey}
+                  />
                   <TextInput
                     style={styles.input}
                     value={emergencyName}
                     onChangeText={setEmergencyName}
-                    accessibilityLabel="Emergency contact name"
+                    accessibilityLabel={t("profile.emergencyName")}
                   />
                 </View>
 
-                <Text style={styles.fieldLabel}>EMERGENCY CONTACT PHONE</Text>
+                <Text style={styles.fieldLabel}>
+                  {t("profile.emergencyPhone")}
+                </Text>
                 <View style={styles.inputRow}>
                   <Ionicons name="call-outline" size={18} color={COLORS.grey} />
                   <TextInput
@@ -247,23 +344,34 @@ export default function ProfileScreen() {
                     value={emergencyPhone}
                     onChangeText={setEmergencyPhone}
                     keyboardType="phone-pad"
-                    accessibilityLabel="Emergency contact phone"
+                    accessibilityLabel={t("profile.emergencyPhone")}
                   />
                 </View>
 
-                <TouchableOpacity style={styles.saveButtonWrap} onPress={handleSave} disabled={saving}>
+                <TouchableOpacity
+                  style={styles.saveButtonWrap}
+                  onPress={handleSave}
+                  disabled={saving}
+                >
                   {saving ? (
                     <ActivityIndicator size="small" color={COLORS.white} />
                   ) : (
-                    <Text style={styles.saveButtonText}>Save Changes</Text>
+                    <Text style={styles.saveButtonText}>
+                      {t("profile.saveChanges")}
+                    </Text>
                   )}
                 </TouchableOpacity>
               </>
             )}
           </View>
 
+          {/*------------------------------------ Language Picker ------------------------------------*/}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Contact Support</Text>
+            <LanguagePicker />
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t("profile.contactSupport")}</Text>
             <View style={styles.contactRow}>
               <Ionicons name="mail-outline" size={18} color={COLORS.grey} />
               <Text style={styles.contactText}>volunteers@sanccob.co.za</Text>
@@ -274,8 +382,11 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.logoutButtonWrap} onPress={handleLogout}>
-            <Text style={styles.logoutText}>Log Out</Text>
+          <TouchableOpacity
+            style={styles.logoutButtonWrap}
+            onPress={handleLogout}
+          >
+            <Text style={styles.logoutText}>{t("profile.logOut")}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -287,14 +398,8 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
-  banner: {
-    paddingBottom: 90,
-  },
-  bannerTopRow: {
-    paddingHorizontal: 20,
-    marginBottom: 18,
-    zIndex: 1,
-  },
+  banner: { paddingBottom: 90 },
+  bannerTopRow: { paddingHorizontal: 20, marginBottom: 18, zIndex: 1 },
   nameBadge: {
     alignSelf: "flex-start",
     borderRadius: 20,
@@ -313,10 +418,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
   },
-  titleGroup: {
-    paddingLeft: 41,
-    paddingRight: 20,
-  },
+  titleGroup: { paddingLeft: 41, paddingRight: 20 },
   subtitle: {
     fontSize: 13,
     color: COLORS.pinkAccentLight,
@@ -343,8 +445,20 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
   },
-  cardTitle: { fontSize: 15.5, fontWeight: "700", color: COLORS.pinkLight, marginBottom: 12 },
-  fieldLabel: { fontSize: 10, color: COLORS.grey, fontWeight: "700", letterSpacing: 0.5, marginTop: 12, marginBottom: 5 },
+  cardTitle: {
+    fontSize: 15.5,
+    fontWeight: "700",
+    color: COLORS.pinkLight,
+    marginBottom: 12,
+  },
+  fieldLabel: {
+    fontSize: 10,
+    color: COLORS.grey,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginTop: 12,
+    marginBottom: 5,
+  },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -355,7 +469,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     gap: 10,
   },
-  input: { flex: 1, paddingVertical: 14, fontSize: 14, fontWeight: "700", color: COLORS.grey },
+  input: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.grey,
+  },
   loadingRow: { paddingVertical: 20, alignItems: "center" },
   loadErrorState: { alignItems: "center", paddingVertical: 12, gap: 8 },
   loadErrorText: { fontSize: 13, color: COLORS.grey, textAlign: "center" },
@@ -373,7 +493,12 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   saveButtonText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
-  contactRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 },
+  contactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 6,
+  },
   contactText: { fontSize: 13, color: "#1b2a33" },
   logoutButtonWrap: {
     marginTop: 4,

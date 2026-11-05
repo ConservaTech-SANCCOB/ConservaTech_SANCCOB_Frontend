@@ -1,0 +1,114 @@
+{
+  "common": {
+    "save": "Gcina",
+    "cancel": "Rhoxisa",
+    "close": "Vala",
+    "loading": "Iyalayisha...",
+    "retry": "Zama kwakhona",
+    "back": "Buyela",
+    "done": "Kugqityiwe",
+    "yes": "Ewe",
+    "no": "Hayi"
+  },
+  "errors": {
+    "networkTitle": "Ingxaki yoqhakamshelwano",
+    "networkBody": "Jonga i-intanethi yakho uzame kwakhona.",
+    "somethingWentWrong": "Kukho into engahambanga kakuhle. Nceda uzame kwakhona."
+  },
+  "login": {
+    "portalSubtitle": "IPOTALI YEEVOLONTIYA",
+    "emailLabel": "Idilesi ye-imeyile",
+    "passwordLabel": "Iphaswedi",
+    "logInButton": "Ngena",
+    "forgotPassword": "Ulibele iphaswedi yakho?",
+    "backToOptions": "Buyela kwiindlela",
+    "emailAccessibility": "Idilesi ye-imeyile",
+    "passwordAccessibility": "Iphaswedi",
+    "errors": {
+      "missingTitle": "Iinkcukacha ezingekhoyo",
+      "missingBody": "Faka i-imeyile yakho kunye nephaswedi.",
+      "failedTitle": "Ukungena akuphumelelanga",
+      "incorrect": "I-imeyile okanye iphaswedi ayilunganga",
+      "generic": "Ayikwazi ukungena. Zama kwakhona emzuzwini."
+    }
+  },
+  "activate": {
+    "title": "Vula iAkhawunti",
+    "subtitle": "FAKA IINKCUKACHA ZAKHO APHA NGEZANTSI",
+    "emailLabel": "Idilesi ye-imeyile",
+    "pinLabel": "I-PIN enamanani ayi-6",
+    "passwordLabel": "Yenza Iphaswedi",
+    "passwordHint": "Imele ibe ngama-8+ oonobumba, ineyi-oolodwa, incinane, kunye nenombolo",
+    "activateButton": "Vula",
+    "backToLogin": "Buyela kungeno",
+    "errors": {
+      "checkDetails": "Jonga iinkcukacha zakho",
+      "fixHighlighted": "Lungisa iindawo ezikhankanyiweyo uzame kwakhona.",
+      "emailRequired": "I-imeyile iyafuneka.",
+      "invalidEmail": "Faka idilesi ye-imeyile esebenzayo.",
+      "pinRequired": "I-PIN iyafuneka.",
+      "pinSixDigits": "I-PIN kufuneka ibe namanani ayi-6.",
+      "pinDigitsOnly": "I-PIN kufuneka ibe namanani kuphela.",
+      "passwordRequired": "Iphaswedi iyafuneka.",
+      "passwordTooShort": "Iphaswedi kufuneka ibe ngama-8 oonobumba ubuncinci.",
+      "passwordUppercase": "Iphaswedi kufuneka ibandakanye unobumba oyi-oolodwa.",
+      "passwordLowercase": "Iphaswedi kufuneka ibandakanye unobumba oyincinane.",
+      "passwordNumber": "Iphaswedi kufuneka ibandakanye inombolo.",
+      "incorrectCode": "Ikhowudi ayilunganga okanye iphelelwe",
+      "activationFailed": "Ukuvulwa akuphumelelanga",
+      "serverFlagged": "Isiseva iphawule indawo enye okanye ngaphezulu.",
+      "activationError": "Ayikwazi ukuvula iakhawunti yakho. Zama kwakhona emzuzwini."
+    }
+  },
+  "forgotPassword": {
+    "title": "Seta Kwakhona Iphaswedi",
+    "subtitle": "SIZA KUKUTHUMELA IKHOWUDI",
+    "emailLabel": "Idilesi ye-imeyile",
+    "sendCodeButton": "Thumela Ikhowudi",
+    "codeLabel": "Ikhowudi Yokuseta Kwakhona",
+    "newPasswordLabel": "Iphaswedi Entsha",
+    "submitButton": "Seta Kwakhona Iphaswedi",
+    "backToLogin": "Buyela kungeno"
+  },
+  "tabs": {
+    "home": "Ikhaya",
+    "schedule": "Ishedyuli",
+    "vacancies": "Izithuba",
+    "profile": "Iprofayile"
+  },
+  "home": {
+    "greeting": "Molo",
+    "nextShift": "Ishifti Yakho Elandelayo",
+    "noUpcomingShift": "Akukho ziishifti ezizayo",
+    "viewAll": "Jonga zonke",
+    "recentActivity": "Umsebenzi wakutsha nje"
+  },
+  "profile": {
+    "nameFallback": "Igama Lakho",
+    "activeVolunteer": "IVOLONTIYA ESEBENZAYO",
+    "personalDetails": "Iinkcukacha Zobuqu",
+    "contactSupport": "Qhakamshelana Nenkxaso",
+    "firstName": "IGAMA",
+    "lastName": "IFANI",
+    "emailLabel": "IDILESI YE-IMEYILE",
+    "mobilePhone": "INOMBOLO YEFOWUNI",
+    "nationality": "UBUZWE",
+    "ageBracket": "IQELA LEMINYAKA",
+    "ageBracketPlaceholder": "Khetha iqela leminyaka yakho",
+    "emergencyName": "IGAMA LOMNTU WONGXAMISEKO",
+    "emergencyPhone": "INOMBOLO YEFOWUNI YONGXAMISEKO",
+    "saveChanges": "Gcina Iinguqulelo",
+    "logOut": "Phuma",
+    "logoutConfirmMessage": "Uqinisekile ufuna ukuphuma?",
+    "loadError": "Ayikwazi ukulayisha iprofayile yakho. Jonga uqhakamshelwano uzame kwakhona.",
+    "tryAgain": "Zama kwakhona",
+    "savedTitle": "Kugciniwe",
+    "savedMessage": "Iprofayile yakho ihlaziyiwe.",
+    "emailRequiredTitle": "I-imeyile iyafuneka",
+    "emailRequiredMessage": "Nceda faka idilesi yakho ye-imeyile.",
+    "saveErrorTitle": "Ayikwazanga ukugcina",
+    "saveErrorMessage": "Kukho into engahambanga kakuhle. Zama kwakhona emzuzwini.",
+    "languageSection": "Ulwimi",
+    "languageDescription": "Khetha ulwimi oluthandayo"
+  }
+}

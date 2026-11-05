@@ -1,0 +1,114 @@
+{
+  "common": {
+    "save": "Stoor",
+    "cancel": "Kanselleer",
+    "close": "Maak Toe",
+    "loading": "Besig om te laai...",
+    "retry": "Probeer weer",
+    "back": "Terug",
+    "done": "Klaar",
+    "yes": "Ja",
+    "no": "Nee"
+  },
+  "errors": {
+    "networkTitle": "Verbindingsprobleem",
+    "networkBody": "Gaan jou internet na en probeer weer.",
+    "somethingWentWrong": "Iets het verkeerd geloop. Probeer asseblief weer."
+  },
+  "login": {
+    "portalSubtitle": "VRYWILLIGER PORTAAL",
+    "emailLabel": "E-posadres",
+    "passwordLabel": "Wagwoord",
+    "logInButton": "Meld Aan",
+    "forgotPassword": "Wagwoord vergeet?",
+    "backToOptions": "Terug na opsies",
+    "emailAccessibility": "E-posadres",
+    "passwordAccessibility": "Wagwoord",
+    "errors": {
+      "missingTitle": "Ontbrekende besonderhede",
+      "missingBody": "Voer jou e-posadres en wagwoord in.",
+      "failedTitle": "Aanmelding het misluk",
+      "incorrect": "Verkeerde e-posadres of wagwoord",
+      "generic": "Kon nie aanmeld nie. Probeer weer in 'n oomblik."
+    }
+  },
+  "activate": {
+    "title": "Aktiveer Rekening",
+    "subtitle": "VOER JOU BESONDERHEDE HIER ONDER IN",
+    "emailLabel": "E-posadres",
+    "pinLabel": "6-Syfer PIN",
+    "passwordLabel": "Skep Wagwoord",
+    "passwordHint": "Moet 8+ karakters wees met hoof-, kleinletter en 'n syfer",
+    "activateButton": "Aktiveer",
+    "backToLogin": "Terug na aanmelding",
+    "errors": {
+      "checkDetails": "Gaan jou besonderhede na",
+      "fixHighlighted": "Maak die uitgelig velde reg en probeer weer.",
+      "emailRequired": "E-posadres word vereis.",
+      "invalidEmail": "Voer 'n geldige e-posadres in.",
+      "pinRequired": "PIN word vereis.",
+      "pinSixDigits": "Die PIN moet 6 syfers wees.",
+      "pinDigitsOnly": "Die PIN moet net syfers bevat.",
+      "passwordRequired": "Wagwoord word vereis.",
+      "passwordTooShort": "Wagwoord moet ten minste 8 karakters lank wees.",
+      "passwordUppercase": "Wagwoord moet 'n hoofletter bevat.",
+      "passwordLowercase": "Wagwoord moet 'n kleinletter bevat.",
+      "passwordNumber": "Wagwoord moet 'n syfer bevat.",
+      "incorrectCode": "Verkeerde of verstrekte kode",
+      "activationFailed": "Aktivering het misluk",
+      "serverFlagged": "Die bediener het een of meer velde gemerk.",
+      "activationError": "Kon nie jou rekening aktiveer nie. Probeer weer in 'n oomblik."
+    }
+  },
+  "forgotPassword": {
+    "title": "Herstel Wagwoord",
+    "subtitle": "ONS SAL VIR JOU 'N KODE STUUR",
+    "emailLabel": "E-posadres",
+    "sendCodeButton": "Stuur Kode",
+    "codeLabel": "Herstelkode",
+    "newPasswordLabel": "Nuwe Wagwoord",
+    "submitButton": "Herstel Wagwoord",
+    "backToLogin": "Terug na aanmelding"
+  },
+  "tabs": {
+    "home": "Tuis",
+    "schedule": "Rooster",
+    "vacancies": "Vakatures",
+    "profile": "Profiel"
+  },
+  "home": {
+    "greeting": "Hallo",
+    "nextShift": "Jou Volgende Skof",
+    "noUpcomingShift": "Geen komende skofte nie",
+    "viewAll": "Sien almal",
+    "recentActivity": "Onlangse aktiwiteit"
+  },
+  "profile": {
+    "nameFallback": "Jou Naam",
+    "activeVolunteer": "AKTIEWE VRYWILLIGER",
+    "personalDetails": "Persoonlike Besonderhede",
+    "contactSupport": "Kontak Ondersteuning",
+    "firstName": "VOORNAAM",
+    "lastName": "VAN",
+    "emailLabel": "E-POSADRES",
+    "mobilePhone": "SELFOONNOMMER",
+    "nationality": "NASIONALITEIT",
+    "ageBracket": "OUDERDOMSGROEP",
+    "ageBracketPlaceholder": "Kies jou ouderdomsgroep",
+    "emergencyName": "NOODKONTAKNAAM",
+    "emergencyPhone": "NOODKONTAKNOMMER",
+    "saveChanges": "Stoor Veranderinge",
+    "logOut": "Teken Af",
+    "logoutConfirmMessage": "Is jy seker jy wil afteken?",
+    "loadError": "Kon nie jou profiel laai nie. Gaan jou verbinding na en probeer weer.",
+    "tryAgain": "Probeer weer",
+    "savedTitle": "Gestoor",
+    "savedMessage": "Jou profiel is bygewerk.",
+    "emailRequiredTitle": "E-posadres word vereis",
+    "emailRequiredMessage": "Voer asseblief jou e-posadres in.",
+    "saveErrorTitle": "Kon nie stoor nie",
+    "saveErrorMessage": "Iets het verkeerd geloop. Probeer weer in 'n oomblik.",
+    "languageSection": "Taal",
+    "languageDescription": "Kies jou voorkeur taal"
+  }
+}

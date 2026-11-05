@@ -7,6 +7,7 @@ import Toast from "react-native-toast-message";
 import AnimatedSplash from "../components/AnimatedSplash";
 import { ConfirmProvider } from "../components/ConfirmProvider";
 import { toastConfig } from "../components/toastConfig";
+import { LanguageProvider } from "../i18n";
 import { clearToken, getSessionRole, getToken } from "../utils/api";
 import { COLORS } from "../utils/colors";
 import { logError } from "../utils/logError";
@@ -29,7 +30,6 @@ export default function RootLayout() {
     SplashScreen.hideAsync().catch(() => {});
   }, []);
 
-  // Trainer sessions are never restored on a shared device
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -39,7 +39,8 @@ export default function RootLayout() {
           await clearToken();
           token = null;
         }
-        if (!cancelled) setSessionCheck(token ? "authenticated" : "unauthenticated");
+        if (!cancelled)
+          setSessionCheck(token ? "authenticated" : "unauthenticated");
       } catch (error) {
         logError("Session restore check failed", error);
         if (!cancelled) setSessionCheck("unauthenticated");
@@ -50,7 +51,6 @@ export default function RootLayout() {
     };
   }, []);
 
-  // Already signed in so skip Welcome
   useEffect(() => {
     if (sessionCheck === "authenticated") {
       router.replace("/(tabs)/home");
@@ -60,32 +60,43 @@ export default function RootLayout() {
   if (sessionCheck === "checking") {
     return (
       <SafeAreaProvider>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.white }}>
-          <ActivityIndicator color={COLORS.blue} />
-        </View>
-        {showCustomSplash && <AnimatedSplash onFinish={hideCustomSplash} />}
-        <Toast config={toastConfig} />
+        <LanguageProvider>
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: COLORS.white,
+            }}
+          >
+            <ActivityIndicator color={COLORS.blue} />
+          </View>
+          {showCustomSplash && <AnimatedSplash onFinish={hideCustomSplash} />}
+          <Toast config={toastConfig} />
+        </LanguageProvider>
       </SafeAreaProvider>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <ConfirmProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="login" />
-          <Stack.Screen name="activate" />
-          <Stack.Screen name="forgot-password" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="request-change" />
-          <Stack.Screen name="trainer-pin" />
-          <Stack.Screen name="trainer-dashboard" />
-          <Stack.Screen name="trainer-volunteer/[volunteerId]" />
-        </Stack>
-      </ConfirmProvider>
-      {showCustomSplash && <AnimatedSplash onFinish={hideCustomSplash} />}
-      <Toast config={toastConfig} />
+      <LanguageProvider>
+        <ConfirmProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="login" />
+            <Stack.Screen name="activate" />
+            <Stack.Screen name="forgot-password" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="request-change" />
+            <Stack.Screen name="trainer-pin" />
+            <Stack.Screen name="trainer-dashboard" />
+            <Stack.Screen name="trainer-volunteer/[volunteerId]" />
+          </Stack>
+        </ConfirmProvider>
+        {showCustomSplash && <AnimatedSplash onFinish={hideCustomSplash} />}
+        <Toast config={toastConfig} />
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

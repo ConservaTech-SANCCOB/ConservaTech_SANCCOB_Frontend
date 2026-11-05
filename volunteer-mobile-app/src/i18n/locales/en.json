@@ -1,0 +1,114 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "loading": "Loading...",
+    "retry": "Try again",
+    "back": "Back",
+    "done": "Done",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "errors": {
+    "networkTitle": "Connection problem",
+    "networkBody": "Check your internet and try again.",
+    "somethingWentWrong": "Something went wrong. Please try again."
+  },
+  "login": {
+    "portalSubtitle": "VOLUNTEER PORTAL",
+    "emailLabel": "Email Address",
+    "passwordLabel": "Password",
+    "logInButton": "Log In",
+    "forgotPassword": "Forgot your password?",
+    "backToOptions": "Back to options",
+    "emailAccessibility": "Email address",
+    "passwordAccessibility": "Password",
+    "errors": {
+      "missingTitle": "Missing details",
+      "missingBody": "Enter your email and password.",
+      "failedTitle": "Login failed",
+      "incorrect": "Incorrect email or password",
+      "generic": "Couldn't log in. Try again in a moment."
+    }
+  },
+  "activate": {
+    "title": "Activate Account",
+    "subtitle": "ENTER YOUR DETAILS BELOW",
+    "emailLabel": "Email Address",
+    "pinLabel": "6-Digit PIN",
+    "passwordLabel": "Create Password",
+    "passwordHint": "Must be 8+ characters with uppercase, lowercase, and a number",
+    "activateButton": "Activate",
+    "backToLogin": "Back to login",
+    "errors": {
+      "checkDetails": "Check your details",
+      "fixHighlighted": "Fix the highlighted fields and try again.",
+      "emailRequired": "Email is required.",
+      "invalidEmail": "Enter a valid email address.",
+      "pinRequired": "PIN is required.",
+      "pinSixDigits": "The PIN must be 6 digits.",
+      "pinDigitsOnly": "The PIN must only contain digits.",
+      "passwordRequired": "Password is required.",
+      "passwordTooShort": "Password must be at least 8 characters long.",
+      "passwordUppercase": "Password must include an uppercase letter.",
+      "passwordLowercase": "Password must include a lowercase letter.",
+      "passwordNumber": "Password must include a number.",
+      "incorrectCode": "Incorrect or expired code",
+      "activationFailed": "Activation failed",
+      "serverFlagged": "The server flagged one or more fields.",
+      "activationError": "Couldn't activate your account. Try again in a moment."
+    }
+  },
+  "forgotPassword": {
+    "title": "Reset Password",
+    "subtitle": "WE'LL SEND YOU A CODE",
+    "emailLabel": "Email Address",
+    "sendCodeButton": "Send Code",
+    "codeLabel": "Reset Code",
+    "newPasswordLabel": "New Password",
+    "submitButton": "Reset Password",
+    "backToLogin": "Back to login"
+  },
+  "tabs": {
+    "home": "Home",
+    "schedule": "Schedule",
+    "vacancies": "Vacancies",
+    "profile": "Profile"
+  },
+  "home": {
+    "greeting": "Hello",
+    "nextShift": "Your Next Shift",
+    "noUpcomingShift": "No upcoming shifts",
+    "viewAll": "View all",
+    "recentActivity": "Recent activity"
+  },
+  "profile": {
+    "nameFallback": "Your Name",
+    "activeVolunteer": "ACTIVE VOLUNTEER",
+    "personalDetails": "Personal Details",
+    "contactSupport": "Contact Support",
+    "firstName": "FIRST NAME",
+    "lastName": "LAST NAME",
+    "emailLabel": "EMAIL ADDRESS",
+    "mobilePhone": "MOBILE PHONE",
+    "nationality": "NATIONALITY",
+    "ageBracket": "AGE BRACKET",
+    "ageBracketPlaceholder": "Select your age bracket",
+    "emergencyName": "EMERGENCY CONTACT NAME",
+    "emergencyPhone": "EMERGENCY CONTACT PHONE",
+    "saveChanges": "Save Changes",
+    "logOut": "Log Out",
+    "logoutConfirmMessage": "Are you sure you want to log out?",
+    "loadError": "Couldn't load your profile. Check your connection and try again.",
+    "tryAgain": "Try again",
+    "savedTitle": "Saved",
+    "savedMessage": "Your profile has been updated.",
+    "emailRequiredTitle": "Email required",
+    "emailRequiredMessage": "Please enter your email address.",
+    "saveErrorTitle": "Couldn't save",
+    "saveErrorMessage": "Something went wrong. Try again in a moment.",
+    "languageSection": "Language",
+    "languageDescription": "Choose your preferred language"
+  }
+}
