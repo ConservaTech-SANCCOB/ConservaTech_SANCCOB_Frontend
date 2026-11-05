@@ -1,977 +1,388 @@
 # SANCCOB Frontend
 
-The SANCCOB frontend consists of two separate applications that both consume the live **SANCCOB Backend API**:
+The frontend of the **SANCCOB Volunteer Application and Management System**, built by ConservaTech for the Southern African Foundation for the Conservation of Coastal Birds (SANCCOB).
 
-- **Admin Dashboard** — a desktop-focused web application used by SANCCOB administrators and trainers.
-- **Volunteer Mobile App** — a mobile application used by volunteers to manage availability, shifts, training, profile information, and notifications.
+It contains two applications that both use the live **SANCCOB Backend API**:
 
-Both applications are fully integrated with the backend and use authenticated API requests for their core functionality.
+| App | For | Built with | Runs on |
+|---|---|---|---|
+| **Admin Dashboard** (`web-app/`) | SANCCOB administrators (volunteer and intern coordinators) | Next.js, React, TypeScript, Tailwind CSS | Desktop browser, hosted on Vercel |
+| **Volunteer Mobile App** (`volunteer-mobile-app/`) | Volunteers, plus trainers who sign off skills | Expo, React Native, TypeScript | iPhone (TestFlight) and Android (APK) |
 
-Backend API:
-
-```text
-https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net
-```
-
----
-
-# Live Applications
-
-## Admin Dashboard
-
-The live SANCCOB Admin Dashboard is deployed on **Vercel**:
-
-```text
-https://sanccob-admin-dashboard.vercel.app/authentication/login
-```
-
-The dashboard is intended for SANCCOB administrators and trainers and is designed primarily for desktop use.
-
-## Volunteer Mobile App
-
-The SANCCOB Volunteer Mobile App is currently distributed for iOS testing through **Apple TestFlight**:
-
-```text
-https://testflight.apple.com/join/SgfXfQVq
-```
-
-To install the test build:
-
-1. Install the **TestFlight** app from the Apple App Store.
-2. Open the SANCCOB TestFlight invitation link.
-3. Accept the invitation.
-4. Install the SANCCOB Volunteer application.
-5. Open the installed application from your device.
-
-The TestFlight build connects to the live backend and supports the current mobile functionality, including push notifications.
-
----
-# Test Login Details
-
-## Admin Account
-
-```text
-Email: cathy@sanccob.co.za
-Password: PasswordForCathy
-```
-
-## Volunteer Account
-
-```text
-Email: funimaps04@gmail.com
-Password: PasswordFor@Funi04
-```
-
-## Staff / Trainer PIN
-
-```text
-Staff PIN: 123456
-```
----
-# Project Demo & Interactive Tour
-
-A full demonstration of the **SANCCOB Volunteer Application and Management System** is available on YouTube:
-
-[Watch the SANCCOB Project Demo](https://youtu.be/XTRUr19LNcs)
-
-An interactive system tour is also available online:
-
-[View the SANCCOB Interactive Tour](https://sanccob-tour.vercel.app/#tour)
 ---
 
 ## Table of Contents
 
 - [Live Applications](#live-applications)
 - [Test Login Details](#test-login-details)
-- [Project Demo & Interactive Tour](#project-demo--interactive-tour)
-- [Frontend Architecture](#frontend-architecture)
-- [Shared Backend Integration](#shared-backend-integration)
+- [Project Demo and Interactive Tour](#project-demo-and-interactive-tour)
+- [Architecture](#architecture)
 - [Admin Dashboard](#admin-dashboard)
 - [Volunteer Mobile App](#volunteer-mobile-app)
 - [Authentication](#authentication)
 - [Notifications](#notifications)
-- [User Experience and Feedback](#user-experience-and-feedback)
+- [User Experience](#user-experience)
 - [Testing](#testing)
+- [CI/CD and Deployment](#cicd-and-deployment)
 - [Known Limitations and Planned Improvements](#known-limitations-and-planned-improvements)
-- [Deployment](#deployment)
 - [Technology Rationale](#technology-rationale)
+- [User Guides](#user-guides)
 
 ---
 
-# Frontend Architecture
+## Live Applications
 
-The frontend is split into two applications because SANCCOB staff and volunteers have different workflows and device requirements.
+| What | Link |
+|---|---|
+| Admin Dashboard | https://sanccob-admin-dashboard.vercel.app/authentication/login |
+| iPhone app (TestFlight) | https://testflight.apple.com/join/SgfXfQVq |
+| Android app (APK) | https://expo.dev/accounts/funimms-team/projects/volunteer-mobile-app/builds/0223c284-b743-491f-89ec-ee04d054bd76|
+| Backend API | https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net |
+| API health check | https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net/health |
+
+### Installing on iPhone
+
+1. Install **TestFlight** from the App Store.
+2. Open the invitation link above on the iPhone.
+3. Tap **Accept**, then **Install**.
+4. Open **SANCCOB Volunteers** and allow notifications.
+
+### Installing on Android
+
+1. Open the APK link above on the Android phone.
+2. Tap **Install**. If the phone blocks it, allow installs from this source in Settings, then try again.
+3. Open **SANCCOB Volunteers** and allow notifications.
+
+New volunteers also get both download links in their activation email.
+
+Both builds connect to the live backend. Push notifications work on real devices.
+
+---
+
+## Test Login Details
+
+These are demo accounts for markers and testers.
+
+| Role | Where | Login |
+|---|---|---|
+| Administrator | Admin Dashboard | `cathy@sanccob.co.za` / `PasswordForCathy` |
+| Volunteer | Mobile app → **Login as Volunteer** | `funimaps04@gmail.com` / `PasswordFor@Funi04` |
+| Trainer | Mobile app → **Login as Trainer** | Staff PIN `123456` |
+
+Each trainer has their own PIN, issued by an administrator on **Staff Training → Trainers**. The PIN above belongs to the demo trainer.
+
+---
+
+## Project Demo and Interactive Tour
+
+- [Watch the SANCCOB Project Demo (YouTube)](https://youtu.be/XTRUr19LNcs)
+- [View the SANCCOB Interactive Tour](https://sanccob-tour.vercel.app/#tour)
+
+---
+
+## Architecture
+
+The frontend is split into two apps because staff and volunteers do different work on different devices. Neither app holds business data or business rules: both call the same ASP.NET Core API, which handles authentication, authorisation, validation and every database read and write.
 
 ```text
-                 ┌─────────────────────────────┐
-                 │      Admin Dashboard        │
-                 │    Next.js / React Web      │
-                 │       Desktop-focused       │
-                 └──────────────┬──────────────┘
-                                │
-                                │ HTTPS / JWT
-                                │
+ ┌────────────────────────┐          ┌────────────────────────┐
+ │    Admin Dashboard     │          │  Volunteer Mobile App  │
+ │  Next.js on Vercel     │          │  Expo / React Native   │
+ │  (desktop browser)     │          │  (iPhone / Android)    │
+ └───────────┬────────────┘          └───────────┬────────────┘
+             │       HTTPS + JWT bearer token      │
+             └──────────────────┬──────────────────┘
                                 ▼
-                    ┌───────────────────────┐
-                    │  SANCCOB Backend API  │
-                    │ ASP.NET Core / Azure  │
-                    └───────────┬───────────┘
-                                │
-                                │
-                                ▼
-                    ┌───────────────────────┐
-                    │   Neon PostgreSQL     │
-                    └───────────────────────┘
-                                ▲
-                                │
-                                │ HTTPS / JWT
-                 ┌──────────────┴──────────────┐
-                 │    Volunteer Mobile App     │
-                 │   Expo / React Native       │
-                 │      iOS / Android          │
-                 └─────────────────────────────┘
+                  ┌──────────────────────────┐
+                  │   SANCCOB Backend API    │──► Azure Communication Services (email)
+                  │ ASP.NET Core · Azure     │──► Expo Push Service (phone notifications)
+                  └────────────┬─────────────┘
+                               ▼
+                  ┌──────────────────────────┐
+                  │     Neon PostgreSQL      │
+                  └──────────────────────────┘
 ```
 
-The separation allows each interface to be designed specifically for its intended users.
-
-The admin dashboard prioritises information density, administrative workflows, reports, roster management, and desktop usability.
-
-The volunteer mobile application prioritises quick access to personal shifts, availability, training progress, profile information, and notifications.
+The admin dashboard also opens a **SignalR** connection to the API for live admin notifications.
 
 ---
 
-# Shared Backend Integration
+## Admin Dashboard
 
-Both frontend applications communicate with the same ASP.NET Core backend.
+### Tech stack
 
-Authentication is performed through the backend API and authenticated requests include a JWT:
+- **Next.js 16** (App Router) with **React 19** and **TypeScript**
+- **Tailwind CSS v4** with a design-token system (`app/globals.css`)
+- **Recharts** for report charts
+- **SignalR client** for live notifications
+- **Jest** and **React Testing Library** for tests
+- **Vercel** for hosting
 
-```http
-Authorization: Bearer <token>
-```
+### Pages
 
-Core backend functionality used by the frontend includes:
+| Page | What administrators do there |
+|---|---|
+| **Dashboard** | See today and this week at a glance; approve or decline change requests; update conservation figures; open the room screen |
+| **Volunteer room screen** | Full-screen TV display of today's shifts (first names only), refreshed every 5 minutes |
+| **Volunteers** | Search, create, edit and delete volunteers; mark attendance; handle shift-change requests |
+| **Roster Management** | Generate a weekly roster from availability and skills, then assign, swap or remove volunteers, publish or delete it |
+| **Shift Scheduling** | Monthly calendar of shifts; create, edit and delete shifts |
+| **Vacancies** | See open spots and urgent shifts; **Notify Qualified** volunteers |
+| **Staff Training** | Follow volunteers' training progress; create trainers and view or reset their PINs |
+| **Reports** | Yearly hours, attendance, missed shifts, top contributors and conservation impact; export to PDF or Excel |
+| **Settings** | Edit the admin's profile; choose Light, Dark or System theme |
 
-- authentication;
-- account activation;
-- password recovery;
-- volunteer profiles;
-- availability;
-- shifts;
-- roster information;
-- vacancy booking;
-- attendance;
-- change requests;
-- training;
-- notifications;
-- reporting;
-- administrative dashboard data.
+Administrators never sign off skills. Sign-off is done by trainers in the mobile app with their own PIN.
 
-The backend remains responsible for business rules, authorization, database access, and validation, while the frontend focuses on presentation and user interaction.
+### Design system
 
----
+All colours, radii and spacing are CSS custom properties in `app/globals.css`, exposed to Tailwind through `@theme inline`. Components never use raw hex values, so light and dark mode come from the same classes. Shared primitives (cards, pill buttons, inputs, line icons, time-slot chips) live in `components/ui/`.
 
-# Admin Dashboard
-
-The **SANCCOB Admin Dashboard** is a desktop-focused web application for SANCCOB administrators and trainers.
-
-## Tech Stack
-
-The dashboard uses:
-
-- **Next.js 16**
-- **React 19**
-- **TypeScript**
-- **Tailwind CSS 4**
-- **Recharts**
-- **Fetch API**
-- **Vercel** for hosting and deployment
-
----
-
-## Purpose
-
-The dashboard gives authorised SANCCOB staff access to administrative functions including:
-
-- dashboard analytics;
-- volunteer management;
-- roster management;
-- shift scheduling;
-- training management;
-- trainer functionality;
-- vacancies;
-- attendance information;
-- notifications;
-- reporting;
-- conservation-impact statistics.
-
----
-
-## Project Structure
-
-The application follows the Next.js App Router structure.
-
-A simplified structure is:
+### Project structure
 
 ```text
 web-app/
 ├── app/
-│   ├── (admin)/
-│   │   ├── vacancies/
-│   │   ├── volunteers/
-│   │   └── ...
-│   │
-│   ├── authentication/
-│   │   └── ...
-│   │
+│   ├── (admin)/            # signed-in pages: dashboard, volunteers, roster, shifts,
+│   │                       # training-staff, vacancies, reports, settings
+│   ├── (display)/room/     # volunteer room TV screen
+│   ├── authentication/     # sign-in page
 │   ├── lib/
-│   │   └── api/
-│   │       ├── auth.ts
-│   │       ├── dashboard.ts
-│   │       ├── http.ts
-│   │       ├── notifications.ts
-│   │       ├── reports.ts
-│   │       ├── roster.ts
-│   │       ├── shifts.ts
-│   │       ├── training_staff.ts
-│   │       └── volunteers.ts
-│   │
-│   ├── auth-context.tsx
-│   ├── use-notifications.ts
-│   ├── layout.tsx
-│   └── page.tsx
-│
-├── public/
-├── package.json
-└── ...
+│   │   ├── api/            # one file per API area, all using http.ts (apiFetch)
+│   │   └── auth-context.tsx
+│   └── globals.css         # design tokens
+├── components/             # page sections, modals and components/ui primitives
+├── __tests__/              # Jest test suites
+└── public/                 # images
 ```
 
-API functionality is separated into feature-specific modules rather than being written directly inside each page.
+All API calls go through `apiFetch` (`app/lib/api/http.ts`). It adds the bearer token, turns .NET validation errors into readable messages, and signs the user out automatically on a `401`.
 
-This keeps API access reusable and makes the frontend easier to maintain.
+### Configuration
 
----
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Base URL of the backend API. Built into the app at build time, so redeploy after changing it. |
 
-## API Configuration
-
-The dashboard reads the backend URL from:
-
-```text
-NEXT_PUBLIC_API_URL
-```
-
-For example:
-
-```ts
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-```
-
-Requests are then sent to the configured backend environment.
-
-This prevents the application from hard-coding environment-specific URLs throughout the codebase.
-
----
-
-## Authentication Requests
-
-Authentication logic is separated into API utilities.
-
-For example, the login request sends user credentials to:
-
-```text
-POST /api/Auth/login
-```
-
-and expects the backend `AuthResponseDto` structure:
-
-```ts
-export interface LoginResponse {
-  token: string | null;
-  role: string | null;
-}
-```
-
-The frontend verifies the backend response before treating the user as authenticated.
-
-Failed responses are handled explicitly and converted into user-facing errors.
-
-For example:
-
-- `400 Bad Request`;
-- `401 Unauthorized`;
-- unexpected server errors.
-
-This keeps authentication errors predictable and prevents unsuccessful API responses from being treated as valid logins.
-
----
-
-## Admin Authorization
-
-The dashboard works together with the backend's role and policy authorization.
-
-Administrative requests are authenticated using JWTs and protected backend endpoints enforce permissions such as:
-
-```text
-Admin
-```
-
-and trainer-specific access rules.
-
-The frontend controls the user experience, while the backend remains the authoritative security boundary.
-
----
-
-## Dashboard and Reports
-
-The dashboard retrieves live analytics from backend administrative endpoints.
-
-Examples include:
-
-- today's overview;
-- conservation impact;
-- volunteer age distribution;
-- shift distribution;
-- attendance statistics;
-- reporting data;
-- volunteer contributions.
-
-Charts and reports are rendered using **Recharts** where visualisation is required.
-
----
-
-## Desktop-Focused Design
-
-The admin dashboard is intentionally designed primarily for **desktop use**.
-
-Administrative workflows often require:
-
-- viewing tables;
-- managing multiple records;
-- reviewing roster information;
-- displaying reports and charts;
-- working with larger amounts of information simultaneously.
-
-For this reason, the desktop dashboard is treated separately from the mobile volunteer experience rather than attempting to use one interface for both audiences.
-
----
-
-## Getting Started
-
-Navigate to the web application:
+### Running locally
 
 ```bash
 cd web-app
-```
-
-Install dependencies:
-
-```bash
 npm install
-```
-
-Start the development server:
-
-```bash
-npm run dev
-```
-
-Open:
-
-```text
-http://localhost:3000
-```
-
-Other available scripts include:
-
-```bash
-npm run build
-npm run start
+npm run dev      # http://localhost:3000
+npm test         # Jest test suites
 npm run lint
+npm run build
 ```
 
 ---
 
-# Volunteer Mobile App
+## Volunteer Mobile App
 
-The **SANCCOB Volunteer Mobile App** is built with Expo and React Native.
+### Tech stack
 
-The mobile application is used by volunteers to manage their SANCCOB participation from their phones.
+- **Expo** with **React Native**, **Expo Router** and **TypeScript**
+- **expo-secure-store** for the login token and language choice
+- **expo-notifications** for push notifications
+- **i18n-js** for translations (English, Afrikaans, isiXhosa, isiZulu)
+- **EAS Build**, **EAS Submit** and **EAS Update**
+- **Jest** with **jest-expo** and **React Native Testing Library**
 
-## Tech Stack
+### Features
 
-The mobile application uses:
+**Volunteers can:**
 
-- **Expo**
-- **React Native**
-- **Expo Router**
-- **React 19**
-- **TypeScript**
-- **expo-secure-store**
-- **Expo Push Notifications**
-- **EAS Build**
-- **EAS Submit**
+- activate their account with the emailed code and choose a password, with inline validation of the password rules
+- log in, reset a forgotten password and log out
+- see this week's shifts on Home, and all shifts under **My Shifts**
+- book open shifts under **Available Shifts**
+- submit weekly availability (Morning, Afternoon, Full Day)
+- ask to cancel a shift, with a reason
+- follow training progress by stage, and see hours and shift stats
+- receive in-app and push notifications
+- edit their profile and switch language (English, Afrikaans, isiXhosa, isiZulu)
 
----
+**Trainers can:**
 
-## Main Features
+- sign in with their own staff PIN
+- find a volunteer and sign off a skill. Each sign-off is recorded under the trainer's name.
 
-The mobile application supports:
-
-- volunteer login;
-- account activation;
-- forgot-password flow;
-- password reset;
-- viewing assigned shifts;
-- viewing available shifts;
-- vacancy booking;
-- submitting availability;
-- submitting shift-change requests;
-- viewing training progress;
-- viewing training statistics;
-- viewing notifications;
-- receiving push notifications;
-- viewing profile information;
-- editing profile information;
-- logging out.
-
-All current screens are connected to the live backend.
-
----
-
-## App Structure
-
-A simplified mobile application structure is:
+### Project structure
 
 ```text
 volunteer-mobile-app/
-├── app/
-│   ├── index.tsx
-│   ├── login.tsx
-│   ├── activate.tsx
-│   ├── ...
-│   │
-│   └── (tabs)/
-│       ├── home.tsx
-│       │
-│       ├── bookings/
-│       │   ├── index.tsx
-│       │   ├── submit-availability.tsx
-│       │   └── request-change.tsx
-│       │
-│       ├── progress/
-│       │   └── ...
-│       │
-│       └── profile.tsx
-│
 ├── src/
-│   └── services/
-│       ├── auth.ts
-│       ├── notifications.ts
-│       ├── pushNotifications.ts
-│       └── ...
-│
-├── components/
-├── types/
-├── utils/
-├── app.json
-└── package.json
+│   ├── app/                    # screens (Expo Router)
+│   │   ├── index.tsx           # welcome screen
+│   │   ├── login.tsx  activate.tsx  forgot-password.tsx
+│   │   ├── request-change.tsx
+│   │   ├── trainer-pin.tsx  trainer-dashboard.tsx  trainer-volunteer/[volunteerId].tsx
+│   │   └── (tabs)/
+│   │       ├── home/           # Home, notifications
+│   │       ├── bookings/       # My Shifts, Available Shifts, availability
+│   │       ├── progress/       # training progress, stats
+│   │       └── profile.tsx
+│   ├── services/               # one module per backend area
+│   ├── components/             # shared UI
+│   ├── i18n/                   # LanguageProvider + locales (en, af, xh, zu)
+│   ├── constants/  types/  utils/
+├── __tests__/                  # Jest tests
+├── app.json  eas.json  .env
 ```
 
-The application separates:
+Screens never call `fetch` directly. They call a function in `src/services`, which uses the helper in `src/utils/api.ts` to add the token, parse errors and handle expired sessions.
 
-- routes and screens;
-- API service calls;
-- shared components;
-- TypeScript interfaces;
-- authentication utilities;
-- notification functionality.
+### Configuration
 
----
-
-## API Integration
-
-The mobile application communicates directly with the live SANCCOB backend.
-
-Authenticated API requests attach the JWT:
-
-```http
-Authorization: Bearer <token>
-```
-
-The authentication token is stored securely using:
+The app reads one variable from `volunteer-mobile-app/.env`:
 
 ```text
-expo-secure-store
+EXPO_PUBLIC_API_URL=https://sanccob-backend-api-btgscudjhbcdddf8.spaincentral-01.azurewebsites.net
 ```
 
-This is preferable to storing sensitive authentication information in ordinary local application storage.
+This file is committed on purpose, because the URL is public and holds no secrets. Never add real secrets to it.
 
----
-
-## Volunteer Profile
-
-The profile functionality is connected to the backend profile endpoints.
-
-Volunteers can retrieve and edit their own information through authenticated API calls.
-
-Examples include:
-
-```text
-GET /api/volunteers/me/profile
-PUT /api/volunteers/me/profile
-```
-
-The `/me` pattern allows the backend to determine the user from the JWT rather than relying on the mobile application to supply an arbitrary user ID.
-
----
-
-## Availability
-
-Volunteers can submit and update their availability through the backend.
-
-The application sends availability information for:
-
-- day of the week;
-- selected time slot.
-
-The submitted availability is then used by backend scheduling and roster-generation logic.
-
----
-
-## Shift Management
-
-The mobile application allows volunteers to view:
-
-- assigned shifts;
-- available shifts;
-- vacancy information.
-
-Eligible volunteers can also book vacancies through the backend API.
-
----
-
-## Shift Change Requests
-
-Shift-change requests are fully integrated with the backend.
-
-Volunteers can submit real requests through the application instead of using placeholder or mock functionality.
-
-The backend records the request and administrators can later approve or decline it.
-
----
-
-## Training Progress
-
-The training section is connected to the backend training API.
-
-Volunteers can view real training information including:
-
-- training profile;
-- training statistics;
-- skill progress;
-- signed-off skills.
-
-This replaces the earlier mock-data implementation.
-
----
-
-# Authentication
-
-Both applications use the SANCCOB backend authentication system.
-
-The frontend supports:
-
-- login;
-- first-time account activation;
-- forgot password;
-- reset password;
-- logout.
-
-## Login
-
-Users authenticate using:
-
-```text
-POST /api/Auth/login
-```
-
-Successful authentication returns:
-
-- JWT token;
-- user role.
-
-The token is used for future authenticated requests.
-
----
-
-## Account Activation
-
-New users activate their account using:
-
-```text
-POST /api/Auth/activate
-```
-
-The activation process uses the OTP/account activation information provided by SANCCOB.
-
-After successful activation, the user can access authenticated features.
-
----
-
-## Forgot Password
-
-The forgot-password flow is connected to:
-
-```text
-POST /api/Auth/forgot-password
-```
-
-The backend generates the required reset information and sends it through the configured email service.
-
----
-
-## Reset Password
-
-Password reset uses:
-
-```text
-POST /api/Auth/reset-password
-```
-
-The frontend collects the required reset information and sends it to the backend for validation.
-
-The backend remains responsible for:
-
-- validating the reset code;
-- checking expiry;
-- applying password rules;
-- securely hashing the new password.
-
----
-
-## Logout
-
-Logout invalidates the current authenticated session through the backend token-revocation workflow.
-
-The frontend also clears its locally stored authentication information.
-
----
-
-# Notifications
-
-Notifications are fully integrated across the frontend and backend.
-
-## In-App Notifications
-
-Users can retrieve notifications from:
-
-```text
-GET /api/notifications
-```
-
-and mark notifications as read through:
-
-```text
-PATCH /api/notifications/{id}/read
-```
-
-The admin dashboard also supports its own administrative notification endpoints.
-
----
-
-## Expo Push Notifications
-
-The mobile application uses **Expo Push Notifications**.
-
-The app registers its push token with the backend through:
-
-```text
-POST /api/notifications/push-token
-```
-
-The backend can then send relevant push notifications to the device.
-
-Push notifications are used for events such as:
-
-- available shifts;
-- shift-change outcomes;
-- completed training;
-- other relevant volunteer updates.
-
-Push notification functionality is operational in the mobile test build.
-
----
-
-# User Experience and Feedback
-
-Both frontend applications provide user feedback for actions that succeed or fail.
-
-Examples include:
-
-- successful form submissions;
-- successful profile updates;
-- authentication errors;
-- API validation errors;
-- failed login attempts;
-- failed administrative actions;
-- successful roster or shift operations.
-
-The applications use **success and error messages** to communicate the outcome of user actions.
-
-The current implementation does not rely on dedicated loading indicators as a standard UI pattern.
-
----
-
-# Testing
-
-Automated frontend tests are implemented as part of the frontend codebase.
-
-Testing helps verify frontend behaviour and reduces the risk of regressions as features are changed or extended.
-
-Testing should be run before deployment alongside normal development checks such as linting and production builds.
-
-Where applicable, tests cover frontend logic and behaviour independently from the production backend environment.
-
----
-# Known Limitations and Planned Improvements
-
-The current frontend applications are fully integrated with the backend for the implemented workflows. The following improvements have been identified for future development.
-
-## Roster CRUD Functionality
-
-The admin dashboard currently supports roster-related workflows, including roster generation and management.
-
-A future improvement is to provide complete CRUD functionality for roster records through the user interface.
-
-This would allow administrators to:
-
-- create rosters manually;
-- open and view individual rosters;
-- edit existing roster information;
-- delete rosters where permitted;
-- manage roster records without relying only on the automatic generation workflow.
-
-The frontend functionality will depend on the corresponding backend roster CRUD endpoints.
-
-## Dark Theme
-
-A dark theme is planned for the frontend applications.
-
-This would allow users to switch between light and dark visual themes while maintaining:
-
-- consistent SANCCOB branding;
-- readable text and interface contrast;
-- clear form controls;
-- accessible status indicators;
-- consistent colours across pages and components.
-
-Theme preferences could also be persisted so that the user's selected theme is restored when the application is reopened.
-
-## Login Page Slideshow
-
-A visual slideshow is planned for the login experience.
-
-The slideshow could display SANCCOB-related imagery and conservation content while users sign in, providing a more engaging and branded first impression.
-
-The slideshow should be designed so that it does not interfere with:
-
-- login form readability;
-- accessibility;
-- authentication error messages;
-- page performance.
-
-This feature would primarily enhance the visual design and branding of the authentication experience.
----
-
-# Deployment
-
-The two frontend applications use different deployment strategies because they target different platforms.
-
-## Admin Dashboard Deployment
-
-The admin dashboard is deployed using **Vercel**.
-
-The production web application communicates with the live Azure-hosted SANCCOB Backend API.
-
-The backend API URL is configured using:
-
-```text
-NEXT_PUBLIC_API_URL
-```
-
-This keeps deployment configuration separate from the source code.
-
-The live application link is listed in the [Live Applications](#live-applications) section at the top of this README.
-
----
-
-## Volunteer Mobile App Deployment
-
-The mobile application uses the Expo Application Services deployment toolchain.
-
-Builds are created using:
+### Running locally
 
 ```bash
-eas build
+cd volunteer-mobile-app
+npm install
+npx expo start      # scan the QR code with a development build or Expo Go
+npm test
+npx tsc --noEmit
 ```
 
-and submitted using:
+---
 
-```bash
-eas submit
-```
+## Authentication
 
-For iOS testing, the application is distributed through **Apple TestFlight**.
+Both apps use the backend's JWT authentication.
 
-The TestFlight installation link is listed in the [Live Applications](#live-applications) section at the top of this README.
+| Action | Endpoint |
+|---|---|
+| Log in | `POST /api/Auth/login`: returns a token and role |
+| Activate (first use) | `POST /api/Auth/activate`: email, 6-digit code, new password |
+| Forgot password | `POST /api/Auth/forgot-password`: same response whether or not the email exists |
+| Reset password | `POST /api/Auth/reset-password` |
+| Log out | `POST /api/Auth/logout`: the token is revoked on the server |
+| Trainer sign-in | `POST /api/trainers/verify-pin`: rate-limited, returns a trainer-scoped token |
+
+**Token storage:**
+
+- **Mobile:** the token is kept in `expo-secure-store` (iOS Keychain or Android Keystore).
+- **Admin dashboard:** the token is kept in `sessionStorage` by default, or in `localStorage` if the admin ticks **Keep me signed in**.
+- Trainer sessions are never restored when the app restarts, which protects shared phones.
+
+Volunteer data always comes from `/me` endpoints. The backend identifies the user from the token, so the app never sends someone else's user ID.
 
 ---
 
-# Technology Rationale
+## Notifications
 
-## Separate Web and Mobile Applications
+- **In-app:** `GET /api/notifications`, then `PATCH /api/notifications/{id}/read` to mark one read.
+- **Admin feed:** `/api/admin/notifications`, with live updates over SignalR.
+- **Push:** the phone registers its Expo push token with `POST /api/notifications/push-token`.
 
-The system uses separate staff and volunteer frontends because the two user groups have significantly different requirements.
+Volunteers are notified about:
 
-Administrators require:
-
-- tables;
-- analytics;
-- reporting;
-- roster management;
-- shift scheduling;
-- volunteer administration;
-- training management.
-
-These tasks benefit from a larger desktop interface.
-
-Volunteers primarily require:
-
-- shift information;
-- availability;
-- notifications;
-- bookings;
-- training progress;
-- profile management.
-
-These workflows are suited to a mobile application that can be accessed quickly during normal volunteer activity.
+- a published roster
+- open shifts they're qualified for (**Notify Qualified**)
+- decisions on their change requests
+- skill sign-offs
 
 ---
 
-## Next.js
+## User Experience
 
-Next.js was selected for the admin dashboard because it provides:
-
-- strong React and TypeScript support;
-- file-based routing through the App Router;
-- component-based development;
-- environment-based configuration;
-- straightforward Vercel deployment.
-
-It also supports the structured administrative pages required by the system.
+- **Feedback:** every action confirms success or explains failure. The mobile app uses toast messages; the admin uses inline messages and banners.
+- **Loading, empty and error states:** every screen has them. A failed section shows its own error without breaking the rest of the page.
+- **Forms:** activation shows field errors inline, and the backend's validation messages appear on the field they belong to.
+- **Accessibility:** colour is never the only signal; statuses and time slots are always written out. Icon buttons have labels, and the admin has a consistent keyboard focus ring.
+- **Themes:** the admin supports Light, Dark and System themes, applied before first paint.
+- **Languages:** the mobile app supports four languages. The Afrikaans, isiXhosa and isiZulu translations still need review by native speakers.
 
 ---
 
-## React Native and Expo
+## Testing
 
-React Native allows the volunteer interface to use a mobile-first user experience while sharing a TypeScript/React development model with the web application.
+| App | Tests | Command | Runs in CI |
+|---|---|---|---|
+| Admin Dashboard | 60 tests in 15 suites | `cd web-app && npm test` | `web-ci.yml` |
+| Volunteer Mobile App | 51 tests in 20 files | `cd volunteer-mobile-app && npm test` | `mobile-ci.yml` |
 
-Expo simplifies:
+What the tests cover:
 
-- development;
-- native builds;
-- device testing;
-- secure storage;
-- push notifications;
-- iOS distribution;
-- Android distribution.
+- **Admin:** the API helper and automatic logout, session restore, the roster matrix and its modals, the shift form, the vacancy list and Notify Qualified, notifications (including the 48-hour hiding rule), the training history modal, and date helpers.
+- **Mobile:** the API helper and sessions, login and navigation (volunteer and trainer), Home, shift cards, available shifts and booking, availability, cancellation requests, training and stats, notifications, profile, the trainer dashboard, the crash screen, and time helpers.
 
-EAS Build and EAS Submit also reduce the amount of native deployment infrastructure the team needs to manage manually.
+Native modules such as secure storage are mocked, so the tests run without a phone.
 
 ---
 
-## TypeScript
+## CI/CD and Deployment
 
-Both frontend applications use TypeScript.
+### Admin Dashboard (`.github/workflows/web-ci.yml`)
 
-TypeScript improves maintainability by providing static typing for:
+Runs on every push and pull request to `main` that touches `web-app/`.
 
-- API response structures;
-- component properties;
-- application state;
-- service functions;
-- shared interfaces.
+1. **Build and test:** `npm ci`, lint, Next.js type generation, `tsc --noEmit`, the Jest suite, then a production build.
+2. **Deploy** (pushes to `main` only, and only if step 1 passes): `vercel pull`, `vercel build --prod`, `vercel deploy --prebuilt --prod`, using the `VERCEL_TOKEN` secret.
 
-This is particularly useful when consuming DTO-based ASP.NET Core APIs because frontend types can closely match backend response contracts.
+A failing test or build stops the deployment. Pull requests are checked but not deployed.
 
----
+### Volunteer Mobile App (`.github/workflows/mobile-ci.yml`)
 
-## Tailwind CSS
+Runs on pushes and pull requests to `main` that touch `volunteer-mobile-app/`: `npm ci`, `tsc --noEmit`, then `npx jest --ci`.
 
-Tailwind CSS is used by the admin dashboard to provide reusable styling utilities and maintain consistent interface styling.
+Builds are a deliberate, manual step through EAS:
 
-It supports the dashboard's layout, typography, spacing, forms, tables, and other visual elements.
+| Profile | Produces |
+|---|---|
+| `preview` | Android **APK** for direct install |
+| `production` | iOS store build with an auto-incremented build number, then `eas submit` to TestFlight |
 
----
+Builds can also be started on expo.dev with **Build from GitHub**, which avoids uploading the project from a laptop. JavaScript-only fixes can be shipped with `eas update`.
 
-## Vercel
-
-Vercel provides managed hosting for the Next.js administration dashboard.
-
-Using Vercel reduces deployment overhead and integrates naturally with the Next.js development model.
+When a new APK is built, update the link in this README and the backend's `MobileApp__AndroidUrl` setting, so activation emails point to it.
 
 ---
 
-## Expo SecureStore
+## Known Limitations and Planned Improvements
 
-The volunteer application uses Expo SecureStore for sensitive authentication information.
+### Admin Dashboard
 
-This provides more appropriate device-level storage for authentication tokens than ordinary application storage.
+- **No unpublish.** A published roster can be edited or deleted, but not returned to draft.
+- **Token in browser storage.** Moving to an HttpOnly cookie needs a cross-origin cookie set-up between Vercel and Azure.
+- **Some screens are tested only manually.** The roster assignment modals, Staff Training and Reports pages have no automated tests, and there are no end-to-end browser tests.
+- **Notification expiry is front-end only.** Items older than 48 hours are hidden, not deleted.
+- **Shift notes** in the side panel are not yet saved to the server.
+- **Screen-reader labels** on individual roster matrix cells need improving.
+
+### Volunteer Mobile App
+
+- **Foreground notifications.** No banner shows when the app is open; the notification still appears in the in-app list.
+- **Notification taps** open the app but don't jump to the related screen.
+- **Read and cleared notification state** is stored on the phone, so it doesn't carry over to another device.
+- **Trainers must sign in every time.** This is deliberate for shared phones; an opt-in "stay signed in" could suit trainers with their own phone.
+- **Volunteer News and Meet the Seabirds** are built into the app, so changing them needs a new release.
+- **Distribution.** TestFlight builds expire after 90 days, and Expo removes free-plan build files after about 30 days. A full launch needs App Store and Google Play listings.
 
 ---
 
-# Summary
+## Technology Rationale
 
-The SANCCOB frontend provides two purpose-built interfaces connected to the same secure backend.
+- **Two separate apps:** administrators need tables, reports and roster editing on a big screen. Volunteers need quick answers on a phone.
+- **Next.js:** file-based routing, TypeScript support and straightforward Vercel deployment.
+- **React Native with Expo:** one codebase for iPhone and Android, with managed builds, secure storage, push notifications and over-the-air updates, so the team doesn't maintain native build infrastructure.
+- **TypeScript:** front-end types mirror the backend DTOs, so contract mismatches are caught at compile time.
+- **Tailwind with design tokens:** one source of truth for colour and spacing, and dark mode without duplicated classes.
+- **Vercel:** managed hosting for Next.js, with preview and production deployments.
 
-The **Admin Dashboard** provides a desktop-focused interface for SANCCOB staff to manage:
+---
 
-- volunteers;
-- shifts;
-- rosters;
-- training;
-- vacancies;
-- reports;
-- notifications;
-- dashboard analytics.
+## User Guides
 
-The **Volunteer Mobile App** provides volunteers with mobile access to:
+Step-by-step guides for each audience are delivered with the project:
 
-- authentication;
-- availability;
-- shifts;
-- bookings;
-- change requests;
-- training;
-- notifications;
-- profile management.
-
-The frontend implementation combines:
-
-- Next.js;
-- React;
-- React Native;
-- Expo;
-- TypeScript;
-- Tailwind CSS;
-- Recharts;
-- Expo SecureStore;
-- Expo Push Notifications;
-- automated frontend testing;
-- Vercel deployment;
-- EAS Build and Submit;
-- Apple TestFlight distribution;
-- live integration with the Azure-hosted SANCCOB Backend API.
-
-Together, the two applications provide a complete frontend layer for SANCCOB's volunteer management and scheduling system.
-```
+- **SANCCOB Admin Web App – User Guide**, for coordinators
+- **SANCCOB Volunteer Mobile App – User Guide**, for volunteers and trainers
